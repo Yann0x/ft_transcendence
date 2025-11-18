@@ -1,0 +1,17 @@
+{
+  "name": "ft_transcendance",
+  "version": "1.0.0",
+  "main": "src/server.ts",
+  "scripts": {
+    "dev": "ts-node src/server.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@fastify/static": "^6.12.0",
+    "fastify": "^4.29.1"
+  }
+}
