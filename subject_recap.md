@@ -140,3 +140,20 @@
   - Découper le backend en plusieurs services (auth, game, chat, matchmaking, etc.) avec APIs entre eux.
   - Complexifie fortement le Docker, la communication, la sécurité et le déploiement.
   - Très formateur mais change toute l’architecture et augmente beaucoup le risque de ne pas finir le reste.
+
+---
+
+## Récap global
+
+- **Web** : 20 / 30 pts  
+- **User management** : 20 / 20 pts  
+- **Gameplay & UX** : 30 / 45 pts  
+- **AI / Algo** : 15 / 15 pts  
+- **Accessibilité** : 10 / 15 pts  
+- **Cyber / Sécurité** : 5 / 25 pts  
+
+**Total obtenu** : 100 / 150 pts  
+- ✅ Modules prévus / validés : **100 pts**  
+- ⭐ Bonus potentiels : **10 pts** (Blockchain)  
+- ❓ Modules optionnels / à décider : **40 pts**
+
