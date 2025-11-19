@@ -12,7 +12,6 @@ app.get("/yann", async (req, reply) => {
   return reply.sendFile("index.html");
 });
 
-// 🚀 Attacher le serveur avec await pour garder le processus actif
 const start = async () => {
   try {
     await app.listen({ port: 3000 });
