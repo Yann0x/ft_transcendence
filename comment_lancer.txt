@@ -1,3 +1,8 @@
 commande a ecire
 npx ts-node src/server.ts
 
+
+tuto --> 
+en gros les fichier de backend renvoi des pages etc se trouve dans le doss src et tout le front dans public
+
+les config pour le moment on sent fou je comprend rien non plus a cette parti 
