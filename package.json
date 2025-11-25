@@ -1,0 +1,28 @@
+{
+  "name": "transcendence",
+  "version": "1.0.0",
+  "description": "Pong game",
+  "homepage": "https://github.com/Yann0x/ft_transcendance#readme",
+  "bugs": {
+    "url": "https://github.com/Yann0x/ft_transcendance/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yann0x/ft_transcendance.git"
+  },
+  "license": "ISC",
+  "author": "Callista, Ethan, Yann, Adele, Baptiste",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc -p tsconfig.json",
+    "start" : "node build/server.js"
+  },
+  "dependencies": {
+    "fastify": "^5.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}
