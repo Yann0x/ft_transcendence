@@ -1,0 +1,67 @@
+services:
+  proxy:
+    container_name: proxy
+    build: services/proxy
+    env_file:
+      - .env
+    networks:  
+      - transcendence
+    ports:
+      - 8080:8080
+    volumes:
+      - ./services/proxy/data:/data
+    restart: always
+    
+  authenticate:
+    container_name: authenticate
+    build: services/authenticate
+    env_file:
+      - .env
+    networks:  
+      - transcendence
+#    volumes:
+#      - db_data:/var/lib/mysql
+    restart: always
+  
+  user:
+    container_name: user
+    build: services/user
+    env_file:
+      - .env
+    networks:  
+      - transcendence
+#    volumes:
+#      - db_data:/var/lib/mysql
+    restart: always
+  
+  game:
+    container_name: game
+    build: services/game
+    env_file:
+      - .env
+    networks:  
+      - transcendence
+#    volumes:
+#      - db_data:/var/lib/mysql
+    restart: always
+  chat:
+    container_name: chat
+    build: services/chat
+    env_file:
+      - .env
+    networks:  
+      - transcendence
+#    volumes:
+#      - db_data:/var/lib/mysql
+    restart: always
+#volumes:
+#  db_data:
+#    driver: local
+#    driver_opts:
+#      type: none
+#      device: ${HOME}/data/db_data
+#      o: bind
+
+networks:
+  transcendence:
+    driver: bridge

@@ -13,4 +13,17 @@ nvm install 24
 ```bash 
 npm i fastify
 npm i -D typescript @types/node
+
+```
+
+# Running server
+```bash
+# install dependencies (first time launch)
+npm i 
+
+# compile typescript file.ts to build/file.js
+npm run build
+
+launch server
+npm start
 ```
