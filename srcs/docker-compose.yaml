@@ -1,7 +1,7 @@
 services:
   proxy:
     container_name: proxy
-    build: services/proxy
+    build: backend/proxy
     env_file:
       - .env
     networks:  
@@ -9,58 +9,60 @@ services:
     ports:
       - 8080:8080
     volumes:
-      - ./services/proxy/data:/data
+      - ./backend/proxy/data:/data
+      - ./frontend/:/frontend
     restart: always
     
   authenticate:
     container_name: authenticate
-    build: services/authenticate
+    build: backend/authenticate
     env_file:
       - .env
+    expose:
+      - 3000
     networks:  
       - transcendence
-#    volumes:
-#      - db_data:/var/lib/mysql
+    volumes:
+      - ./backend/authenticate/data:/data
     restart: always
   
   user:
     container_name: user
-    build: services/user
+    build: backend/user
     env_file:
       - .env
+    expose:
+      - 3000
     networks:  
       - transcendence
-#    volumes:
-#      - db_data:/var/lib/mysql
+    volumes:
+      - ./backend/user/data:/data
     restart: always
   
   game:
     container_name: game
-    build: services/game
+    build: backend/game
     env_file:
       - .env
+    expose:
+      - 3000
     networks:  
       - transcendence
-#    volumes:
-#      - db_data:/var/lib/mysql
+    volumes:
+      - ./backend/game/data:/data
     restart: always
   chat:
     container_name: chat
-    build: services/chat
+    build: backend/chat
     env_file:
       - .env
+    expose:
+      - 3000
     networks:  
       - transcendence
-#    volumes:
-#      - db_data:/var/lib/mysql
+    volumes:
+      - ./backend/chat/data:/data
     restart: always
-#volumes:
-#  db_data:
-#    driver: local
-#    driver_opts:
-#      type: none
-#      device: ${HOME}/data/db_data
-#      o: bind
 
 networks:
   transcendence:

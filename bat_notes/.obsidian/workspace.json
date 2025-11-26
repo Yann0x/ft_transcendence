@@ -15,9 +15,9 @@
               "state": {
                 "file": "FlowGraphs.canvas",
                 "viewState": {
-                  "x": 3271.8423770610807,
-                  "y": -1091.897716507102,
-                  "zoom": -0.7424078583450939
+                  "x": 3287.176581955522,
+                  "y": -101.41571237801898,
+                  "zoom": -0.5480000369071966
                 }
               },
               "icon": "lucide-layout-dashboard",
@@ -30,16 +30,15 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "backtrace.md",
+                "file": "Cluster Stack.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "backtrace"
+              "title": "Cluster Stack"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -229,23 +228,23 @@
           }
         ],
         "direction": "vertical",
-        "x": 191,
-        "y": 110,
-        "width": 760,
-        "height": 1175,
+        "x": 819,
+        "y": 0,
+        "width": 688,
+        "height": 1019,
         "maximize": false,
         "zoom": -1
       }
     ]
   },
-  "active": "0c1f170f42bbf9e9",
+  "active": "baca79a3f58d3cda",
   "lastOpenFiles": [
     "en.subject.pdf",
-    "backtrace.md",
-    "Cluster Stack.md",
-    "transcendence.base",
-    "Modules.md",
     "FlowGraphs.canvas",
+    "Cluster Stack.md",
+    "backtrace.md",
+    "Modules.md",
+    "transcendence.base",
     "SISI.md"
   ]
 }

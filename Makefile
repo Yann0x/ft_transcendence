@@ -11,3 +11,12 @@ clean :
 
 fclean: clean
 	docker rmi $$(docker image ls -aq)
+
+re : fclean all
+
+
+front:
+	cd srcs/frontend && npm install && npm run build
+
+.PHONY: all run clean fclean re
+.IGNORE: clean fclean re
