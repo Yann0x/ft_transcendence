@@ -1,0 +1,148 @@
+/* ============================================
+   COMPONENTS - ft_transcendance
+   ============================================ */
+
+/* ---- Buttons ---- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary {
+  background-color: #2563eb;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.btn-secondary {
+  background-color: #059669;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #047857;
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid #404040;
+  color: #d4d4d4;
+}
+
+.btn-outline:hover {
+  background-color: #262626;
+  color: white;
+}
+
+.btn-large {
+  padding: 1rem 2rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-radius: 0.75rem;
+}
+
+/* ---- Cards ---- */
+.card {
+  background-color: #171717;
+  border: 1px solid #262626;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.card-header {
+  background-color: #262626;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #404040;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.card-footer {
+  background-color: #262626;
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid #404040;
+}
+
+/* ---- Badges ---- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.badge-success {
+  background-color: #059669;
+  color: white;
+}
+
+.badge-warning {
+  background-color: #d97706;
+  color: white;
+}
+
+.badge-error {
+  background-color: #dc2626;
+  color: white;
+}
+
+.badge-info {
+  background-color: #2563eb;
+  color: white;
+}
+
+/* ---- Stats Card ---- */
+.stat-card {
+  background-color: #171717;
+  border: 1px solid #262626;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.875rem;
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #a3a3a3;
+  margin-top: 0.25rem;
+}
+
+/* ---- Navigation ---- */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  color: #d4d4d4;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.nav-link:hover {
+  background-color: #262626;
+  color: white;
+}
+
+.nav-link.active {
+  background-color: #2563eb;
+  color: white;
+}

@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+/* Scan all source files for classes */
+@source "../**/*.html";
+@source "../**/*.ts";

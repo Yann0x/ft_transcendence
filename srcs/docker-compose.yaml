@@ -69,6 +69,21 @@ services:
       - ./backend/chat/data:/data
     restart: always
 
+  frontend:
+    container_name: frontend
+    build: frontend
+    init: true
+    env_file:
+      - .env
+    expose:
+      - 3000
+    networks:  
+      - transcendence
+    volumes:
+      - ./frontend/data:/data
+    restart: always
+
+
 networks:
   transcendence:
     driver: bridge
