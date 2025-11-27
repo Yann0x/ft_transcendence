@@ -2,11 +2,15 @@ docker-compose-path := srcs/docker-compose.yaml
 
 all : run
 
-run : front
+run : init front 
 	docker compose -f $(docker-compose-path) up -d --build
 
 down :
 	docker compose -f $(docker-compose-path) down
+
+logs :
+	docker compose -f $(docker-compose-path) logs
+
 
 clean :
 
@@ -17,6 +21,8 @@ fclean: down clean
 
 re : fclean all
 
+init:
+	./setup.sh
 
 devfront: down
 	cd srcs/frontend/data && npm install && npm run dev
