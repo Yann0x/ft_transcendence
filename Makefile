@@ -2,21 +2,26 @@ docker-compose-path := srcs/docker-compose.yaml
 
 all : run
 
-run :
-	docker compose -f $(docker-compose-path) up
+run : front
+	docker compose -f $(docker-compose-path) up -d --build
+
+down :
+	docker compose -f $(docker-compose-path) down
 
 clean :
 
 	docker rm $$(docker ps -aq)
 
-fclean: clean
+fclean: down clean
 	docker rmi $$(docker image ls -aq)
 
 re : fclean all
 
 
+devfront: down
+	cd srcs/frontend/data && npm install && npm run dev
 front:
-	cd srcs/frontend && npm install && npm run build
+	cd srcs/frontend/data && npm install && npm run build
 
 .PHONY: all run clean fclean re
 .IGNORE: clean fclean re

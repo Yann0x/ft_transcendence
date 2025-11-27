@@ -3,7 +3,7 @@ import path from 'path'
 import { copyFileSync, mkdirSync } from 'fs'
 
 export default defineConfig({
-  root: './src',
+  root: 'src',
   publicDir: '../public',
   build: {
     outDir: '../build',
@@ -50,8 +50,8 @@ export default defineConfig({
     }
   ],
   server: {
-    host: '0.0.0.0',
-    port: 5173,
+    host: true,
+    port: 3000,
     strictPort: true
   }
 })

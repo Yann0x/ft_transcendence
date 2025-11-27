@@ -3,18 +3,27 @@ import fastifyStatic from '@fastify/static'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-const server = fastify()
+const server = fastify({ logger: true })
 
 const __filename  = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 server.register(fastifyStatic, {
-  root: path.join(__dirname, '../../../../frontend/data/build'),
+  root:'/frontend/data/build', 
   prefix: '/',
 })
 
-server.get('/api/*', async (request, reply) => {
-  return {api: 'response'}
+server.get('/api/user/*', async (request, reply) => {
+  return {user: 'response'}
+})
+server.get('/api/authenticate/*', async (request, reply) => {
+  return {authenticate: 'response'}
+})
+server.get('/api/chat/*', async (request, reply) => {
+  return {chat: 'response'}
+})
+server.get('/api/game/*', async (request, reply) => {
+  return {game: 'response'}
 })
 
 server.get('/ws/*', async (request, reply) => {
