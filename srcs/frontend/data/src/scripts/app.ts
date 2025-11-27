@@ -7,6 +7,7 @@ import { Router } from './router'
 import { AuthModal } from './auth-modal'
 import { I18n } from './i18n'
 import { Contrast } from './contrast'
+import { PongGame } from '../game'
 
 /**
  * Application principale
@@ -20,27 +21,27 @@ const App = {
    */
   async init(): Promise<void> {
     console.log('🏓 ft_transcendance - App initialized');
-    
+
     this.appContainer = document.getElementById('app');
-    
+
     I18n.init();
     Contrast.init();
 
     // Load auth modal
     await this.loadAuthModal();
     I18n.refresh();
-    
+
     // Load intro animation
     await this.loadIntro();
     Intro.init();
     I18n.refresh();
-    
+
     // Initialize auth modal
     setTimeout(() => {
       AuthModal.init();
       this.setupAuthButtons();
     }, 100);
-    
+
     // Initialize router
     Router.init(this);
   },
@@ -83,11 +84,19 @@ const App = {
 
     this.appContainer.innerHTML = navbar + page + footer;
     this.appContainer.classList.add('main-content', 'flex', 'flex-col', 'flex-1');
-    
+
     // Re-attach auth buttons after page loads
     this.setupAuthButtons();
     I18n.refresh();
     Contrast.bindControls();
+
+    // Initialise le jeu Pong si on est sur la page home
+    if (name === 'home') {
+      const gameContainer = document.getElementById('game-container');
+      if (gameContainer) {
+        PongGame.init(gameContainer);
+      }
+    }
   },
 
   /**

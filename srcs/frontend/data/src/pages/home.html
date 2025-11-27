@@ -1,10 +1,10 @@
 <!-- Home Page -->
 <main class="flex-1 flex items-center justify-center p-8">
   <div class="w-full max-w-5xl">
-    
+
     <!-- Game Container -->
     <div class="card shadow-2xl">
-      
+
       <!-- Game Header -->
       <div class="card-header flex items-center justify-between">
         <div class="flex items-center gap-4">
@@ -17,12 +17,10 @@
           <span class="text-neutral-400" data-i18n="home.players_online">42 joueurs connectés</span>
         </div>
       </div>
-      
+
       <!-- Game Area -->
-      <div class="relative bg-neutral-950 aspect-video flex items-center justify-center">
-        <p class="text-neutral-500 text-lg" data-i18n="home.game_area_placeholder">Zone de jeu - À implémenter</p>
-      </div>
-      
+      <div id="game-container" class="relative bg-neutral-950 aspect-video"></div>
+
       <!-- Game Footer -->
       <div class="card-footer flex items-center justify-between">
         <div class="flex items-center gap-6 text-sm text-neutral-400">
@@ -32,7 +30,7 @@
         <button class="btn btn-outline text-sm" data-i18n="home.settings">⚙️ Paramètres</button>
       </div>
     </div>
-    
+
     <!-- Quick Stats -->
     <div class="grid grid-cols-4 gap-4 mt-6">
       <div class="stat-card">
@@ -52,6 +50,6 @@
         <div class="stat-label" data-i18n="home.stat_tournaments">Tournois gagnés</div>
       </div>
     </div>
-    
+
   </div>
 </main>
