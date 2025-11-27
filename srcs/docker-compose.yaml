@@ -2,6 +2,7 @@ services:
   proxy:
     container_name: proxy
     build: backend/proxy
+    init: true
     env_file:
       - .env
     networks:  
@@ -16,6 +17,7 @@ services:
   authenticate:
     container_name: authenticate
     build: backend/authenticate
+    init: true
     env_file:
       - .env
     expose:
@@ -29,6 +31,7 @@ services:
   user:
     container_name: user
     build: backend/user
+    init: true
     env_file:
       - .env
     expose:
@@ -42,6 +45,7 @@ services:
   game:
     container_name: game
     build: backend/game
+    init: true
     env_file:
       - .env
     expose:
@@ -54,6 +58,7 @@ services:
   chat:
     container_name: chat
     build: backend/chat
+    init: true
     env_file:
       - .env
     expose:
