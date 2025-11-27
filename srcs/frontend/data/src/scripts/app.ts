@@ -6,6 +6,7 @@ import { Intro } from './intro'
 import { Router } from './router'
 import { AuthModal } from './auth-modal'
 import { User } from '../shared/types'
+import { PongGame } from '../game'
 
 /**
  * Application principale
@@ -77,9 +78,17 @@ const App = {
 
     this.appContainer.innerHTML = navbar + page + footer;
     this.appContainer.classList.add('main-content', 'flex', 'flex-col', 'flex-1');
-    
+
     // Re-attach auth buttons after page loads
     this.setupAuthButtons();
+
+    // Initialise le jeu Pong si on est sur la page home
+    if (name === 'home') {
+      const gameContainer = document.getElementById('game-container');
+      if (gameContainer) {
+        PongGame.init(gameContainer);
+      }
+    }
   },
 
   /**
