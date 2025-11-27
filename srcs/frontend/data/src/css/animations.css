@@ -1,0 +1,124 @@
+/* ============================================
+   ANIMATIONS - ft_transcendance
+   ============================================ */
+
+/* ---- Intro Animation ---- */
+@keyframes paddle-left {
+  0% { 
+    transform: translateX(-100vw) rotate(-15deg); 
+    opacity: 0; 
+  }
+  50% { 
+    transform: translateX(0) rotate(-15deg); 
+    opacity: 1; 
+  }
+  70% { 
+    transform: translateX(10px) rotate(-15deg); 
+  }
+  100% { 
+    transform: translateX(0) rotate(-15deg); 
+    opacity: 1; 
+  }
+}
+
+@keyframes paddle-right {
+  0% { 
+    transform: translateX(100vw) rotate(15deg); 
+    opacity: 0; 
+  }
+  50% { 
+    transform: translateX(0) rotate(15deg); 
+    opacity: 1; 
+  }
+  70% { 
+    transform: translateX(-10px) rotate(15deg); 
+  }
+  100% { 
+    transform: translateX(0) rotate(15deg); 
+    opacity: 1; 
+  }
+}
+
+@keyframes ball-appear {
+  0%, 60% { 
+    transform: scale(0); 
+    opacity: 0; 
+  }
+  80% { 
+    transform: scale(1.2); 
+    opacity: 1; 
+  }
+  100% { 
+    transform: scale(1); 
+    opacity: 1; 
+  }
+}
+
+@keyframes title-fade {
+  0%, 70% { 
+    opacity: 0; 
+    transform: translateY(20px); 
+  }
+  100% { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes intro-fade-out {
+  0%, 90% { 
+    opacity: 1; 
+  }
+  100% { 
+    opacity: 0; 
+    visibility: hidden; 
+  }
+}
+
+@keyframes fade-in {
+  to { 
+    opacity: 1; 
+  }
+}
+
+/* ---- Animation Classes ---- */
+.intro-screen {
+  animation: intro-fade-out 3.5s ease-in-out forwards;
+}
+
+.paddle-left {
+  animation: paddle-left 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.paddle-right {
+  animation: paddle-right 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation-delay: 0.15s;
+}
+
+.ball-anim {
+  animation: ball-appear 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.title-anim {
+  animation: title-fade 2s ease-out forwards;
+}
+
+.main-content {
+  animation: fade-in 0.5s ease-out forwards;
+  animation-delay: 3s;
+  opacity: 0;
+}
+
+/* ---- Hover Animations ---- */
+@keyframes pulse {
+  0%, 100% { 
+    transform: scale(1); 
+  }
+  50% { 
+    transform: scale(1.05); 
+  }
+}
+
+.hover-pulse:hover {
+  animation: pulse 0.3s ease-in-out;
+}

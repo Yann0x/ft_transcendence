@@ -9,7 +9,7 @@ const __filename  = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 server.register(fastifyStatic, {
-  root: path.join(__dirname, '../../../../frontend/build'),
+  root: path.join(__dirname, '../../../../frontend/data/build'),
   prefix: '/',
 })
 
