@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "bienvenu.md",
+                "file": "quickstart.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "bienvenu"
+              "title": "quickstart"
             }
           },
           {
@@ -92,7 +92,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300.5
   },
   "right": {
     "id": "27d5a2c1780c1bd1",
@@ -197,48 +197,11 @@
       "bases:Create new base": false
     }
   },
-  "floating": {
-    "id": "0092dd3c420977b2",
-    "type": "floating",
-    "children": [
-      {
-        "id": "64503245c0e8f9d3",
-        "type": "window",
-        "children": [
-          {
-            "id": "244b9c77a7409148",
-            "type": "tabs",
-            "children": [
-              {
-                "id": "e296ea33fada1ef4",
-                "type": "leaf",
-                "state": {
-                  "type": "pdf",
-                  "state": {
-                    "file": "en.subject.pdf"
-                  },
-                  "icon": "lucide-file-text",
-                  "title": "en.subject"
-                }
-              }
-            ]
-          }
-        ],
-        "direction": "vertical",
-        "x": 819,
-        "y": 0,
-        "width": 688,
-        "height": 1019,
-        "maximize": false,
-        "zoom": -1
-      }
-    ]
-  },
   "active": "baca79a3f58d3cda",
   "lastOpenFiles": [
+    "bienvenu.md",
     "Pasted image 20251128103509.png",
     "FlowGraphs.canvas",
-    "bienvenu.md",
     "Cluster Stack.md",
     "en.subject.pdf",
     "backtrace.md",
