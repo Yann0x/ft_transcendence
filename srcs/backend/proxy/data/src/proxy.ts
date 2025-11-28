@@ -1,5 +1,6 @@
 import fastify from 'fastify'
 import fastifyStatic from '@fastify/static'
+import proxy from '@fastify/http-proxy'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -13,17 +14,32 @@ server.register(fastifyStatic, {
   prefix: '/',
 })
 
-server.get('/api/user/*', async (request, reply) => {
-  return {user: 'response'}
+server.register(proxy, {
+  upstream: 'http://user:3000',
+  prefix: '/api/user',
+  rewritePrefix: '/',
+  http2: false
 })
-server.get('/api/authenticate/*', async (request, reply) => {
-  return {authenticate: 'response'}
+
+server.register(proxy, {
+  upstream: 'http://authenticate:3000',
+  prefix: '/api/authenticate',
+  rewritePrefix: '/',
+  http2: false
 })
-server.get('/api/chat/*', async (request, reply) => {
-  return {chat: 'response'}
+
+server.register(proxy, {
+  upstream: 'http://chat:3000',
+  prefix: '/api/chat',
+  rewritePrefix: '/',
+  http2: false
 })
-server.get('/api/game/*', async (request, reply) => {
-  return {game: 'response'}
+
+server.register(proxy, {
+  upstream: 'http://game:3000',
+  prefix: '/api/game',
+  rewritePrefix: '/',
+  http2: false
 })
 
 server.get('/ws/*', async (request, reply) => {
@@ -33,7 +49,6 @@ server.get('/ws/*', async (request, reply) => {
 server.setNotFoundHandler((request, reply) => {
   reply.sendFile('index.html')
 })
-
 
 server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {
   if (err) {
