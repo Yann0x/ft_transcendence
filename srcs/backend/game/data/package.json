@@ -8,7 +8,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build" : "tsc",
-    "start" : "node build/game.js"
+    "start" : "node build/game.js",
+    "clean": "rm -rf build",
+    "fclean": "rm -rf node_modules"
   },
   "dependencies": {
     "fastify": "^5.6.2"

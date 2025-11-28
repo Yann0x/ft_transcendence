@@ -1,10 +1,15 @@
 services:
   proxy:
     container_name: proxy
-    build: backend/proxy
     init: true
     env_file:
       - .env
+    build: 
+      context: backend/proxy
+      args:
+          uid: ${uid:-1000}
+          gid: ${gid:-1000}
+    user: "${uid:-1000}:${gid:-1000}"
     networks:  
       - transcendence
     ports:
@@ -16,10 +21,15 @@ services:
     
   authenticate:
     container_name: authenticate
-    build: backend/authenticate
     init: true
     env_file:
       - .env
+    build: 
+      context: backend/authenticate
+      args:
+          uid: ${uid:-1000}
+          gid: ${gid:-1000}
+    user: "${uid:-1000}:${gid:-1000}"
     expose:
       - 3000
     networks:  
@@ -30,10 +40,15 @@ services:
   
   user:
     container_name: user
-    build: backend/user
     init: true
     env_file:
       - .env
+    build:
+      context: backend/user
+      args:
+          uid: ${uid:-1000}
+          gid: ${gid:-1000}
+    user: "${uid:-1000}:${gid:-1000}"
     expose:
       - 3000
     networks:  
@@ -44,10 +59,15 @@ services:
   
   game:
     container_name: game
-    build: backend/game
     init: true
     env_file:
       - .env
+    build:
+      context: backend/game
+      args:
+          uid: ${uid:-1000}
+          gid: ${gid:-1000}
+    user: "${uid:-1000}:${gid:-1000}"
     expose:
       - 3000
     networks:  
@@ -57,10 +77,15 @@ services:
     restart: always
   chat:
     container_name: chat
-    build: backend/chat
     init: true
     env_file:
       - .env
+    build:
+      context: backend/chat
+      args:
+          uid: ${uid:-1000}
+          gid: ${gid:-1000}
+    user: "${uid:-1000}:${gid:-1000}"
     expose:
       - 3000
     networks:  
@@ -71,10 +96,15 @@ services:
 
   frontend:
     container_name: frontend
-    build: frontend
     init: true
     env_file:
       - .env
+    build:
+      context: frontend
+      args:
+          uid: ${uid:-1000}
+          gid: ${gid:-1000}
+    user: "${uid:-1000}:${gid:-1000}"
     expose:
       - 3000
     networks:  
