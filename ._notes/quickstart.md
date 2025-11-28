@@ -90,13 +90,7 @@ server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {
 
 ### Focus Frontend
 
-Ok pour le frontend c'est pas encore la bonne config mais je vais essayer d'ameliorer dans la journée. 
-
-Pour l'instant pour dev le front sans les interactions avec le backend et avoir le hot-reaload il faut pas lancer le container mais juste aller dans data et faire `npm install && npm run dev`. Avec ca on a les modifications qui sont visible directment dans le nvigateur sur localhost port 3000. 
-
--> Le pb c'est que ca marche que pour le front en standalone j'ai pas reussi a faire en sorte qu'on puisse modifier en live avec le backend en meme temps mais jvais trouver la. 
-
-Dcp pour linstant pour tester les modifs du front avec le back, if faut fair `make front` qui va recompiler les fichiers de src/ vers /build/ qui sont montés dans le container proxy qui se charge de les servir 
+** -> Les modifs dans le front sont compilles immediatements et visible dans le navigateur.**
 
 ```bash 
 [bat] (~/42/ft_transcendance/srcs/frontend)$ tree

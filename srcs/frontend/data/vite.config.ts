@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import path from 'path'
-import { copyFileSync, mkdirSync } from 'fs'
+import fs from 'fs-extra'
 
 export default defineConfig({
   root: 'src',
@@ -12,40 +12,49 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'src/index.html')
       }
-    }
+    },
+    // Copie les assets statiques
+    copyPublicDir: true,
+    assetsInlineLimit: 0
   },
   plugins: [
     {
-      name: 'copy-html-files',
-      closeBundle() {
-        // Copy components
-        mkdirSync(path.resolve(__dirname, 'build/components'), { recursive: true });
-        copyFileSync(
-          path.resolve(__dirname, 'src/components/navbar.html'),
-          path.resolve(__dirname, 'build/components/navbar.html')
-        );
-        copyFileSync(
-          path.resolve(__dirname, 'src/components/footer.html'),
-          path.resolve(__dirname, 'build/components/footer.html')
-        );
+      name: 'copy-to-build',
+      configureServer(server) {
+        // Copie initiale du dossier src vers build
+        const srcPath = path.resolve(__dirname, 'src')
+        const buildPath = path.resolve(__dirname, 'build')
         
-        // Copy pages
-        mkdirSync(path.resolve(__dirname, 'build/pages'), { recursive: true });
-        copyFileSync(
-          path.resolve(__dirname, 'src/pages/home.html'),
-          path.resolve(__dirname, 'build/pages/home.html')
-        );
+        // Watch et copie des changements
+        server.watcher.on('all', (event, file) => {
+          if (event === 'change' || event === 'add') {
+            if (file.startsWith(srcPath)) {
+              const relativePath = path.relative(srcPath, file)
+              const destPath = path.join(buildPath, relativePath)
+              
+              fs.copySync(file, destPath)
+              console.log(`Copied: ${relativePath}`)
+            }
+          }
+        })
+      },
+      writeBundle() {
+        // Après le build, copie les fichiers HTML statiques
+        const srcPath = path.resolve(__dirname, 'src')
+        const buildPath = path.resolve(__dirname, 'build')
         
-        // Copy CSS files
-        mkdirSync(path.resolve(__dirname, 'build/css'), { recursive: true });
-        copyFileSync(
-          path.resolve(__dirname, 'src/css/animations.css'),
-          path.resolve(__dirname, 'build/css/animations.css')
-        );
-        copyFileSync(
-          path.resolve(__dirname, 'src/css/components.css'),
-          path.resolve(__dirname, 'build/css/components.css')
-        );
+        // Copie les dossiers components et pages
+        const foldersToСopy = ['components', 'pages', 'css']
+        foldersToСopy.forEach(folder => {
+          const src = path.join(srcPath, folder)
+          const dest = path.join(buildPath, folder)
+          if (fs.existsSync(src)) {
+            fs.copySync(src, dest)
+            console.log(`Copied ${folder}/ to build`)
+          }
+        })
+        
+        console.log('Build completed, files written to:', buildPath)
       }
     }
   ],

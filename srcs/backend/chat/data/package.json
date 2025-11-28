@@ -10,7 +10,7 @@
     "build" : "tsc",
     "start" : "node build/chat.js",
     "clean": "rm -rf build",
-    "fclean": "rm -rf node_modules"
+    "fclean": "npm run clean && rm -rf node_modules"
   },
   "dependencies": {
     "fastify": "^5.6.2"

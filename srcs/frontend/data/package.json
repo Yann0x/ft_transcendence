@@ -9,15 +9,20 @@
     "build": "npm run build:ts && npm run build:vite",
     "preview": "vite preview",
     "clean": "rm -rf build",
-    "fclean": "rm -rf node_modules"
+    "fclean": "npm run clean && rm -rf node_modules"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.11.30",
     "autoprefixer": "^10.4.22",
+    "fs-extra": "^11.3.2",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.17",
     "typescript": "^5.9.3",
     "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "vite-plugin-static-copy": "^3.1.4"
   }
 }
