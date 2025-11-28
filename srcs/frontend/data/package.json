@@ -7,7 +7,9 @@
     "build:ts": "tsc",
     "build:vite": "vite build",
     "build": "npm run build:ts && npm run build:vite",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "clean": "rm -rf build",
+    "fclean": "rm -rf node_modules"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
