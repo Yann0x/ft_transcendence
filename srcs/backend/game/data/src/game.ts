@@ -3,10 +3,10 @@ import fastify from 'fastify'
 const server = fastify()
 
 server.get('/', async (request, reply) => {
-  return 'pong\n'
+  return {game: 'response'}
 })
 
-server.listen({ port: 3000 }, (err, address) => {
+server.listen({ port: 3000, host: '0.0.0.0' }, (err, address) => {
   if (err) {
     console.error(err)
     process.exit(1)
