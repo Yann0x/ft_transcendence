@@ -2,7 +2,7 @@
 
 ---
 
-## Phase 0 : Setup
+## Phase 0 : Setup [FRONT]
 
 - [x] Créer le canvas avec support DPR
       *devicePixelRatio pour un rendu net, scale le context en conséquence*
@@ -32,7 +32,7 @@
 
 ---
 
-## Phase 1 : Renderer
+## Phase 1 : Renderer [FRONT]
 
 - [ ] Implémenter le helper drawRect
 - [ ] Implémenter le helper drawCircle
@@ -52,7 +52,7 @@
 
 ---
 
-## Phase 2 : Entities
+## Phase 2 : Entities [FRONT + BACK shared types]
 
 - [ ] Définir le type Ball (x, y, radius, vx, vy)
 - [ ] Définir le type Paddle (x, y, width, height)
@@ -69,7 +69,7 @@
 
 ---
 
-## Phase 3 : Loop
+## Phase 3 : Loop [FRONT]
 
 - [ ] Implémenter gameLoop avec requestAnimationFrame
 - [ ] Intégrer Clock.tick qui retourne le dt clampé
@@ -85,15 +85,16 @@
 
 ---
 
-## Phase 4 : Mouvement de la balle
+## Phase 4 : Mouvement de la balle [BACK authoritative, FRONT prediction]
 
-- [ ] Implémenter updateBall : position += velocity * dt
-- [ ] Implémenter bounceWalls : inverser vy sur top/bottom
+- [ ] [BACK] Implémenter updateBall : position += velocity * dt
+- [ ] [BACK] Implémenter bounceWalls : inverser vy sur top/bottom
       *vérifier ball.y contre 0 et la hauteur du canvas*
-- [ ] Ajouter EPS et clamp vitesses (VX_MIN, VX_MAX, VY_MAX)
+- [ ] [BACK] Ajouter EPS et clamp vitesses (VX_MIN, VX_MAX, VY_MAX)
       *EPS = epsilon, petite valeur pour éviter divisions par zéro (~0.0001)*
       *VX_MIN = vitesse horizontale minimale pour éviter balle quasi-verticale*
       *VX_MAX, VY_MAX = vitesses maximales pour garder le jeu jouable*
+- [ ] [FRONT] Copie locale pour prédiction/interpolation
 
 **Test :**
 - La balle rebondit correctement sur les murs
@@ -102,19 +103,20 @@
 
 ---
 
-## Phase 5 : Input (local 2 joueurs)
+## Phase 5 : Input [FRONT capture, BACK validation]
 
-- [ ] Implémenter bindKeyboard qui remplit le Set keysDown
+- [ ] [FRONT] Implémenter bindKeyboard qui remplit le Set keysDown
       *keysDown = Set des touches actuellement enfoncées*
       *keydown ajoute, keyup retire*
-- [ ] Définir le type InputState
-- [ ] Implémenter input.sample() qui produit un état up/down propre
+- [ ] [FRONT] Définir le type InputState
+- [ ] [FRONT] Implémenter input.sample() qui produit un état up/down propre
       *état figé pour le tick courant, utile pour frameId et serveur*
-- [ ] Contrôles Joueur 1 : touches W/S
-- [ ] Contrôles Joueur 2 : touches Flèche Haut/Bas
+- [ ] [FRONT] Contrôles Joueur 1 : touches W/S
+- [ ] [FRONT] Contrôles Joueur 2 : touches Flèche Haut/Bas
       *les deux joueurs sur le même clavier pour le jeu local*
-- [ ] Clamp les positions des paddles dans les limites
-- [ ] Ajouter debug : touche R reset le rally
+- [ ] [BACK] Valider et appliquer les inputs reçus
+- [ ] [BACK] Clamp les positions des paddles dans les limites
+- [ ] [FRONT] Ajouter debug : touche R reset le rally
 
 **Test :**
 - Les deux paddles bougent de façon fluide
@@ -124,19 +126,20 @@
 
 ---
 
-## Phase 6 : Collision
+## Phase 6 : Collision [BACK authoritative]
 
-- [ ] Implémenter circleRectCollision qui retourne un bool
+- [ ] [BACK] Implémenter circleRectCollision qui retourne un bool
       *AABB = Axis-Aligned Bounding Box, rectangle non-pivoté*
       *intersection cercle vs AABB*
-- [ ] Implémenter resolveCollision avec push-out
+- [ ] [BACK] Implémenter resolveCollision avec push-out
       *push-out = déplacer la balle hors du paddle pour éviter qu'elle reste coincée*
-- [ ] Ajouter une vérification de direction pour éviter le double rebond
+- [ ] [BACK] Ajouter une vérification de direction pour éviter le double rebond
       *rebondir seulement si la balle va vers le paddle*
-- [ ] Calculer l'angle de rebond basé sur le point d'impact
+- [ ] [BACK] Calculer l'angle de rebond basé sur le point d'impact
       *l'offset par rapport au centre du paddle affecte vy*
-- [ ] Garantir |vx| >= VX_MIN après rebond paddle
+- [ ] [BACK] Garantir |vx| >= VX_MIN après rebond paddle
       *évite balle quasi-verticale qui rend le jeu bizarre*
+- [ ] [FRONT] Afficher hitboxes en mode debug
 
 **Test :**
 - Rebonds consistants sur les paddles
@@ -145,17 +148,17 @@
 
 ---
 
-## Phase 7 : Score
+## Phase 7 : Score [BACK authoritative]
 
-- [ ] Ajouter l'objet score au state (left, right)
-- [ ] Implémenter checkGoal qui détecte sortie gauche/droite
-- [ ] Implémenter resetRally qui repositionne la balle
+- [ ] [BACK] Ajouter l'objet score au state (left, right)
+- [ ] [BACK] Implémenter checkGoal qui détecte sortie gauche/droite
+- [ ] [BACK] Implémenter resetRally qui repositionne la balle
       *balle au centre, direction aléatoire ou alternée*
-- [ ] Implémenter renderScore dans le HUD
-- [ ] Alterner la direction du service
-- [ ] Définir les règles de fin : 11 points, pas de règle "2 pts d'écart"
+- [ ] [FRONT] Implémenter renderScore dans le HUD
+- [ ] [BACK] Alterner la direction du service
+- [ ] [BACK] Définir les règles de fin : 11 points, pas de règle "2 pts d'écart"
       *choix assumé : premier à 11 gagne, simple et prévisible*
-- [ ] Afficher le gagnant et l'écran de fin de partie
+- [ ] [FRONT] Afficher le gagnant et l'écran de fin de partie
 
 **Test :**
 - Le score s'incrémente correctement
@@ -165,19 +168,19 @@
 
 ---
 
-## Phase 8 : AI
+## Phase 8 : AI [BACK]
 
-- [ ] Implémenter perception (1Hz) : snapshot des positions/vélocités
+- [ ] [BACK] Implémenter perception (1Hz) : snapshot des positions/vélocités
       *l'IA ne "voit" l'état du jeu qu'une fois par seconde*
-- [ ] Implémenter decision (1Hz) : prédire la trajectoire avec rebonds muraux
+- [ ] [BACK] Implémenter decision (1Hz) : prédire la trajectoire avec rebonds muraux
       *calculer où sera la balle quand elle atteindra le paddle*
-- [ ] Implémenter action (par frame) : touches virtuelles up/down
+- [ ] [BACK] Implémenter action (par frame) : touches virtuelles up/down
       *l'IA produit des appuis de touches, pas une position directe*
-- [ ] Ajouter une limite de vitesse max au paddle IA
+- [ ] [BACK] Ajouter une limite de vitesse max au paddle IA
       *même vitesse que les joueurs humains - exigence du sujet*
-- [ ] Ajouter une erreur aléatoire pour rendre l'IA battable
+- [ ] [BACK] Ajouter une erreur aléatoire pour rendre l'IA battable
       *léger offset sur la position cible*
-- [ ] Si la balle s'éloigne (vx de signe opposé), l'IA revient au centre
+- [ ] [BACK] Si la balle s'éloigne (vx de signe opposé), l'IA revient au centre
       *évite jitter inutile quand la balle va vers l'adversaire*
 
 **Test :**
@@ -187,14 +190,14 @@
 
 ---
 
-## Phase 9a : Protocole réseau
+## Phase 9a : Protocole réseau [BACK + FRONT shared]
 
-- [ ] Définir le message input : { matchId, playerId, frameId, up, down }
-- [ ] Définir le message state : { matchId, serverTick, lastProcessedInputId, ball, paddles, score }
+- [ ] [FRONT/BACK] Définir le message input : { matchId, playerId, frameId, up, down }
+- [ ] [FRONT/BACK] Définir le message state : { matchId, serverTick, lastProcessedInputId, ball, paddles, score }
       *facilite debug et reconnexion*
-- [ ] Implémenter la sérialisation des messages
-- [ ] Implémenter la mesure ping/latence
-- [ ] Créer un fake local server pour les tests
+- [ ] [FRONT/BACK] Implémenter la sérialisation des messages
+- [ ] [FRONT] Implémenter la mesure ping/latence
+- [ ] [BACK] Créer un fake local server pour les tests
       *tourne dans le même process, simule un délai réseau*
 
 **Test :**
@@ -204,18 +207,18 @@
 
 ---
 
-## Phase 9b : Sync client
+## Phase 9b : Sync client [FRONT]
 
-- [ ] Créer un buffer de snapshots (2-3 frames)
+- [ ] [FRONT] Créer un buffer de snapshots (2-3 frames)
       *snapshot = copie complète de l'état du jeu à un instant t*
       *stocker les états serveur récents pour l'interpolation*
-- [ ] Implémenter l'interpolation entre snapshots
+- [ ] [FRONT] Implémenter l'interpolation entre snapshots
       *interpolation = calculer une position intermédiaire entre deux snapshots*
       *render entre deux états connus pour la fluidité*
-- [ ] Interpoler positions (ball, paddles) mais pas score/events
+- [ ] [FRONT] Interpoler positions (ball, paddles) mais pas score/events
       *score et événements sont "step", pas interpolés*
-- [ ] Gérer la déconnexion proprement
-- [ ] Implémenter la logique de reconnexion
+- [ ] [FRONT] Gérer la déconnexion proprement
+- [ ] [FRONT] Implémenter la logique de reconnexion
 
 **Test :**
 - Rendu fluide malgré la latence
@@ -224,13 +227,13 @@
 
 ---
 
-## Phase 9c : Prédiction (optionnel)
+## Phase 9c : Prédiction (optionnel) [FRONT]
 
-- [ ] Prédire le paddle local depuis les inputs
+- [ ] [FRONT] Prédire le paddle local depuis les inputs
       *appliquer les inputs localement avant confirmation serveur*
-- [ ] Réconcilier avec les snapshots serveur
+- [ ] [FRONT] Réconcilier avec les snapshots serveur
       *réconciliation = corriger l'état local quand le serveur diverge*
-- [ ] Rollback en cas de divergence
+- [ ] [FRONT] Rollback en cas de divergence
       *rollback = revenir à un état passé puis rejouer les inputs*
 
 **Test :**
@@ -239,11 +242,12 @@
 
 ---
 
-## Phase 10a : Queue
+## Phase 10a : Queue [BACK]
 
-- [ ] Implémenter joinQueue
-- [ ] Implémenter leaveQueue
-- [ ] Ajouter un timeout de 30s auto-remove
+- [ ] [BACK] Implémenter joinQueue
+- [ ] [BACK] Implémenter leaveQueue
+- [ ] [BACK] Ajouter un timeout de 30s auto-remove
+- [ ] [FRONT] UI pour rejoindre/quitter la queue
 
 **Test :**
 - Les joueurs peuvent rejoindre/quitter la queue
@@ -251,11 +255,12 @@
 
 ---
 
-## Phase 10b : Pairing
+## Phase 10b : Pairing [BACK]
 
-- [ ] Créer une room quand 2 joueurs sont matchés
-- [ ] Assigner les rôles left/right
-- [ ] Notifier les deux clients
+- [ ] [BACK] Créer une room quand 2 joueurs sont matchés
+- [ ] [BACK] Assigner les rôles left/right
+- [ ] [BACK] Notifier les deux clients
+- [ ] [FRONT] Afficher le match trouvé
 
 **Test :**
 - Match créé avec 2 joueurs
@@ -263,12 +268,13 @@
 
 ---
 
-## Phase 10c : Lifecycle
+## Phase 10c : Lifecycle [BACK + FRONT]
 
-- [ ] Gérer la fin de match avec les résultats
-- [ ] Implémenter l'option rematch
-- [ ] Gérer l'abandon sur déconnexion
-- [ ] Permettre la reconnexion dans les 10s
+- [ ] [BACK] Gérer la fin de match avec les résultats
+- [ ] [BACK] Implémenter l'option rematch
+- [ ] [BACK] Gérer l'abandon sur déconnexion
+- [ ] [BACK] Permettre la reconnexion dans les 10s
+- [ ] [FRONT] UI fin de match (résultats, rematch, quitter)
 
 **Test :**
 - 3 clients : 1 match + 1 en attente
@@ -276,19 +282,19 @@
 
 ---
 
-## Phase 11 : Tournois
+## Phase 11 : Tournois [BACK + FRONT + BLOCKCHAIN]
 
-- [ ] Saisie d'alias au début du tournoi
+- [ ] [FRONT] Saisie d'alias au début du tournoi
       *chaque joueur entre son alias, reset pour un nouveau tournoi*
-- [ ] Implémenter le système de bracket (4/8 joueurs)
-- [ ] Afficher le bracket : qui joue contre qui, ordre des matchs
-- [ ] Le matchmaking annonce le prochain match
-- [ ] Envoyer des notifications pour le prochain match
-- [ ] Écrire le smart contract Solidity pour le stockage des scores
+- [ ] [BACK] Implémenter le système de bracket (4/8 joueurs)
+- [ ] [FRONT] Afficher le bracket : qui joue contre qui, ordre des matchs
+- [ ] [BACK] Le matchmaking annonce le prochain match
+- [ ] [BACK] Envoyer des notifications pour le prochain match
+- [ ]  Écrire le smart contract Solidity pour le stockage des scores
       *stocker les scores de tournoi sur Avalanche testnet*
-- [ ] Déployer sur Avalanche testnet
-- [ ] Enregistrer les résultats finaux du tournoi on-chain
-- [ ] Lire les scores depuis la blockchain dans le frontend
+- [ ]  Déployer sur Avalanche testnet
+- [ ] [BACK] Enregistrer les résultats finaux du tournoi on-chain
+- [ ] [FRONT] Lire les scores depuis la blockchain dans le frontend
 
 **Test :**
 - Tournoi 4 joueurs complet
@@ -299,15 +305,15 @@
 
 ---
 
-## Phase 12 : Customisation (optionnel)
+## Phase 12 : Customisation (optionnel) [BACK + FRONT]
 
-- [ ] Ajouter un système de power-ups
+- [ ] [BACK] Ajouter un système de power-ups
       *speed boost, changement de taille du paddle, etc.*
-- [ ] Ajouter des vitesses configurables
-- [ ] Ajouter des skins paddle/ball
-- [ ] Ajouter un toggle "simple mode"
+- [ ] [BACK] Ajouter des vitesses configurables
+- [ ] [FRONT] Ajouter des skins paddle/ball
+- [ ] [FRONT] Ajouter un toggle "simple mode"
       *désactive tous les extras pour une expérience classique*
-- [ ] Faire gérer les power-ups par l'IA
+- [ ] [BACK] Faire gérer les power-ups par l'IA
       *obligatoire si ce module est activé*
 
 **Test :**
