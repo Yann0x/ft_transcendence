@@ -6,10 +6,6 @@ services:
       - .env
     build: 
       context: backend/proxy
-      args:
-          uid: ${uid:-1000}
-          gid: ${gid:-1000}
-    user: "${uid:-1000}:${gid:-1000}"
     networks:  
       - transcendence
     ports:
@@ -26,10 +22,6 @@ services:
       - .env
     build: 
       context: backend/authenticate
-      args:
-          uid: ${uid:-1000}
-          gid: ${gid:-1000}
-    user: "${uid:-1000}:${gid:-1000}"
     expose:
       - 3000
     networks:  
@@ -45,10 +37,6 @@ services:
       - .env
     build:
       context: backend/user
-      args:
-          uid: ${uid:-1000}
-          gid: ${gid:-1000}
-    user: "${uid:-1000}:${gid:-1000}"
     expose:
       - 3000
     networks:  
@@ -64,10 +52,6 @@ services:
       - .env
     build:
       context: backend/game
-      args:
-          uid: ${uid:-1000}
-          gid: ${gid:-1000}
-    user: "${uid:-1000}:${gid:-1000}"
     expose:
       - 3000
     networks:  
@@ -82,10 +66,6 @@ services:
       - .env
     build:
       context: backend/chat
-      args:
-          uid: ${uid:-1000}
-          gid: ${gid:-1000}
-    user: "${uid:-1000}:${gid:-1000}"
     expose:
       - 3000
     networks:  
@@ -101,10 +81,6 @@ services:
       - .env
     build:
       context: frontend
-      args:
-          uid: ${uid:-1000}
-          gid: ${gid:-1000}
-    user: "${uid:-1000}:${gid:-1000}"
     expose:
       - 3000
     networks:  

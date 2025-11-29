@@ -3,7 +3,7 @@ docker-compose-path := srcs/docker-compose.yaml
 all : run
 
 run : init front build
-	uid=$(shell id -u) gid=$(shell id -g) docker compose -f $(docker-compose-path) up -d
+	docker compose -f $(docker-compose-path) up -d
 
 build : init front 
 	docker compose -f $(docker-compose-path) build
@@ -17,10 +17,10 @@ logs :
 	docker compose -f $(docker-compose-path) logs
 
 
-clean :
+clean : down
 	docker rm $$(docker ps -aq)
 
-fclean: down clean
+fclean: clean
 	docker rmi $$(docker image ls -aq)
 
 re : fclean all
