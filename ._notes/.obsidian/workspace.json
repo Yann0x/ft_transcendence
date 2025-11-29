@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Cluster Stack.md",
+                "file": "subject_recap.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Cluster Stack"
+              "title": "subject_recap"
             }
           },
           {
@@ -235,9 +235,10 @@
   "active": "0c1f170f42bbf9e9",
   "lastOpenFiles": [
     "en.subject.pdf",
+    "subject_recap.md",
+    "Cluster Stack.md",
     "bienvenu.md",
     "Pasted image 20251128103509.png",
-    "Cluster Stack.md",
     "transcendence.base",
     "backend_api.md",
     "quickstart.md",

@@ -1,0 +1,24 @@
+{
+  "name": "server_database",
+  "version": "1.0.0",
+  "description": "sqlite database",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "node build/database.js",
+    "clean": "rm -rf build",
+    "fclean": "npm run clean && rm -rf node_modules"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.5.0",
+    "fastify": "^5.6.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}
