@@ -8,22 +8,22 @@
       *devicePixelRatio pour un rendu net, scale le context en conséquence*
 - [x] Implémenter resizeCanvas qui met à jour le viewport
       *au resize de la fenêtre, met à jour la taille du canvas et state.viewport*
-- [ ] Créer la classe Clock avec dt clamp (max 50ms)
+- [x] Créer la classe Clock avec dt clamp (max 50ms)
       *dt = delta time, temps écoulé depuis la dernière frame en ms*
       *empêche un dt énorme après changement d'onglet qui causerait une téléportation*
-- [ ] Ajouter un accumulator pour le fixed tick futur
+- [x] Ajouter un accumulator pour le fixed tick futur
       *accumulator = temps accumulé non consommé entre frames*
       *stocke le temps restant pour une physique consistante plus tard*
-- [ ] Définir FIXED_DT (16.666ms) et MAX_STEPS (5)
+- [x] Définir FIXED_DT (16.666ms) et MAX_STEPS (5)
       *FIXED_DT = pas de temps fixe pour la physique (~60Hz)*
       *MAX_STEPS = limite de ticks physiques par frame, évite la spirale de la mort si le jeu lag*
-- [ ] Définir le state initial en world units
+- [x] Définir le state initial en world units
       *state = objet central contenant tout l'état du jeu (ball, paddles, score, etc.)*
       *world units = pixels logiques indépendants du DPR, pas pixels physiques*
-- [ ] Setup update(state, dt) qui appelle une liste de systems vide
-- [ ] Setup render(state) comme fonction pure
+- [x] Setup update(state, dt) qui appelle une liste de systems vide
+- [x] Setup render(state) comme fonction pure
       *render lit le state, ne le modifie jamais*
-- [ ] Afficher un texte "ready" centré
+- [x] Afficher un texte "ready" centré
 
 **Test :**
 - Canvas responsive au resize de fenêtre
