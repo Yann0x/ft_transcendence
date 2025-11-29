@@ -59,19 +59,19 @@ services:
     volumes:
       - ./backend/game/data:/data
     restart: always
-  chat:
-    container_name: chat
+  database:
+    container_name: database
     init: true
     env_file:
       - .env
     build:
-      context: backend/chat
+      context: backend/database
     expose:
       - 3000
     networks:  
       - transcendence
     volumes:
-      - ./backend/chat/data:/data
+      - ./backend/database/data:/data
     restart: always
 
   frontend:
