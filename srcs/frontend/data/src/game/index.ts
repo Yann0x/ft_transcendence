@@ -1,36 +1,41 @@
 // PONG GAME
 
-import { createCanvas, getCtx, getWidth, getHeight } from './canvas';
+import { createCanvas, getCtx } from './canvas';
+import { State, type GameState } from './state';
 
 /*
  * Initialise le jeu dans le conteneur donne
  */
 export function init(container: HTMLElement): void {
   createCanvas(container);
-  render();
+  State.init();
 
-  const w = getWidth(); // largeur log
-  const h = getHeight(); // hauteur log
-  console.log(`🎮 Pong initialise: ${w}x${h} (DPR: ${window.devicePixelRatio})`);
+  const state = State.getState();
+  if (state) {
+    render(state);
+    console.log(`Pong initialise: ${state.viewport.width}x${state.viewport.height} (DPR: ${window.devicePixelRatio})`);
+  }
 }
 
 /*
- * Affiche le jeu
+ * Affiche le jeu - lit state
  */
-export function render(): void {
-  const ctx = getCtx(); // contexte 2D
+export function render(state: GameState): void {
+  const ctx = getCtx();
   if (!ctx) return;
 
-  const w = getWidth(); // largeur canva
-  const h = getHeight(); // hauteur canva
+  const { width: w, height: h } = state.viewport;
 
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, w, h);
-  ctx.fillStyle = '#525252';
-  ctx.font = 'bold 32px system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('Ready', w / 2, h / 2);
+
+  if (state.phase === 'ready') {
+    ctx.fillStyle = '#525252';
+    ctx.font = 'bold 32px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Ready', w / 2, h / 2);
+  }
 }
 
 // Export group pour import dans app.ts
