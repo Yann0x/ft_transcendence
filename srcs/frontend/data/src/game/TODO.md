@@ -26,23 +26,22 @@
 - [x] Afficher un texte "ready" centré
 
 **Test :**
-- Canvas responsive au resize de fenêtre
-- Rendu net sur écrans retina
 - Texte "Ready" visible et centré
+- Canvas responsive au resize de fenêtre (pas du message READY, pas de resize pour le moment)
 
 ---
 
 ## Phase 1 : Renderer [FRONT]
 
-- [ ] Implémenter le helper drawRect
-- [ ] Implémenter le helper drawCircle
-- [ ] Implémenter le helper drawNet
+- [x] Implémenter le helper drawRect
+- [x] Implémenter le helper drawCircle
+- [x] Implémenter le helper drawNet
       *ligne verticale pointillée au centre*
-- [ ] Implémenter le helper drawText
+- [x] Implémenter le helper drawText
       *avec options font, color, align*
-- [ ] Ajouter debug toggle : showFPS
-- [ ] Ajouter debug toggle : showHitboxes
-- [ ] Ajouter debug toggle : slowMo (0.25x)
+- [x] Ajouter debug toggle : showFPS
+- [x] Ajouter debug toggle : showHitboxes
+- [x] Ajouter debug toggle : slowMo (0.25x)
       *multiplie dt par le facteur slowMo*
 
 **Test :**
