@@ -12,6 +12,7 @@ services:
       - 8080:8080
     volumes:
       - ./backend/proxy/data:/data
+      - ./backend/shared/:/data/src/shared:ro
       - ./frontend/:/frontend
     restart: always
     
@@ -28,6 +29,7 @@ services:
       - transcendence
     volumes:
       - ./backend/authenticate/data:/data
+      - ./backend/shared/:/data/src/shared:ro
     restart: always
   
   user:
@@ -43,6 +45,7 @@ services:
       - transcendence
     volumes:
       - ./backend/user/data:/data
+      - ./backend/shared/:/data/src/shared:ro
     restart: always
   
   game:
@@ -58,6 +61,7 @@ services:
       - transcendence
     volumes:
       - ./backend/game/data:/data
+      - ./backend/shared/:/data/src/shared:ro
     restart: always
   database:
     container_name: database
@@ -72,6 +76,7 @@ services:
       - transcendence
     volumes:
       - ./backend/database/data:/data
+      - ./backend/shared/:/data/src/shared:ro
     restart: always
 
   frontend:
