@@ -4,3 +4,4 @@ build/
 *.log
 .vscode/
 *.db
+**/src/shared/
