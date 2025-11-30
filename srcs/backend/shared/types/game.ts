@@ -1,4 +1,4 @@
-import { User } from "./user";
+import { User } from "./user.js";
 // example a addapter 
 
 export interface Game {

@@ -35,8 +35,8 @@ front:
 
 
 # <--- DEV TOOLS--->
-nodeclean:
+nodeclean: fclean
 	find -type d -name data -exec sh -c 'cd "{}" && npm run fclean' \;
 
 .PHONY: all run clean fclean re
-.IGNORE: clean fclean re
+.IGNORE: clean fclean re nodeclean
