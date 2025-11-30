@@ -1,6 +1,6 @@
 import { User } from "./user.js";
-// example a addapter 
 
+// example à addapter
 export interface Game {
     id: number;
     player1Id: User;
