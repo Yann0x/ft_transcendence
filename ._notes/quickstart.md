@@ -4,25 +4,29 @@ En gros chaque requete sur le localhost:8080 va arriver sur le containeur **prox
 Par exemple si tu fait http://localhost:8080/api/user/login le proxy redirige la requette vers le service **user** qui lui recevra la requete  sur le endpoint **/login**.
 ```bash
 [bat] (~/42/ft_transcendance)$ tree -L3
-.
 ├── Makefile
 ├── setup.sh
 └── srcs
     ├── backend
     │   ├── authenticate
     │   ├── chat
+    │   ├── database
     │   ├── game
-    │   ├── proxy # << Cest lui le seul point d'acces au backend
+    │   ├── proxy # <<= Contient les fichiers partagés
+    │   ├── shared
     │   └── user
     ├── docker-compose.yaml
     └── frontend
         ├── data
         ├── Dockerfile
         └── entrypoint.sh
+
+12 directories, 5 files
 ```
+Le dossier shared contient les fichiers communs aux containers comme la déclaration des types (comme les headers en c). Docker compose les monte dans le dossier /data/src/shared. 
 ### Focus sur proxy
 
-En gros c'est la meme structure pour chaque service. quand on lance le  container, le dossier ./data est monté à la racine, il fait `npm i`  pour installer les dependances `npm build` pour compiler le ficher.ts vers build/fichier.js et `npm start` pour lancer le service. 
+C'est la meme structure pour chaque service. quand on lance le  container, le dossier ./data est monté à la racine, il fait `npm i`  pour installer les dependances `npm build` pour compiler le ficher.ts vers build/fichier.js et `npm start` pour lancer le service. 
 
 -> **Pour tester en local t'as juste a aller dans le dossier data, et tu peux lancer le service comme si c'etait dans le containeur.**
 
@@ -36,6 +40,7 @@ En gros c'est la meme structure pour chaque service. quand on lance le  containe
 │   ├── package.json
 │   ├── package-lock.json
 │   ├── src
+|   |   └── shared/
 │   │   └── proxy.ts
 │   └── tsconfig.json
 ├── Dockerfile
@@ -57,27 +62,9 @@ server.register(proxy, {
 })
 ```
 
-Et ca c'est le fallback par défault
-```typescript 
-server.setNotFoundHandler((request, reply) => {
-  reply.sendFile('index.html')
-})
-```
-la boucle d'écoute :
-
-```typescript 
-server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {
-  if (err) {
-    console.error(err)
-    process.exit(1)
-  }
-  console.log(`Server listening at ${address}`)
-})
-```
-
 ### Focus Frontend
 
-** -> Les modifs dans le front sont compilles immediatements et visible dans le navigateur.**
+***-> Les modifs dans le front sont compilles immediatements et visible dans le navigateur.***
 
 ```bash 
 [bat] (~/42/ft_transcendance/srcs/frontend)$ tree
