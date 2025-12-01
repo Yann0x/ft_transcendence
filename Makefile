@@ -5,7 +5,7 @@ all : run
 run : init front build
 	docker compose -f $(docker-compose-path) up -d
 
-build : init front 
+build : down init front 
 	docker compose -f $(docker-compose-path) build
 
 down :
@@ -14,7 +14,7 @@ down :
 restart: down run
 
 logs :
-	docker compose -f $(docker-compose-path) logs
+	docker compose -f $(docker-compose-path) logs -f $(filter-out $@,$(MAKECMDGOALS))
 
 
 clean : down

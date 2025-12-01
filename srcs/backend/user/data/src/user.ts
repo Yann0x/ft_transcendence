@@ -1,9 +1,11 @@
 import fastify from 'fastify'
+import { UserRegister } from './shared/types/user.js'
 
 const server = fastify()
 
-server.get('/*', async (request, reply) => {
-  return {user: 'response'}
+server.post<{Body: UserRegister}> ('/register', async (request, reply) => {
+  console.log("Received registration:", request.body)
+
 })
 
 server.listen({ port: 3000, host: '0.0.0.0'}, (err, address) => {
