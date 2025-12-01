@@ -27,13 +27,33 @@ export default defineConfig({
         
         // Watch et copie des changements
         server.watcher.on('all', (event, file) => {
-          if (event === 'change' || event === 'add') {
-            if (file.startsWith(srcPath)) {
-              const relativePath = path.relative(srcPath, file)
-              const destPath = path.join(buildPath, relativePath)
-              
+          if (file.startsWith(srcPath)) {
+            const relativePath = path.relative(srcPath, file)
+            const destPath = path.join(buildPath, relativePath)
+            
+            // Handle file/directory creation and changes
+            if (event === 'add' || event === 'change') {
               fs.copySync(file, destPath)
               console.log(`Copied: ${relativePath}`)
+            }
+            // Handle directory creation
+            else if (event === 'addDir') {
+              fs.ensureDirSync(destPath)
+              console.log(`Directory created: ${relativePath}`)
+            }
+            // Handle file deletion
+            else if (event === 'unlink') {
+              if (fs.existsSync(destPath)) {
+                fs.removeSync(destPath)
+                console.log(`Deleted file: ${relativePath}`)
+              }
+            }
+            // Handle directory deletion
+            else if (event === 'unlinkDir') {
+              if (fs.existsSync(destPath)) {
+                fs.removeSync(destPath)
+                console.log(`Deleted directory: ${relativePath}`)
+              }
             }
           }
         })
