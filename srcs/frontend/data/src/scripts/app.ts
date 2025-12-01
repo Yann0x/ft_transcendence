@@ -3,7 +3,6 @@
    ============================================ */
 
 import { Intro } from './intro'
-import { Login } from './login'
 
 /**
  * Application principale
@@ -62,9 +61,6 @@ const App = {
 // Initialisation au chargement du DOM
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
-
-
-  Login;
 
 });
 
