@@ -4,3 +4,9 @@ export interface User {
     email: string;
     avatarUrl: string;
 }
+
+export interface UserRegister {
+    username: string;
+    email: string;
+    password: string;
+}

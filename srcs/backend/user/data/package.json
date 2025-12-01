@@ -8,8 +8,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "dev" : "tsx src/user.ts",
-    "start": "node build/user.js",
+    "dev" : "tsx watch src/user.ts",
+    "start": "npm run build && node build/user.js",
     "clean": "rm -rf build",
     "fclean": "npm run clean && rm -rf node_modules"
   },

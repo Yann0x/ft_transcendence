@@ -8,8 +8,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "dev" : "tsx src/proxy.ts",
-    "start": "node build/proxy.js",
+    "dev" : "tsx watch src/proxy.ts",
+    "start": "npm run builld && node build/proxy.js",
     "clean": "rm -rf build",
     "fclean": "npm run clean && rm -rf node_modules"
   },
