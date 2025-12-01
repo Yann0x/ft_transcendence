@@ -2,7 +2,7 @@
    MAIN APP - ft_transcendance
    ============================================ */
 
-import { Intro } from './intro';
+import { Intro } from './intro'
 
 /**
  * Application principale
@@ -17,9 +17,20 @@ const App = {
     console.log('🏓 ft_transcendance - App initialized');
     
     this.appContainer = document.getElementById('app');
+    
+    // Load intro animation
+    await this.loadIntro();
     Intro.init();
     
     await this.loadPage('home');
+  },
+
+  /**
+   * Charge l'animation d'intro
+   */
+  async loadIntro(): Promise<void> {
+    const intro = await fetch('/pages/intro.html').then(r => r.text());
+    document.body.insertAdjacentHTML('afterbegin', intro);
   },
 
   /**
@@ -50,6 +61,7 @@ const App = {
 // Initialisation au chargement du DOM
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
+
 });
 
 export { App };
