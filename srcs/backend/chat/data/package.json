@@ -7,8 +7,9 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build" : "tsc",
-    "start" : "node build/chat.js",
+    "build": "tsc",
+    "dev" : "tsx src/chat.ts",
+    "start": "node build/chat.js",
     "clean": "rm -rf build",
     "fclean": "npm run clean && rm -rf node_modules"
   },
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }

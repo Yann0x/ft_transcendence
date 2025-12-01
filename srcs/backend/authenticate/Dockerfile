@@ -8,4 +8,4 @@ COPY ./entrypoint.sh /
 RUN    chmod +x /entrypoint.sh
 
 ENTRYPOINT [ "/entrypoint.sh" ]
-CMD ["npm", "start"]
+CMD ["npm", "run", "dev"]
