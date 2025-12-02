@@ -1,16 +1,22 @@
 import Database from 'better-sqlite3';
 import *  as User from './shared/types/user'
-import { DB_STRUCTURE } from './shared/types/database'
+
+const structure_db: Record<string, string> = {
+    users: `
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL
+    `,
+};
 
 let db = Database.Database
 
 
-initDatabase();
-
 export function initDatabase(db_path: string = '/data/database.db'): Database.Database {
     db = new Database(db_path);
     // Creation des tables si elles n'existent pas
-    for (const [table, schema] of Object.entries(DB_STRUCTURE)) {
+    for (const [table, schema] of Object.entries(structure_db)) {
         const sql = `CREATE TABLE IF NOT EXISTS ${table} (${schema})`;
         db.exec(sql);
     }
