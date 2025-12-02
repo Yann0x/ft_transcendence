@@ -6,9 +6,9 @@
   "author": "",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
     "build": "tsc",
-    "dev" : "tsx watch src/user.ts",
+    "dev": "tsx watch src/user.ts",
     "start": "npm run build && node build/user.js",
     "clean": "rm -rf build",
     "fclean": "npm run clean && rm -rf node_modules"
@@ -19,6 +19,7 @@
   "devDependencies": {
     "@types/node": "^24.10.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.14"
   }
 }
