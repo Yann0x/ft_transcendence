@@ -1,8 +1,10 @@
-import * from './database_methods'
+import * as db from './database_methods'
 import fastify from 'fastify'
 
 
 const server = fastify()
+
+ db.initDatabase();
 
 server.get('/*', async (request, reply) => {
   return {database: 'response'}

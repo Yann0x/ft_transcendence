@@ -8,5 +8,5 @@ export interface User {
 export interface UserRegister {
     username: string;
     email: string;
-    password: string;
+    password_hash: string;
 }
