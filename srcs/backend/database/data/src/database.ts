@@ -1,13 +1,6 @@
-
-// Database code 
-
-import Database from 'better-sqlite3';
-
-const db = new Database('/data/database.db');
-
-// Fastify code (listen to requests on port 3000)
-
+import * from './database_methods'
 import fastify from 'fastify'
+
 
 const server = fastify()
 
