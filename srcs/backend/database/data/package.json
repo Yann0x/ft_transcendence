@@ -6,7 +6,7 @@
   "author": "",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
     "build": "tsc",
     "dev": "tsx watch src/database.ts",
     "start": "npm run builld && node build/database.js",
@@ -21,6 +21,7 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.10.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.14"
   }
 }
