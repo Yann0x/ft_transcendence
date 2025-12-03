@@ -3,6 +3,16 @@ import * as User from './shared/user'
 
 const server = fastify()
 
+server.get('/email_exists/:email', async (request, reply) => {
+  const email = (request.params as { email: string }).email
+  console.log('email_exists() called with email:', email)
+  const response = await fetch('http://database:3000/email_exists/' + encodeURIComponent(email))
+  const data = await response.json()
+  console.log('response from db:', data)
+  reply.send(data)
+})
+
+
 server.post('/register', async (request, reply) => {
   console.log('user_register() called with body:', request.body)
   const userData = request.body as User.Register
