@@ -16,6 +16,9 @@ restart: down run
 logs :
 	docker compose -f $(docker-compose-path) logs -f $(filter-out $@,$(MAKECMDGOALS))
 
+test :
+	docker exec -it $(filter-out $@,$(MAKECMDGOALS)) npm run test
+
 
 clean : down
 	docker rm $$(docker ps -aq)

@@ -3,7 +3,7 @@ import * as User from '../user_methods'
 
 
 test('receive register request in correct format', () => {
-    const mockUser: User.UserRegister = {
+    const mockUser: User.Register = {
         username: "testuser",
         email: "testemail@gmail.com",
         password: "testpassword"
