@@ -16,28 +16,28 @@ server.register(fastifyStatic, {
 
 server.register(proxy, {
   upstream: 'http://user:3000',
-  prefix: '/api/user',
+  prefix: '/user',
   rewritePrefix: '/',
   http2: false
 })
 
 server.register(proxy, {
   upstream: 'http://authenticate:3000',
-  prefix: '/api/authenticate',
+  prefix: '/authenticate',
   rewritePrefix: '/',
   http2: false
 })
 
 server.register(proxy, {
   upstream: 'http://chat:3000',
-  prefix: '/api/chat',
+  prefix: '/chat',
   rewritePrefix: '/',
   http2: false
 })
 
 server.register(proxy, {
   upstream: 'http://game:3000',
-  prefix: '/api/game',
+  prefix: '/game',
   rewritePrefix: '/',
   http2: false
 })
