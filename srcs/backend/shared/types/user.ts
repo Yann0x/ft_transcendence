@@ -5,7 +5,7 @@ export interface User {
     avatarUrl: string;
 }
 
-export interface UserRegister {
+export interface Register {
     username: string;
     email: string;
     password_hash: string;

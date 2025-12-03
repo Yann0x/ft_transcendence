@@ -1,9 +1,9 @@
 import fastify from 'fastify'
-import { UserRegister } from './shared/types/user'
+import { Register } from './shared/types/user'
 
 const server = fastify()
 
-server.post<{Body: UserRegister}> ('/register', async (request, reply) => {
+server.post<{Body: Register}> ('/register', async (request, reply) => {
   user_register(request.body);
 })
 
