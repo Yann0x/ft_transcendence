@@ -1,72 +1,76 @@
 import * as db from '../database_methods'
-import { expect, test, afterAll } from 'vitest';
-import { Register } from '../shared/types/user';
+import { expect, afterAll, it, describe } from 'vitest';
+import { UserRegister, UserQuery, UserUpdate } from '../shared/types/user';
 import fs from 'fs';
 
-db.initDatabase("/data/test_database.db");
-
-
-let mockUser: Register  = {
-  username: 'mockuser',
-  email: 'mock@user.fr',
-  password_hash: 'hashed_password_123'
-}
-
-test('Register', () => {
-  const result = db.insert('users', mockUser)
-  expect(result.changes).toBe(1)
-})
-
-test('Register duplicate', () => {
-  try {
-    db.insert('users', mockUser)
-  } catch (error) {
-    expect((error as Error).message).toContain('UNIQUE constraint failed: users.email')
-    return
-  }
-})
-
-test('test email exist', () => {
-  expect(db.emailExists(mockUser.email)).toBe(true)
-})
-
-test('test email dont exist', () => {
-  expect(db.emailExists('nonexisting@nowhere.fr')).toBe(false)
-})
-
-test('getUser by email', () => {
-  const user = db.getUser(undefined, mockUser.email, undefined)
-  expect(user).toBeDefined()
-  expect(user.email).toBe(mockUser.email)
-})
-
-test('getUser by id', () => {
-  const insertedUser = db.getUser(undefined, mockUser.email, undefined)
-  const user = db.getUser(insertedUser.id, undefined, undefined)
-  expect(user).toBeDefined()
-  expect(user.id).toBe(insertedUser.id)
-})
-
-test('getUser by username', () => {   
-  const user = db.getUser(undefined, undefined, mockUser.username)  
-  expect(user).toBeDefined()
-  expect(user.username).toBe(mockUser.username)
-})
-
-test('getUser non existing', () => {
-  const user = db.getUser(undefined, 'sisi', undefined)
-  expect(user).toBeUndefined()
-})
-
-test('getUser no param', () => {
-  const user = db.getUser(undefined, undefined, undefined)
-  expect(user).toBeUndefined()
-})
+db.initializeDatabase("/data/test_database.db");
 
 afterAll(() => {
-  // Clean up test database file if needed
-  db.close();
-  if (fs.existsSync('/data/test_database.db')) {
-    fs.unlinkSync('/data/test_database.db');
-  }   
+    fs.unlinkSync("/data/test_database.db");
+});
+
+
+describe('Database Methods Tests', () => {
+
+    const testUser: UserRegister = {
+        name: "Test User",
+        email: "test@gmail.com",
+        password: "hashed_password",
+        avatar: "avatar_url"
+    };
+
+    it('should create a new user', () => {
+        const result = db.createUser(testUser);
+        expect(result.success).toBe(true);
+    });
+
+    it('should retrieve the created user', () => {
+        const query: UserQuery = {email: testUser.email};
+        const users = db.getUser(query);
+        expect(users.length).toBe(1);
+        expect(users[0]).toBeDefined();
+        if (users[0] === undefined) return;
+        expect(users[0].email).toBe(testUser.email);
+    });
+    it('should update the user information', () => {
+        const users = db.getUser(testUser);
+        expect(users[0]).toBeDefined();
+        if (users[0] === undefined) return;
+        const userToUpdate: UserUpdate = {
+            id: users[0].id,
+            name: "Updated User",
+            email: "test_new@gmail.com",
+            passwordHash: "new_hashed_password",
+            avatar: "new_avatar_url"
+        };
+        const result = db.updateUser(userToUpdate);
+        expect(result.success).toBe(true);
+
+        const updatedUser = db.getUser({id: userToUpdate.id});
+        expect(users[0]).toBeDefined();
+        if (updatedUser[0] === undefined) return;
+        expect(updatedUser[0].name).toBe("Updated User");
+        expect(updatedUser[0].email).toBe("test_new@gmail.com");
+    });
+    
+    it('should get user password hash', () => {
+        const users = db.getUser({email: "test_new@gmail.com"});
+        expect(users[0]).toBeDefined();
+        if (users[0] === undefined) return;
+        const query: UserQuery = {id: users[0].id};
+        const password_hash = db.getUserPasswordHash(query);
+        expect(password_hash).toBe("new_hashed_password");
+    }
+    );
+    
+    it('should delete the user', () => {
+        const users = db.getUser({email: "test_new@gmail.com"});
+        if (users[0] === undefined) return;
+        const query: UserQuery = {id: users[0].id};
+        const result = db.deleteUser(query);
+        expect(result.success).toBe(true);
+        const deletedUser = db.getUser(query);
+        expect(deletedUser.length).toBe(0);
+    }
+    );
 });

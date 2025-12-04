@@ -1,6 +1,9 @@
 import fastify from 'fastify'
+import { UserQuery, UserQueryResponse, UserRegister, UserUpdate } from './shared/types/user';
 
 const server = fastify()
+
+
 
 server.listen({ port: 3000, host: '0.0.0.0'}, (err, address) => {
   if (err) {

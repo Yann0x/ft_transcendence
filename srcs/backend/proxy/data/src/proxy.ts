@@ -22,27 +22,13 @@ server.register(proxy, {
 })
 
 server.register(proxy, {
-  upstream: 'http://authenticate:3000',
-  prefix: '/authenticate',
-  rewritePrefix: '/',
-  http2: false
-})
-
-server.register(proxy, {
-  upstream: 'http://chat:3000',
-  prefix: '/chat',
-  rewritePrefix: '/',
-  http2: false
-})
-
-server.register(proxy, {
   upstream: 'http://game:3000',
   prefix: '/game',
   rewritePrefix: '/',
   http2: false
 })
 
-server.get('/ws/*', async (request, reply) => {
+server.get('/wss/*', async (request, reply) => {
   return {websocket: 'response'}
 })
 
