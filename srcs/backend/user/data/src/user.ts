@@ -3,7 +3,6 @@ import { UserQuery, UserQueryResponse, UserRegister, UserUpdate } from './shared
 
 const server = fastify()
 
-
 server.post<{ Body: UserRegister }>('/user', async (request, reply) => {
   // TODO email unique
   // TODO hash password
