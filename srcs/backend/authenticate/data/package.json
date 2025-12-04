@@ -8,12 +8,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "dev" : "tsx watch src/authenticate.ts",
+    "dev": "tsx watch src/authenticate.ts",
     "start": "npm run builld && node build/authenticate.js",
     "clean": "rm -rf build",
     "fclean": "npm run clean && rm -rf node_modules"
   },
   "dependencies": {
+    "@fastify/jwt": "^10.0.0",
     "fastify": "^5.6.2"
   },
   "devDependencies": {
