@@ -24,7 +24,7 @@ db.initializeDatabase();
     return result;
   })
 
-  server.delete<{Body: UserQuery, response: {success: boolean}}>('/user', async (request, reply) => {
+  server.delete<{Body: UserQuery, Response: {success: boolean}}>('/user', async (request, reply) => {
     const result = db.deleteUser(request.body);
     return result;
   })
