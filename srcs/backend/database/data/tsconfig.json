@@ -25,6 +25,8 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
 
+    "allowSyntheticDefaultImports": true,
+
     // Style Options
     // "noImplicitReturns": true,
     // "noImplicitOverride": true,

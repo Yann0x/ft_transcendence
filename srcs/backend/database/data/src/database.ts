@@ -1,18 +1,39 @@
 import fastify from 'fastify'
+import { UserQuery, UserQueryResponse, UserRegister, UserUpdate } from './shared/types/user';
+import * as db from './database_methods';
 
 
 const server = fastify()
 
-server.post('/user', async (request, reply) => {
+db.initializeDatabase();
 
-})
+/* GESTION USER */
 
+  server.get<{Body: UserQuery, Response: UserQueryResponse}>('/user', async (request, reply) => {
+    const users: UserQueryResponse[] = db.getUser(request.body);
+    return users;
+  })
 
-server.get('/user', async (request, reply) => {
-})
+  server.put<{Body: UserUpdate, Response: {success: boolean } }>('/user', async (request, reply) => {
+    const result = db.updateUser(request.body);
+    return result;
+  })
 
-server.get('/email_exists/:email', async (request, reply) => {
-})
+  server.post<{Body: UserRegister, Response: {success : true}}>('/user', async (request, reply) => {
+    const result = db.createUser(request.body);
+    return result;
+  })
+
+  server.delete<{Body: UserQuery, response: {success: boolean}}>('/user', async (request, reply) => {
+    const result = db.deleteUser(request.body);
+    return result;
+  })
+
+  server.get<{Body: UserQuery, Response : string}>('/user/password_hash', async (request, reply) => {
+    const password_hash = db.getUserPasswordHash(request.body);
+    return password_hash;
+  })
+
 
 server.listen({ port: 3000, host: '0.0.0.0'}, (err, address) => {
   if (err) {
