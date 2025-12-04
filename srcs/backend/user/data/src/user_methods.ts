@@ -1,8 +1,6 @@
 import { Register } from "./shared/types/user"
 
 export function userEmailExists(email: string) {
-  
-  return data 
 }
 
 

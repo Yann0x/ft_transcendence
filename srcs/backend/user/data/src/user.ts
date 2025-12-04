@@ -4,7 +4,7 @@ import { Register } from './shared/types/user'
 const server = fastify()
 
 server.post<{Body: Register}> ('/register', async (request, reply) => {
-  user_register(request.body);
+
 })
 
 server.listen({ port: 3000, host: '0.0.0.0'}, (err, address) => {
