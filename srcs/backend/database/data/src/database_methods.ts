@@ -24,28 +24,28 @@ export function getUser(user: UserQuery): UserQueryResponse[] {
     return result;
 }
 
-export function updateUser(user: UserUpdate): {success: boolean} {
+export function updateUser(user: UserUpdate): boolean{
     const request = db.prepare('UPDATE users SET name = ?, email = ?, avatar = ?, password_hash = ? WHERE id = ?');
     const result = request.run(user.name, user.email, user.avatar, user.passwordHash, user.id);
     if (result.changes === 0)
-        return { success: false };
-    return { success: true };
+        return false 
+    return true 
 }
 
-export function createUser(user: UserRegister): {success: boolean} {
+export function createUser(user: UserRegister): boolean {
     const request = db.prepare('INSERT INTO users (name, email, password_hash, avatar) VALUES (?, ?, ?, ?)');
     const result = request.run(user.name, user.email, user.password, user.avatar);
     if (result.changes === 0)
-        return { success: false };
-    return { success: true };
+        return false 
+    return true 
 }
 
-export function deleteUser(user: UserQuery): {success: boolean} {
+export function deleteUser(user: UserQuery): boolean {
     const request = db.prepare('DELETE FROM users WHERE id = ?');
     const result = request.run(user.id);
     if (result.changes === 0)
-        return { success: false };
-    return { success: true };
+        return false 
+    return true;
 }
 
 export function getUserPasswordHash(user: UserQuery): string | undefined {

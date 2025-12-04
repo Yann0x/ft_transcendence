@@ -2,8 +2,6 @@ import fastify from 'fastify'
 import jwt from '@fastify/jwt'
 import {UserRegister} from './shared/types/user'
 
-
-
 const server = fastify()
 
 server.register(jwt, {
