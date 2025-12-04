@@ -21,7 +21,7 @@ describe('Database Methods Tests', () => {
 
     it('should create a new user', () => {
         const result = db.createUser(testUser);
-        expect(result.success).toBe(true);
+        expect(result).toBe(true);
     });
 
     it('should retrieve the created user', () => {
@@ -44,7 +44,7 @@ describe('Database Methods Tests', () => {
             avatar: "new_avatar_url"
         };
         const result = db.updateUser(userToUpdate);
-        expect(result.success).toBe(true);
+        expect(result).toBe(true);
 
         const updatedUser = db.getUser({id: userToUpdate.id});
         expect(users[0]).toBeDefined();
@@ -68,7 +68,7 @@ describe('Database Methods Tests', () => {
         if (users[0] === undefined) return;
         const query: UserQuery = {id: users[0].id};
         const result = db.deleteUser(query);
-        expect(result.success).toBe(true);
+        expect(result).toBe(true);
         const deletedUser = db.getUser(query);
         expect(deletedUser.length).toBe(0);
     }
