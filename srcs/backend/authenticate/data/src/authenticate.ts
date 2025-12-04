@@ -1,5 +1,5 @@
 import fastify from 'fastify'
-import * as User from './shared/user'
+import * as User from './shared/types/user'
 
 const server = fastify()
 
