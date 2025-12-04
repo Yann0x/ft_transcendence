@@ -12,7 +12,7 @@
     // See also https://aka.ms/tsconfig/module
     "module": "ES2022",
     "target": "ES2022",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "lib": ["esnext"],
     "types": ["node"],
 
@@ -24,6 +24,8 @@
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
+
+    "allowSyntheticDefaultImports": true,
 
     // Style Options
     // "noImplicitReturns": true,
