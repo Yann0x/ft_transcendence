@@ -12,3 +12,4 @@ export type UserQuery = Partial<Omit<User, 'passwordHash'>>;
 export type UserQueryResponse = Omit<User, 'passwordHash'>;
 export type UserUpdate = {id: number} & Partial<Pick<User, 'name' | 'email' | 'avatar' | 'passwordHash'>>;
 export type UserPublic = Omit<User, 'email' | 'passwordHash'>;
+export type SenderIdentity = Pick<User, 'id' | 'name' | 'email'>;

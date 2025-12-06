@@ -3,12 +3,38 @@ import { UserQuery, UserQueryResponse, UserRegister, UserUpdate } from './shared
 
 const server = fastify()
 
+async function fetchAndCheck(url: string, method: string, body?: any) {
+  const result = await fetch(url, {
+    method: method,
+    headers: {'Content-Type': 'application/json'},
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!result.ok) {
+    throw new Error(`Error fetching ${url}: ${result.statusText}`);
+  }
+  const data = await result.json();
+  return data;
+}
+
 server.post<{ Body: UserRegister }>('/user', async (request, reply) => {
-  // TODO email unique
+  const newUser : UserRegister = request.body
+  try { const userExists = await fetchAndCheck('http://database:3000/user', 'GET', {email: newUser.email}) as UserQueryResponse[]; }
+  
   // TODO hash password
-  // TODO store user in database
-  // TODO créer JWT
-  // TODO return JWT
+
+  // Store user in database
+  try { const createResult = await fetchAndCheck('http://database:3000/user', 'POST', newUser) as boolean; }
+  try { const newRegisterUser = await fetchAndCheck('http://database:3000/user', 'GET', {email: newUser.email}) as UserQueryResponse; }
+  catch (error) {
+    reply.status(500).send({ error: 'Database error', details: error });
+    return;
+  }
+  try { const jwt = await fetchAndCheck('http://authenticate:3000/get_jwt', 'POST', {id : newRegisterUser.id, email : newRegisterUser.email, name : newRegisterUSer.name }) as string; }
+  catch (error) {
+    reply.status(500).send({ error: 'JWT generation error', details: error });
+    return;
+  }
+  reply.send({ jwt: jwt });
 })
 
 server.put<{ Body: UserUpdate, Response: {success: boolean}}>('/user', async (request, reply) => {

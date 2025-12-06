@@ -1,24 +1,38 @@
-import fastify from 'fastify'
+import fastify, { FastifyRequest, FastifyReply } from 'fastify'
 import fastifyStatic from '@fastify/static'
 import proxy from '@fastify/http-proxy'
-import path from 'path'
-import { fileURLToPath } from 'url'
+import {SenderIdentity} from './shared/types/user'
 
 const server = fastify({ logger: true })
 
-const __filename  = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+// Fonction de vérification du JWT via le service authenticate
+async function preHandler(request: FastifyRequest, reply: FastifyReply) {
+  // si authenticate valide le JWT on set des headers avec l'identité de l'envoyeur
+  const authHeader = request.headers.authorization
+  const response = await fetch('http://authenticate:3000/check_jwt', {
+    method: 'POST',
+    headers: {
+      'Authorization': authHeader || ''
+    }
+  })
+  const sender = await response.json() as SenderIdentity | undefined
+  if (sender && sender.id) {
+    request.headers['x-sender-id'] = sender.id.toString()
+    request.headers['x-sender-name'] = sender.name
+    request.headers['x-sender-email'] = sender.email
+    return
+  }
+}
 
-server.register(fastifyStatic, {
-  root:'/frontend/data/build', 
-  prefix: '/',
-})
+// Applique la vérification du JWT avant le renvoi de chaque requête
+server.addHook('preHandler', preHandler);
+
 
 server.register(proxy, {
   upstream: 'http://user:3000',
   prefix: '/user',
   rewritePrefix: '/',
-  http2: false
+  http2: false,
 })
 
 server.register(proxy, {
@@ -32,6 +46,13 @@ server.get('/wss/*', async (request, reply) => {
   return {websocket: 'response'}
 })
 
+
+// sert les fichiers statiques du frontend
+server.register(fastifyStatic, {
+  root:'/frontend/data/build', 
+  prefix: '/',
+})
+// fallback sur index.html pour le routing coté client
 server.setNotFoundHandler((request, reply) => {
   reply.sendFile('index.html')
 })
