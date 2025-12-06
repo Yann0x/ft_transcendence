@@ -1,6 +1,6 @@
 import fastify from 'fastify'
 import jwt from '@fastify/jwt'
-import {UserRegister} from './shared/types/user'
+import {SenderIdentity, UserRegister} from './shared/types/user'
 
 const server = fastify()
 
@@ -8,23 +8,26 @@ server.register(jwt, {
     secret: 'MOCKsupersecret'
 })
 
-server.post<{ Body: UserRegister, Response: string }>('/get_jwt', async (request, reply) => {
-    const user : UserRegister = request.body
+// Creation d'un JWT pour un user nouvellement connecté ou enregistré
+server.post<{ Body: SenderIdentity, Response: string }>('/get_jwt', async (request, reply) => {
+    const user : SenderIdentity = request.body
     const token = server.jwt.sign(user)
     return token
 })
 
+// Check d'un JWT et retourne l'identité associée si valide
 server.post('/check_jwt', async (request, reply) => {
     const authHeader = request.headers.authorization
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return false
+        return undefined
     }
     const token = authHeader.replace('Bearer ', '')
     try {
         server.jwt.verify(token)
-        return true 
+        const decoded = server.jwt.decode<SenderIdentity>(token)
+        return decoded
     } catch (err) {
-        return false
+        return undefined
     }
 })
 
