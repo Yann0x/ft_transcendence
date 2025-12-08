@@ -19,6 +19,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
 }
 
 export function getUser(user: UserQuery): UserQueryResponse[] {
+    console.log('Fetching user with query: ', user);
     const request = db.prepare('SELECT * FROM users WHERE name = ? OR email = ? OR id = ?');
     const result : UserQueryResponse[] = request.all(user.name, user.email, user.id) as UserQueryResponse[];
     return result;

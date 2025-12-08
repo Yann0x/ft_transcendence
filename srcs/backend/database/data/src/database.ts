@@ -7,10 +7,16 @@ const server = fastify()
 
 db.initializeDatabase();
 
+async function logRequest(request: fastify.FastifyRequest, reply: fastify.FastifyReply) {
+  console.log(`Received ${request.method} request for ${request.url}`);
+}
+
+server.addHook('onRequest', logRequest);
+
 /* GESTION USER */
 
-  server.get<{Body: UserQuery, Response: UserQueryResponse[]}>('/user', async (request, reply) => {
-    const users: UserQueryResponse[] = db.getUser(request.body);
+  server.get<{Querystring: UserQuery, Response: UserQueryResponse[]}>('/user', async (request, reply) => {
+    const users: UserQueryResponse[] = db.getUser(request.query);
     if (users.length === 0) {
       reply.status(404).send({ error: 'User not found' });
       return;
@@ -28,6 +34,7 @@ db.initializeDatabase();
   })
 
   server.post<{Body: UserRegister, Response: boolean}>('/user', async (request, reply) => {
+    console.log('Registering user: ', request.body);
     const result = db.createUser(request.body);
     if (!result) {
       reply.status(500).send({ error: 'User could not be created' });

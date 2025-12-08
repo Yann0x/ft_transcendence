@@ -19,7 +19,8 @@ server.post<{ Body: SenderIdentity, Response: string }>('/get_jwt', async (reque
 server.post('/check_jwt', async (request, reply) => {
     const authHeader = request.headers.authorization
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return undefined
+        reply.status(401).send({ error: 'Unauthorized' })
+        return
     }
     const token = authHeader.replace('Bearer ', '')
     try {
@@ -27,7 +28,8 @@ server.post('/check_jwt', async (request, reply) => {
         const decoded = server.jwt.decode<SenderIdentity>(token)
         return decoded
     } catch (err) {
-        return undefined
+        reply.status(401).send({ error: 'Unauthorized' })
+        return
     }
 })
 
