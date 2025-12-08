@@ -8,6 +8,7 @@ const server = fastify({ logger: true })
 // Fonction de vérification du JWT via le service authenticate
 async function preHandler(request: FastifyRequest, reply: FastifyReply) {
   // si authenticate valide le JWT on set des headers avec l'identité de l'envoyeur
+  console.log('Verifying JWT for request to ', request.url);
   const authHeader = request.headers.authorization
   const response = await fetch('http://authenticate:3000/check_jwt', {
     method: 'POST',
@@ -15,6 +16,7 @@ async function preHandler(request: FastifyRequest, reply: FastifyReply) {
       'Authorization': authHeader || ''
     }
   })
+  console.log('Authentication service responded with ', response);
   const sender = await response.json() as SenderIdentity | undefined
   if (sender && sender.id) {
     request.headers['x-sender-id'] = sender.id.toString()
@@ -22,39 +24,43 @@ async function preHandler(request: FastifyRequest, reply: FastifyReply) {
     request.headers['x-sender-email'] = sender.email
     return
   }
+  else
+    reply.status(401).send({ error: 'Unauthorized request'});
 }
 
-// Applique la vérification du JWT avant le renvoi de chaque requête
-server.addHook('preHandler', preHandler);
 
 
-server.register(proxy, {
-  upstream: 'http://user:3000',
-  prefix: '/user',
-  rewritePrefix: '/',
-  http2: false,
+// Routes Privées avec vérification du JWT
+server.register( async function contextPrivate(server) {
+  // Applique la vérification du JWT avant le renvoi de chaque requête
+  server.addHook('preHandler', preHandler);
+
+  server.register(proxy, {
+    upstream: 'http://user:3000',
+    prefix: '/api/user',
+    rewritePrefix: '/',
+    http2: false,
+  })
 })
 
-server.register(proxy, {
-  upstream: 'http://game:3000',
-  prefix: '/game',
-  rewritePrefix: '/',
-  http2: false
-})
+// Routes Publique pas de vérification du JWT
+server.register( async function contextPublic(server) {
+  server.register(proxy, {
+    upstream: 'http://user:3000',
+    prefix: '/api/public/user',
+    rewritePrefix: '/public',
+    http2: false,
+  })
 
-server.get('/wss/*', async (request, reply) => {
-  return {websocket: 'response'}
-})
-
-
-// sert les fichiers statiques du frontend
-server.register(fastifyStatic, {
-  root:'/frontend/data/build', 
-  prefix: '/',
-})
-// fallback sur index.html pour le routing coté client
-server.setNotFoundHandler((request, reply) => {
-  reply.sendFile('index.html')
+  // sert les fichiers statiques du frontend
+  server.register(fastifyStatic, {
+    root:'/frontend/data/build', 
+    prefix: '/',
+  })
+  // fallback sur index.html pour le routing coté client
+  server.setNotFoundHandler((request, reply) => {
+    reply.sendFile('index.html')
+  })
 })
 
 server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {
