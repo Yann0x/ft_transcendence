@@ -146,3 +146,14 @@
   background-color: #2563eb;
   color: white;
 }
+
+/* ---- Auth Modal ---- */
+.auth-tab-active {
+  border-bottom-color: #2563eb !important;
+  color: white !important;
+}
+
+.hidden {
+  display: none !important;
+}
+
