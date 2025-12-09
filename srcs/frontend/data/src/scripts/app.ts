@@ -3,6 +3,8 @@
    ============================================ */
 
 import { Intro } from './intro'
+import { Router } from './router'
+import { AuthModal } from './auth-modal'
 
 /**
  * Application principale
@@ -18,11 +20,29 @@ const App = {
     
     this.appContainer = document.getElementById('app');
     
+    // Load auth modal
+    await this.loadAuthModal();
+    
     // Load intro animation
     await this.loadIntro();
     Intro.init();
     
-    await this.loadPage('home');
+    // Initialize auth modal
+    setTimeout(() => {
+      AuthModal.init();
+      this.setupAuthButtons();
+    }, 100);
+    
+    // Initialize router
+    Router.init(this);
+  },
+
+  /**
+   * Charge la modal d'authentification
+   */
+  async loadAuthModal(): Promise<void> {
+    const authModal = await fetch('/components/auth-modal.html').then(r => r.text());
+    document.body.insertAdjacentHTML('beforeend', authModal);
   },
 
   /**
@@ -55,6 +75,28 @@ const App = {
 
     this.appContainer.innerHTML = navbar + page + footer;
     this.appContainer.classList.add('main-content', 'flex', 'flex-col', 'flex-1');
+    
+    // Re-attach auth buttons after page loads
+    this.setupAuthButtons();
+  },
+
+  /**
+   * Setup auth modal buttons
+   */
+  setupAuthButtons(): void {
+    const authButtons = document.querySelectorAll('.btn-outline, .btn-secondary');
+    authButtons.forEach(btn => {
+      const text = btn.textContent?.trim();
+      if (text === 'Connexion') {
+        btn.addEventListener('click', () => {
+          AuthModal.open();
+        });
+      } else if (text === 'Inscription') {
+        btn.addEventListener('click', () => {
+          AuthModal.openSignup();
+        });
+      }
+    });
   }
 };
 
