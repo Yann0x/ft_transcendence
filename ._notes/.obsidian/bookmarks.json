@@ -1,0 +1,41 @@
+{
+  "items": [
+    {
+      "type": "group",
+      "ctime": 1765276250169,
+      "items": [
+        {
+          "type": "file",
+          "ctime": 1765276243988,
+          "path": "en.subject.pdf"
+        },
+        {
+          "type": "file",
+          "ctime": 1765276243988,
+          "path": "transcendence.base"
+        },
+        {
+          "type": "file",
+          "ctime": 1765276243988,
+          "path": "FlowGraphs.canvas"
+        },
+        {
+          "type": "file",
+          "ctime": 1765276243988,
+          "path": "Modules.md"
+        },
+        {
+          "type": "file",
+          "ctime": 1765276243988,
+          "path": "Pasted image 20251128103509.png"
+        },
+        {
+          "type": "file",
+          "ctime": 1765276243988,
+          "path": "quickstart.md"
+        }
+      ],
+      "title": "Global"
+    }
+  ]
+}
