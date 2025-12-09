@@ -61,6 +61,15 @@ server.register( async function contextPublic(server) {
   server.setNotFoundHandler((request, reply) => {
     reply.sendFile('index.html')
   })
+
+  //DEV
+    server.register(proxy, {
+    upstream: 'http://database:3000',
+    prefix: '/api/docs/database',
+    rewritePrefix: '/docs',
+    http2: false,
+  })
+
 })
 
 server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {

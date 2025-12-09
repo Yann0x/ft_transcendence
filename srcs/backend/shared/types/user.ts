@@ -1,3 +1,5 @@
+import { randomBytes } from "crypto";
+
 export class User {
     constructor 
     (
@@ -6,7 +8,7 @@ export class User {
         public name?: string,
         public email?: string,
         public avatar?: string,
-        private password?: string,
+        public password?: string,
     ) {}
 
     getPublicData(): {name: string | undefined; avatar: string | undefined} {
@@ -15,7 +17,7 @@ export class User {
             avatar: this.avatar
         }
     }
-    getRegisterData(): {name: string | undefined; email: string | undefined; password: string | undefined; avatar?: string | undefined} {
+    getRegisterData(): UserRegister  {
         if (!this.name || !this.email || !this.password) {
             throw new Error('Name, email, and password are required for a valid User registration.');
         }
@@ -27,7 +29,9 @@ export class User {
         }
     }
 
-    register() {
+    register(): string | null {
+        //TODO create an ID for the user
+        //Check if user with same email already exists
         try {
             const result = fetch('http://databse:3000/user', {
                 method: 'POST',
@@ -39,16 +43,18 @@ export class User {
             }
             if  (this.role === 'guest')
                 this.role = 'user';
-            return result;
         } catch (error) {
             console.error('Error during user registration:', error);
             return null;
         }
+        // TODO create a JWT token for the user
+        return randomBytes(16).toString('hex');
     }
 }
 
 export type UserQuery = Partial<Omit<User, 'password'>>;
 export type UserQueryResponse = Omit<User, 'password'>;
-export type UserUpdate = Pick<User, 'name' | 'email' | 'avatar' > & {password?: string};
+export type UserUpdate = Pick<User, 'id' | 'name' | 'email' | 'avatar' | 'password'>; 
 export type UserPublic = Omit<User, 'email' | 'password'>;
 export type SenderIdentity = Pick<User, 'id' | 'name' | 'email'>;
+export type UserRegister = Pick<User, 'id' |'name' | 'email' | 'password' | 'avatar'>;
