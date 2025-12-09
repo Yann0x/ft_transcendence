@@ -1,2 +1,35 @@
-### 
-GET http://localhost:3000/users
+###  Create a user 
+POST http://localhost:3000/user
+Content-Type: application/json
+
+{
+  "id": "user123",
+  "name": "John Doe",
+  "email": "sisi@gmail.com",
+  "password": "securepassword",
+  "avatar": "http://example.com/avatar.jpg"
+}
+
+### get the user
+
+GET http://localhost:3000/user?id=user123
+
+###  Update the user
+PUT http://localhost:3000/user
+Content-Type: application/json  
+
+{
+  "id": "user123",
+  "name": "John Smith",
+  "email": "new@gmail.com",
+  "password": "newpassword",
+  "avatar": "http://example.com/new_avatar.jpg"
+}
+
+###  Delete the user
+DELETE http://localhost:3000/user
+Content-Type: application/json  
+
+{
+  "id": "user123"
+}

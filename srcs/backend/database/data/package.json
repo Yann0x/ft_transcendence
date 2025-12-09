@@ -9,11 +9,13 @@
     "test": "vitest",
     "build": "tsc",
     "dev": "tsx watch src/database.ts",
-    "start": "npm run builld && node build/database.js",
+    "start": "npm run build && node build/database.js",
     "clean": "rm -rf build",
     "fclean": "npm run clean && rm -rf node_modules"
   },
   "dependencies": {
+    "@fastify/swagger": "^9.6.1",
+    "@fastify/swagger-ui": "^5.2.3",
     "better-sqlite3": "^12.5.0",
     "fastify": "^5.6.2"
   },
