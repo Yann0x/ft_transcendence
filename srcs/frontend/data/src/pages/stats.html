@@ -1,0 +1,116 @@
+<!-- Stats Page -->
+<main class="flex-1 flex items-center justify-center p-8">
+  <div class="w-full max-w-6xl">
+    
+    <!-- Page Header -->
+    <div class="mb-8">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-4xl">📊</span>
+        <h1 class="text-3xl font-bold">Mes Statistiques</h1>
+      </div>
+      <p class="text-neutral-400">Retrouvez ici vos statistiques de jeu et votre progression</p>
+    </div>
+
+    <!-- Global Stats -->
+    <div class="grid grid-cols-4 gap-4 mb-8">
+      <div class="stat-card">
+        <div class="stat-value text-blue-400">-</div>
+        <div class="stat-label">Parties jouées</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value text-emerald-400">-</div>
+        <div class="stat-label">Taux de victoire</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value text-amber-400">-</div>
+        <div class="stat-label">Classement global</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value text-purple-400">-</div>
+        <div class="stat-label">Tournois gagnés</div>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-2 gap-6 mb-8">
+      
+      <!-- Games Stats -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-lg font-bold">Statistiques de jeu</h3>
+        </div>
+        <div class="card-body p-6 space-y-4">
+          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
+            <span class="text-neutral-400">Victoires</span>
+            <span class="font-bold text-emerald-400">-</span>
+          </div>
+          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
+            <span class="text-neutral-400">Défaites</span>
+            <span class="font-bold text-red-400">-</span>
+          </div>
+          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
+            <span class="text-neutral-400">Points marqués</span>
+            <span class="font-bold">-</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-neutral-400">Points encaissés</span>
+            <span class="font-bold">-</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Stats -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="text-lg font-bold">Performances</h3>
+        </div>
+        <div class="card-body p-6 space-y-4">
+          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
+            <span class="text-neutral-400">Meilleur score</span>
+            <span class="font-bold text-purple-400">-</span>
+          </div>
+          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
+            <span class="text-neutral-400">Pire score</span>
+            <span class="font-bold text-red-400">-</span>
+          </div>
+          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
+            <span class="text-neutral-400">Série de victoires</span>
+            <span class="font-bold text-emerald-400">-</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-neutral-400">ELO</span>
+            <span class="font-bold text-amber-400">-</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Recent Games -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="text-lg font-bold">Dernières parties</h3>
+      </div>
+      <div class="card-body">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="border-b border-neutral-800">
+              <tr class="text-neutral-400">
+                <th class="text-left py-3 px-4">Adversaire</th>
+                <th class="text-center py-3 px-4">Score</th>
+                <th class="text-center py-3 px-4">Résultat</th>
+                <th class="text-right py-3 px-4">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="hover:bg-neutral-800/50 transition">
+                <td class="py-3 px-4 text-neutral-500" colspan="4">Aucune donnée pour le moment</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
