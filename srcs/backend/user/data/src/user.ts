@@ -6,35 +6,11 @@ const server = fastify()
 
 
 server.post<{ Body: UserRegister }>('/public/register', async (request, reply) => {
-  const newUser : UserRegister = request.body
-  try { const userExists = await fetchAndCheck('http://database:3000/user', 'GET', {email: newUser.email}) as UserQueryResponse[]; }
-  catch (error) {
-    console.error('User doesnt exists'); 
-  }
+  // TODO validate request body
   // TODO hash password
 
   // Store user in database
-  try 
-  { 
-    console.log('Creating user in database: ', newUser);
-    const createResult = await fetchAndCheck('http://database:3000/user', 'POST', newUser) as boolean; 
-    console.log('User creation result: ', createResult);
-    
-    const newRegisterUser = await fetchAndCheck('http://database:3000/user', 'GET', {email: newUser.email}) as UserQueryResponse; 
-  } 
-  catch (error) 
-  {
-    reply.status(500).send({ error: 'Database error', details: error });
-    return;
-  }
-  try { 
-    const jwt = await fetchAndCheck('http://authenticate:3000/get_jwt', 'POST', {id : newRegisterUser.id, email : newRegisterUser.email, name : newRegisterUSer.name }) as string; 
-    reply.send({ jwt: jwt });
-  }
-  catch (error) {
-    reply.status(500).send({ error: 'JWT generation error', details: error });
-    return;
-  }
+  //return JWT to client
 })
 
 server.put<{ Body: UserUpdate, Response: {success: boolean}}>('/update', async (request, reply) => {
