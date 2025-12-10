@@ -41,16 +41,14 @@ export function drawCircle(
  * Dessine le filet central (ligne pointillee verticale)
  */
 export function drawNet(
-  viewportWidth: number,
+  x: number,
   viewportHeight: number,
+  dashHeight: number,
+  dashGap: number,
   color: string = '#333'
 ): void {
   const ctx = getCtx();
   if (!ctx) return;
-
-  const x = viewportWidth / 2;
-  const dashHeight = 10;
-  const dashGap = 8;
 
   ctx.fillStyle = color;
   for (let y = 0; y < viewportHeight; y += dashHeight + dashGap) {

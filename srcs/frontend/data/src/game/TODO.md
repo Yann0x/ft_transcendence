@@ -53,13 +53,13 @@
 
 ## Phase 2 : Entities [FRONT + BACK shared types]
 
-- [ ] Définir le type Ball (x, y, radius, vx, vy)
-- [ ] Définir le type Paddle (x, y, width, height)
-- [ ] Définir le type Net (x, dashHeight, dashGap)
-- [ ] Ajouter ball au state
-- [ ] Ajouter le tableau paddles au state
-- [ ] Ajouter net au state
-- [ ] Extraire les tailles dans des constantes config
+- [x] Définir le type Ball (x, y, radius, vx, vy)
+- [x] Définir le type Paddle (x, y, width, height)
+- [x] Définir le type Net (x, dashHeight, dashGap)
+- [x] Ajouter ball au state
+- [x] Ajouter le tableau paddles au state
+- [x] Ajouter net au state
+- [x] Extraire les tailles dans des constantes config
       *PADDLE_WIDTH, BALL_RADIUS, PADDLE_SPEED, etc. au même endroit*
 
 **Test :**
@@ -70,11 +70,11 @@
 
 ## Phase 3 : Loop [FRONT]
 
-- [ ] Implémenter gameLoop avec requestAnimationFrame
-- [ ] Intégrer Clock.tick qui retourne le dt clampé
-- [ ] Appeler update(state, dt) à chaque frame
-- [ ] Appeler render(state) après update
-- [ ] Vérifier que l'accumulator est prêt pour le fixed tick
+- [x] Implémenter gameLoop avec requestAnimationFrame
+- [x] Intégrer Clock.tick qui retourne le dt clampé
+- [x] Appeler update(state, dt) à chaque frame
+- [x] Appeler render(state) après update
+- [x] Vérifier que l'accumulator est prêt pour le fixed tick
       *pas encore utilisé, juste s'assurer que la structure le permet*
 
 **Test :**
@@ -86,8 +86,8 @@
 
 ## Phase 4 : Mouvement de la balle [BACK authoritative, FRONT prediction]
 
-- [ ] [BACK] Implémenter updateBall : position += velocity * dt
-- [ ] [BACK] Implémenter bounceWalls : inverser vy sur top/bottom
+- [x] [BACK] Implémenter updateBall : position += velocity * dt
+- [x] [BACK] Implémenter bounceWalls : inverser vy sur top/bottom
       *vérifier ball.y contre 0 et la hauteur du canvas*
 - [ ] [BACK] Ajouter EPS et clamp vitesses (VX_MIN, VX_MAX, VY_MAX)
       *EPS = epsilon, petite valeur pour éviter divisions par zéro (~0.0001)*

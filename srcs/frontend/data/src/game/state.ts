@@ -1,19 +1,28 @@
 // STATE - Etat central du jeu
 
 import { getWidth, getHeight } from './canvas';
+import {
+  type Ball, type Paddle, type Net,
+  BALL_RADIUS, BALL_SPEED,
+  PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_MARGIN,
+  NET_DASH_HEIGHT, NET_DASH_GAP
+} from './config';
 
 // --- TYPES ---
 
 export type GamePhase = 'ready' | 'playing' | 'paused' | 'ended';
 
 export interface Viewport {
-  width: number;  // largeur en world units (pixels logiques)
-  height: number; // hauteur en world units (pixels logiques)
+  width: number;
+  height: number;
 }
 
 export interface GameState {
   viewport: Viewport;
   phase: GamePhase;
+  ball: Ball;
+  paddles: [Paddle, Paddle];
+  net: Net;
 }
 
 // --- STATE ---
@@ -22,15 +31,40 @@ let state: GameState | null = null;
 
 /*
  * Cree l'etat initial du jeu
- * Utilise les dimensions actuelles du canvas comme viewport
  */
 export function createInitialState(): GameState {
+  const w = getWidth();
+  const h = getHeight();
+
   return {
-    viewport: {
-      width: getWidth(),
-      height: getHeight()
+    viewport: { width: w, height: h },
+    phase: 'ready',
+    ball: {
+      x: w / 2,
+      y: h / 2,
+      radius: BALL_RADIUS,
+      vx: BALL_SPEED,
+      vy: BALL_SPEED * 1.2
     },
-    phase: 'ready'
+    paddles: [
+      {
+        x: PADDLE_MARGIN,
+        y: h / 2 - PADDLE_HEIGHT / 2,
+        width: PADDLE_WIDTH,
+        height: PADDLE_HEIGHT
+      },
+      {
+        x: w - PADDLE_MARGIN - PADDLE_WIDTH,
+        y: h / 2 - PADDLE_HEIGHT / 2,
+        width: PADDLE_WIDTH,
+        height: PADDLE_HEIGHT
+      }
+    ],
+    net: {
+      x: w / 2,
+      dashHeight: NET_DASH_HEIGHT,
+      dashGap: NET_DASH_GAP
+    }
   };
 }
 
@@ -53,8 +87,13 @@ export function getState(): GameState | null {
  */
 export function updateViewport(): void {
   if (!state) return;
-  state.viewport.width = getWidth();
-  state.viewport.height = getHeight();
+  const w = getWidth();
+  const h = getHeight();
+
+  state.viewport.width = w;
+  state.viewport.height = h;
+  state.net.x = w / 2;
+  state.paddles[1].x = w - PADDLE_MARGIN - PADDLE_WIDTH;
 }
 
 // Export groupe
