@@ -64,8 +64,14 @@ server.register( async function contextPublic(server) {
 
   //DEV
     server.register(proxy, {
+    upstream: 'http://user:3000',
+    prefix: '/user',
+    rewritePrefix: '/docs',
+    http2: false,
+  })
+    server.register(proxy, {
     upstream: 'http://database:3000',
-    prefix: '/api/docs/database',
+    prefix: '/database',
     rewritePrefix: '/docs',
     http2: false,
   })
