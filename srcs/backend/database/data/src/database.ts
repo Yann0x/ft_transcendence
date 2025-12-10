@@ -29,7 +29,7 @@ server.register(swagger, {
 
 // Register Swagger UI
 await server.register(swaggerUI, {
-  routePrefix: '/docs',
+  routePrefix: 'database/public/docs',
   uiConfig: {
     docExpansion: 'list',
     deepLinking: false

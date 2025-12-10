@@ -1,7 +1,5 @@
 import { FastifyInstance } from "fastify"
-import { UserQuery, UserQueryResponse, UserRegister, UserUpdate } from "./shared/types/user";
 import * as db from './database_methods';
-import { queryObjects } from "v8";
 
 const dbGetUserSchema = {
   schema: {
@@ -110,13 +108,13 @@ const dbGetPasswordSchema = {
 
 export function databaseRoutes(server: FastifyInstance) { 
   
-  server.get('/user', dbGetUserSchema, db.getUser)
+  server.get('/database/user', dbGetUserSchema, db.getUser)
 
-  server.put('/user', dbUpdateUserSchema, db.updateUser)
+  server.put('/database/user', dbUpdateUserSchema, db.updateUser)
 
-  server.post('/user', dbCreateUserSchema, db.createUser)
+  server.post('/database/user', dbCreateUserSchema, db.createUser)
 
-  server.delete('/user', dbDeleteUserSchema, db.deleteUser)
+  server.delete('/database/user', dbDeleteUserSchema, db.deleteUser)
 
-  server.get('/user/password_hash', dbGetPasswordSchema, db.getUserPasswordHash)
+  server.get('/database/user/password_hash', dbGetPasswordSchema, db.getUserPasswordHash)
 }
