@@ -3,18 +3,18 @@ docker-compose-path := srcs/docker-compose.yaml
 all : run
 
 run : init front build
-	docker compose -f $(docker-compose-path) up -d
+	docker-compose -f $(docker-compose-path) up -d
 
-build : down init front 
-	docker compose -f $(docker-compose-path) build
+build : down init front
+	docker-compose -f $(docker-compose-path) build
 
 down :
-	docker compose -f $(docker-compose-path) down
+	docker-compose -f $(docker-compose-path) down
 
 restart: down run
 
 logs :
-	docker compose -f $(docker-compose-path) logs -f $(filter-out $@,$(MAKECMDGOALS))
+	docker-compose -f $(docker-compose-path) logs -f $(filter-out $@,$(MAKECMDGOALS))
 
 test :
 	docker exec -it $(filter-out $@,$(MAKECMDGOALS)) npm run test
