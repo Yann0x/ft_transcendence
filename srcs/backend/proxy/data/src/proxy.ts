@@ -9,6 +9,7 @@ const server = fastify({ logger: true })
 async function preHandler(request: FastifyRequest, reply: FastifyReply) {
   // si authenticate valide le JWT on set des headers avec l'identité de l'envoyeur
   console.log('Verifying JWT for request to ', request.url);
+
   const authHeader = request.headers.authorization
   const response = await fetch('http://authenticate:3000/check_jwt', {
     method: 'POST',
@@ -22,61 +23,43 @@ async function preHandler(request: FastifyRequest, reply: FastifyReply) {
     request.headers['x-sender-id'] = sender.id.toString()
     request.headers['x-sender-name'] = sender.name
     request.headers['x-sender-email'] = sender.email
-    return
   }
   else
-    reply.status(401).send({ error: 'Unauthorized request'});
+    reply.status(401).send({ error: 'Unauthorized' });
 }
 
 
-
-// Routes Privées avec vérification du JWT
-server.register( async function contextPrivate(server) {
-  // Applique la vérification du JWT avant le renvoi de chaque requête
-  server.addHook('preHandler', preHandler);
-
-  server.register(proxy, {
-    upstream: 'http://user:3000',
-    prefix: '/api/user',
-    rewritePrefix: '/',
-    http2: false,
-  })
-})
-
 // Routes Publique pas de vérification du JWT
 server.register( async function contextPublic(server) {
-  server.register(proxy, {
-    upstream: 'http://user:3000',
-    prefix: '/api/public/user',
-    rewritePrefix: '/public',
-    http2: false,
-  })
 
   // sert les fichiers statiques du frontend
   server.register(fastifyStatic, {
     root:'/frontend/data/build', 
     prefix: '/',
   })
-  // fallback sur index.html pour le routing coté client
-  server.setNotFoundHandler((request, reply) => {
-    reply.sendFile('index.html')
-  })
 
-  //DEV
-    server.register(proxy, {
+  server.register(proxy, {
     upstream: 'http://user:3000',
-    prefix: '/user',
-    rewritePrefix: '/docs',
-    http2: false,
-  })
-    server.register(proxy, {
-    upstream: 'http://database:3000',
-    prefix: '/database',
-    rewritePrefix: '/docs',
+    prefix: '/user/public',
+    rewritePrefix: '/user/public',
     http2: false,
   })
 
+  server.register( async function contextPrivate(server) {
+    // Applique la vérification du JWT avant le renvoi de chaque requête
+    server.addHook('preHandler', preHandler);
+
+    server.register(proxy, {
+      upstream: 'http://user:3000',
+      prefix: '/user',
+      rewritePrefix: '/user',
+      http2: false,
+    })
+  })
 })
+
+
+// Routes Privées avec vérification du JWT
 
 server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {
   if (err) {
