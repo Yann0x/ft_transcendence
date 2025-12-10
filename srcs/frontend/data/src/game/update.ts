@@ -32,9 +32,14 @@ export function removeSystem(system: System): void {
   }
 }
 
+export function clearSystems(): void {
+  systems.length = 0;
+}
+
 // Export groupe
 export const Update = {
   update,
   addSystem,
-  removeSystem
+  removeSystem,
+  clearSystems
 };
