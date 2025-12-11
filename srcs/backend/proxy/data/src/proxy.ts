@@ -5,6 +5,11 @@ import {SenderIdentity} from './shared/types/user'
 
 const server = fastify({ logger: true })
 
+// Log incoming requests
+server.addHook('onRequest', async (request, reply) => {
+  console.log(`[PROXY] ${request.method} ${request.url}`);
+});
+
 // Fonction de vérification du JWT via le service authenticate
 async function preHandler(request: FastifyRequest, reply: FastifyReply) {
   // si authenticate valide le JWT on set des headers avec l'identité de l'envoyeur
@@ -45,6 +50,7 @@ server.register( async function contextPublic(server) {
     http2: false,
   })
 
+
   server.register( async function contextPrivate(server) {
     // Applique la vérification du JWT avant le renvoi de chaque requête
     server.addHook('preHandler', preHandler);
@@ -56,6 +62,11 @@ server.register( async function contextPublic(server) {
       http2: false,
     })
   })
+  
+  server.setNotFoundHandler((request, reply) => {
+    reply.sendFile('index.html')
+  }) 
+
 })
 
 

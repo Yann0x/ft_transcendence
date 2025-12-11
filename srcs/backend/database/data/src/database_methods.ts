@@ -73,10 +73,10 @@ export function deleteUser(
 }
 
 export function getUserPasswordHash(
-    req: FastifyRequest<{ Params: {id: string} }>,
+    req: FastifyRequest<{ Querystring: { id: string } }>,
     reply: FastifyReply
 ) {
     const request = db.prepare('SELECT password_hash FROM users WHERE id = ?');
-    const result = request.get(req.params.id) as {password_hash: string} | null;
-    return result?.password_hash;
+    const result = request.get(req.query.id) as {password_hash: string} | null;
+    return result?.password_hash ?? null;
 }

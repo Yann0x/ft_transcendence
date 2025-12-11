@@ -1,37 +1,51 @@
 import fastify from 'fastify'
 import jwt from '@fastify/jwt'
-import {SenderIdentity, UserRegister} from './shared/types/user'
+import { authenticateRoutes } from './routes'
 
-const server = fastify()
+const server = fastify({
+  logger: true,
+  ajv: {
+    customOptions: {
+      removeAdditional: false,
+      useDefaults: true,
+      coerceTypes: true,
+      allErrors: true,
+    },
+  },
+})
+
+// Log incoming requests
+server.addHook('onRequest', async (request, reply) => {
+  console.log(`[AUTHENTICATE] ${request.method} ${request.url}`);
+});
+
+// Unified error handler
+server.setErrorHandler((error, request, reply) => {
+  if ((error as any).validation) {
+    return reply.status(400).send({
+      error: 'Validation Error',
+      message: error.message,
+      statusCode: 400,
+      service: 'authenticate',
+      details: (error as any).validation,
+    })
+  }
+
+  const statusCode = (error as any).statusCode || 500
+  reply.status(statusCode).send({
+    error: error.name || 'Internal Server Error',
+    message: error.message,
+    statusCode,
+    service: 'authenticate',
+  })
+})
 
 server.register(jwt, {
-    secret: 'MOCKsupersecret'
+  secret: 'MOCKsupersecret',
 })
 
-// Creation d'un JWT pour un user nouvellement connecté ou enregistré
-server.post<{ Body: SenderIdentity, Response: string }>('/get_jwt', async (request, reply) => {
-    const user : SenderIdentity = request.body
-    const token = server.jwt.sign(user)
-    return token
-})
-
-// Check d'un JWT et retourne l'identité associée si valide
-server.post('/check_jwt', async (request, reply) => {
-    const authHeader = request.headers.authorization
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        reply.status(401).send({ error: 'Unauthorized' })
-        return
-    }
-    const token = authHeader.replace('Bearer ', '')
-    try {
-        server.jwt.verify(token)
-        const decoded = server.jwt.decode<SenderIdentity>(token)
-        return decoded
-    } catch (err) {
-        reply.status(401).send({ error: 'Unauthorized' })
-        return
-    }
-})
+// Routes
+server.register(authenticateRoutes)
 
 server.listen({ port: 3000, host: '0.0.0.0' }, (err, address) => {
   if (err) {

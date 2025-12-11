@@ -1,11 +1,37 @@
 ### Register User
 
-POST http://localhost:8080/api/user/register HTTP/1.1
+POST http://localhost:8080/user/public/register HTTP/1.1
 Content-Type: application/json
 
 
 {
-  "name": "testuser",
+  "id" :"104",
+  "name": "tes4otuse0r",
+  "email": "tespjt@gmmail.com",
+  "password": "testpassword"
+}
+
+### Login User (get JWT)
+
+POST http://localhost:8080/user/public/login HTTP/1.1
+Content-Type: application/json
+
+{
   "email": "test@gmail.com",
   "password": "testpassword"
+}
+
+### Get User (requires JWT)
+
+GET http://localhost:8080/user/find?email=teddst@gmail.com HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAxIiwibmFtZSI6InRlc3R1c2VyIiwiZW1haWwiOiJ0ZXN0QGdtYWlsLmNvbSIsImlhdCI6MTc2NTQ3NzE2Nn0.37-Umy6swvTUcu5Tf1lIKacXWDW8TjudxDsBqJrWv9U
+
+### Delete User (requires JWT)
+
+DELETE http://localhost:8080/user/delete HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{jwt_token}}
+
+{
+  "id": "{{user_id}}"
 }

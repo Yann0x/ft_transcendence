@@ -2,7 +2,12 @@ import fastify from 'fastify'
 
 const server = fastify()
 
-server.get('/', async (request, reply) => {
+// Log incoming requests
+server.addHook('onRequest', async (request, reply) => {
+  console.log(`[CHAT] ${request.method} ${request.url}`);
+});
+
+server.get('/chat', async (request, reply) => {
   return {chat: 'response'}
 })
 
