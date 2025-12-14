@@ -1,8 +1,6 @@
 // CLOCK - Gestion du temps de jeu
 
-const MAX_DT = 50; // dt max en ms, evite teleportation apres changement d'onglet
-export const FIXED_DT = 16.666; // pas de temps fixe pour la physique (~60Hz)
-export const MAX_STEPS = 5; // limite de ticks physiques par frame (evite spirale de la mort)
+import { MAX_DT, FIXED_DT, MAX_STEPS } from './config';
 
 let lastTime = 0; // timestamp de la derniere frame
 let dt = 0; // delta time depuis derniere frame en ms
