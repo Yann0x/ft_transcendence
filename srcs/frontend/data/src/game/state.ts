@@ -17,12 +17,19 @@ export interface Viewport {
   height: number;
 }
 
+export interface Score {
+  left: number;
+  right: number;
+}
+
 export interface GameState {
   viewport: Viewport;
   phase: GamePhase;
   ball: Ball;
   paddles: [Paddle, Paddle];
   net: Net;
+  score: Score;
+  lastScorer: 'left' | 'right' | null;
 }
 
 // --- STATE ---
@@ -30,11 +37,34 @@ export interface GameState {
 let state: GameState | null = null;
 
 /*
+ * Calcule vx/vy a partir d'un angle en radians
+ * 0 = droite, PI = gauche, PI/2 = bas, -PI/2 = haut
+ */
+function velocityFromAngle(speed: number, angle: number): { vx: number; vy: number } {
+  return {
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed
+  };
+}
+
+/*
+ * Retourne un angle de depart aleatoire
+ * Evite les angles trop verticaux (entre -45° et 45° vers droite ou gauche)
+ */
+function randomStartAngle(): number {
+  const maxAngle = Math.PI / 6; // 30 degres max
+  const angle = (Math.random() * 2 - 1) * maxAngle;
+  const goRight = Math.random() > 0.5;
+  return goRight ? angle : Math.PI + angle;
+}
+
+/*
  * Cree l'etat initial du jeu
  */
 export function createInitialState(): GameState {
   const w = getWidth();
   const h = getHeight();
+  const { vx, vy } = velocityFromAngle(BALL_SPEED, randomStartAngle());
 
   return {
     viewport: { width: w, height: h },
@@ -43,8 +73,8 @@ export function createInitialState(): GameState {
       x: w / 2,
       y: h / 2,
       radius: BALL_RADIUS,
-      vx: BALL_SPEED,
-      vy: BALL_SPEED * 1.2
+      vx,
+      vy
     },
     paddles: [
       {
@@ -64,7 +94,9 @@ export function createInitialState(): GameState {
       x: w / 2,
       dashHeight: NET_DASH_HEIGHT,
       dashGap: NET_DASH_GAP
-    }
+    },
+    score: { left: 0, right: 0 },
+    lastScorer: null
   };
 }
 
@@ -96,10 +128,32 @@ export function updateViewport(): void {
   state.paddles[1].x = w - PADDLE_MARGIN - PADDLE_WIDTH;
 }
 
-// Export groupe
-export const State = {
-  init,
-  getState,
-  updateViewport,
-  createInitialState
-};
+/*
+ * Change la phase du jeu
+ */
+export function setPhase(phase: GamePhase): void {
+  if (!state) return;
+  state.phase = phase;
+}
+
+export function resetBall(serveToRight?: boolean): void {
+  if (!state) return;
+  const maxAngle = Math.PI / 6;
+  const angle = (Math.random() * 2 - 1) * maxAngle;
+  const direction = serveToRight ?? Math.random() > 0.5;
+  const finalAngle = direction ? angle : Math.PI + angle;
+  const { vx, vy } = velocityFromAngle(BALL_SPEED, finalAngle);
+
+  state.ball.x = getWidth() / 2;
+  state.ball.y = getHeight() / 2;
+  state.ball.vx = vx;
+  state.ball.vy = vy;
+}
+
+export function addScore(side: 'left' | 'right'): void {
+  if (!state) return;
+  state.score[side]++;
+  state.lastScorer = side;
+}
+
+export const State = { init, getState, updateViewport, setPhase, resetBall, addScore, createInitialState };

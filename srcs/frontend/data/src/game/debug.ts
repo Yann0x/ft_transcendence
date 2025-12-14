@@ -6,8 +6,6 @@ import { drawText } from './render';
 
 export let showFPS = false;
 export let showHitboxes = false;
-export let slowMo = false;
-export const SLOW_MO_FACTOR = 0.25; // 25% de la vitesse normale
 
 // --- FPS COUNTER ---
 
@@ -41,6 +39,26 @@ export function drawFps(): void {
   });
 }
 
+/*
+ * Affiche les controles en bas a gauche
+ */
+export function drawControls(viewportHeight: number): void {
+  const controls = [
+    'W/S - Player 1',
+    'Arrows - Player 2 (2P mode)',
+    'SPACE - Start/Restart',
+    'A - Toggle AI/2P',
+    'R - Reset ball',
+    'F - Toggle FPS',
+    'H - Toggle Hitboxes'
+  ];
+  const lineHeight = 16;
+  const startY = viewportHeight - controls.length * lineHeight - 10;
+  for (let i = 0; i < controls.length; i++) {
+    drawText(controls[i], 10, startY + i * lineHeight, { font: '12px system-ui', color: '#3f3f3f', align: 'left' });
+  }
+}
+
 // --- TOGGLES ---
 
 export function toggleFPS(): void {
@@ -53,28 +71,12 @@ export function toggleHitboxes(): void {
   console.log(`Debug: showHitboxes = ${showHitboxes}`);
 }
 
-export function toggleSlowMo(): void {
-  slowMo = !slowMo;
-  console.log(`Debug: slowMo = ${slowMo}`);
-}
-
-/*
- * Applique le facteur slowMo au dt si actif
- */
-export function applySlowMo(dt: number): number {
-  return slowMo ? dt * SLOW_MO_FACTOR : dt;
-}
-
 // Export groupe
 export const Debug = {
   showFPS,
   showHitboxes,
-  slowMo,
-  SLOW_MO_FACTOR,
   updateFps,
   drawFps,
   toggleFPS,
-  toggleHitboxes,
-  toggleSlowMo,
-  applySlowMo
+  toggleHitboxes
 };
