@@ -35,7 +35,10 @@ describe('Database Methods Tests', () => {
     it('should create a new user', () => {
         const req = mockBodyRequest(testUser);
         const result = db.createUser(req, mockReply);
-        expect(result).toBe(true);
+        expect(typeof result).toBe('string');
+        expect(result).not.toBe(null);
+        if (result === null) return;
+        expect(result.length).toBeGreaterThan(0);
     });
 
     it('should retrieve the created user', () => {

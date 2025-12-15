@@ -19,7 +19,6 @@ const registerUserSchema = {
       required: ['name', 'email', 'password'],
       additionalProperties: false,
       properties: {
-        id: { type: 'string' },
         name: { type: 'string', minLength: 2, maxLength: 50 },
         email: { type: 'string', format: 'email' },
         password: { type: 'string', minLength: 8 },

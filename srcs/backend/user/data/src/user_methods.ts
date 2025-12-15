@@ -15,7 +15,6 @@ export async function registerUserHandler(
   try {
     // Request body is already validated by schema at this point
     const userData = req.body;
-    
     // TODO: Hash password before sending to database
     
     console.log("[USER] Calling database service at http://database:3000/database/user");
@@ -26,6 +25,7 @@ export async function registerUserHandler(
       userData
     );
     console.log("[USER] Database returned:", result);
+    userData.id = result as string;
     
     // Get JWT from internal authenticate service for immediate login
     const token = await customFetch(
