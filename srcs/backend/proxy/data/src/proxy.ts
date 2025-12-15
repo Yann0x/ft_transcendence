@@ -16,14 +16,19 @@ if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
 
 const server = fastify({
   logger: true,
-  https: {
-    key: fs.readFileSync(path.resolve(keyPath)),
-    cert: fs.readFileSync(path.resolve(certPath)),
-  }
+  // https: {
+  //   key: fs.readFileSync(path.resolve(keyPath)),
+  //   cert: fs.readFileSync(path.resolve(certPath)),
+  // }
 })
 
-server.addHook('onRequest', async (request, reply) => {
-  console.log(`[PROXY] ${request.method} ${request.url}`);
+// Log WebSocket upgrade attempts
+server.server.on('upgrade', (req, socket) => {
+  console.log('[PROXY] upgrade start', req.url, {
+    protocol: req.headers['sec-websocket-protocol'],
+    origin: req.headers.origin,
+  });
+  socket.on('close', () => console.log('[PROXY] upgrade socket closed', req.url));
 });
 
 // Fonction de vérification du JWT via le service authenticate
@@ -49,27 +54,6 @@ async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
     reply.status(401).send({ error: 'Unauthorized' });
 }
 
-
-// Routes Publique pas de vérification du JWT
-server.register( async function contextPublic(server) {
-
-  // sert les fichiers statiques du frontend
-  // server.register(fastifyStatic, {
-    // root:'/frontend/data/build', 
-    // prefix: '/',
-  // })
-
-  server.register(proxy, {
-    upstream: 'http://user:3000',
-    prefix: '/user/public',
-    rewritePrefix: '/user/public',
-    http2: false,
-  })
-
-  server.setNotFoundHandler((request, reply) => {
-    reply.sendFile('index.html')
-  }) 
-
   // Routes Privées avec vérification du JWT
   server.register( async function contextPrivate(server) {
     server.addHook('preHandler', checkJWT);
@@ -81,17 +65,32 @@ server.register( async function contextPublic(server) {
       http2: false,
     })
   })
+
+
+// Routes Publique pas de vérification du JWT
   
-  // Dev routes 
+  // sert les fichiers statiques du frontend
+  // server.register(fastifyStatic, {
+    // root:'/frontend/data/build', 
+    // prefix: '/',
+  // })
+
+ 
+
+  server.register(proxy, {
+    upstream: 'http://user:3000',
+    prefix: '/user/public',
+    rewritePrefix: '/user/public',
+    http2: false,
+  })
+ // Dev routes 
    server.register(proxy, {
       upstream: 'http://frontend:3000',
       prefix: '/',
       rewritePrefix: '',
       http2: false,
       websocket: true, // HMR websockets
-    });
-})
-
+  });
 
 
 server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {

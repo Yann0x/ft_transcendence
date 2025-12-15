@@ -20,44 +20,7 @@ export default defineConfig({
   plugins: [
     {
       name: 'copy-to-build',
-      configureServer(server) {
-        // Copie initiale du dossier src vers build
-        const srcPath = path.resolve(__dirname, 'src')
-        const buildPath = path.resolve(__dirname, 'build')
-        
-        // Watch et copie des changements
-        server.watcher.on('all', (event, file) => {
-          if (file.startsWith(srcPath)) {
-            const relativePath = path.relative(srcPath, file)
-            const destPath = path.join(buildPath, relativePath)
-            
-            // Handle file/directory creation and changes
-            if (event === 'add' || event === 'change') {
-              fs.copySync(file, destPath)
-              console.log(`Copied: ${relativePath}`)
-            }
-            // Handle directory creation
-            else if (event === 'addDir') {
-              fs.ensureDirSync(destPath)
-              console.log(`Directory created: ${relativePath}`)
-            }
-            // Handle file deletion
-            else if (event === 'unlink') {
-              if (fs.existsSync(destPath)) {
-                fs.removeSync(destPath)
-                console.log(`Deleted file: ${relativePath}`)
-              }
-            }
-            // Handle directory deletion
-            else if (event === 'unlinkDir') {
-              if (fs.existsSync(destPath)) {
-                fs.removeSync(destPath)
-                console.log(`Deleted directory: ${relativePath}`)
-              }
-            }
-          }
-        })
-      },
+      // Dev server serves from src; copy only after build.
       writeBundle() {
         // Après le build, copie les fichiers HTML statiques
         const srcPath = path.resolve(__dirname, 'src')
@@ -80,19 +43,19 @@ export default defineConfig({
   ],
   server: {
     host: true,
-    allowedHosts: 'all',
+    allowedHosts: true,
     port: 3000,
     strictPort: true,
     hmr: {
-      host: process.env.VITE_HMR_HOST || 'localhost', // service name in docker-compose
-      port: 3000,
-      protocol: 'wss'
+      host: 'localhost',
+      clientPort: 8080,
+      protocol: 'ws',
     },
     watch: {
-      usePolling: true,   // reliable in Docker
-      interval: 200
+      usePolling: true,
+      interval: 200,
+      ignored: ['**/build/**','**/node_modules/**','**/.git/**'],
     },
-
   }
 
 })
