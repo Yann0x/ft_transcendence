@@ -1,5 +1,4 @@
-// Named export for fetch helper
-export async function customFetch(url: string, method: string, body?: any) {
+async function customFetch(url: string, method: string, body?: any) {
   let fetchUrl = url;
   let fetchOptions: RequestInit = {
     method: method,
@@ -55,6 +54,4 @@ export async function customFetch(url: string, method: string, body?: any) {
   }
 }
 
-// Default export to support legacy default-import style
-export default { customFetch };
-
+module.exports = customFetch
