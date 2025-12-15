@@ -54,10 +54,10 @@ async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
 server.register( async function contextPublic(server) {
 
   // sert les fichiers statiques du frontend
-  server.register(fastifyStatic, {
-    root:'/frontend/data/build', 
-    prefix: '/',
-  })
+  // server.register(fastifyStatic, {
+    // root:'/frontend/data/build', 
+    // prefix: '/',
+  // })
 
   server.register(proxy, {
     upstream: 'http://user:3000',
@@ -82,6 +82,14 @@ server.register( async function contextPublic(server) {
     })
   })
   
+  // Dev routes 
+   server.register(proxy, {
+      upstream: 'http://frontend:3000',
+      prefix: '/',
+      rewritePrefix: '',
+      http2: false,
+      websocket: true, // HMR websockets
+    });
 })
 
 

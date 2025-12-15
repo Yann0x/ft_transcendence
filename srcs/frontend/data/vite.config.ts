@@ -80,7 +80,19 @@ export default defineConfig({
   ],
   server: {
     host: true,
+    allowedHosts: 'all',
     port: 3000,
-    strictPort: true
+    strictPort: true,
+    hmr: {
+      host: process.env.VITE_HMR_HOST || 'localhost', // service name in docker-compose
+      port: 3000,
+      protocol: 'wss'
+    },
+    watch: {
+      usePolling: true,   // reliable in Docker
+      interval: 200
+    },
+
   }
+
 })
