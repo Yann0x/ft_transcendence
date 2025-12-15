@@ -24,8 +24,11 @@ export const AuthModal = {
     this.setupTabListeners();
     this.setupCloseListeners();
     this.setupSwitchLinks();
+    this.setupFormSubmissions();
+    console.log('AuthModal initialized');
   },
 
+  
   /**
    * Setup tab switching
    */
@@ -113,5 +116,68 @@ export const AuthModal = {
    */
   close(): void {
     this.modal?.classList.add('hidden');
-  }
+  },
+
+  setupFormSubmissions(): void {
+    console.log('setupFormSubmissions()');
+    const loginFormElement = this.loginForm as HTMLFormElement | null;
+    const signupFormElement = this.signupForm as HTMLFormElement | null;
+    loginFormElement?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      // Handle login form submission
+      const formData = new FormData(loginFormElement);
+      const email = formData.get('email') as string;
+      const password = formData.get('password') as string;
+
+      try {
+        const response = await fetch('/user/public/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert(`Login failed: ${errorData.message}`);
+          return;
+        }
+
+        const data = await response.json();
+        if (data.token) {
+          localStorage.setItem('authToken', data.token);
+        }
+        alert('Login successful!');
+        this.close();
+      } catch (error) {
+        alert('An error occurred during login.');
+      }
+    })
+   signupFormElement?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      // Handle signup form submission
+      const formData = new FormData(signupFormElement);
+      const name = formData.get('name') as string;
+      const email = formData.get('email') as string;
+      const password = formData.get('password') as string;
+
+      try {
+        const response = await fetch('/user/public/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          alert(`Signup failed: ${errorData.message}`);
+          return;
+        }
+        
+        alert('Signup successful! Please log in.');
+        this.showLogin();
+      } catch (error) {
+        alert('An error occurred during signup.');
+      }
+   });
+  },
 };
