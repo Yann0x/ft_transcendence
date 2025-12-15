@@ -119,7 +119,7 @@ export const AuthModal = {
   },
 
   setupFormSubmissions(): void {
-    console.log('setupFormSubmissions()');
+    console.log('HEINHEIN setupFormSubmissions()');
     const loginFormElement = this.loginForm as HTMLFormElement | null;
     const signupFormElement = this.signupForm as HTMLFormElement | null;
     loginFormElement?.addEventListener('submit', async (e) => {
