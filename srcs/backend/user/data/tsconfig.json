@@ -10,10 +10,10 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "ES2022",
+    "module": "NodeNext",
     "target": "ES2022",
-    "moduleResolution": "bundler",
-    "lib": ["esnext"],
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM"],
     "types": ["node"],
 
     // Other Outputs
@@ -26,6 +26,9 @@
     "exactOptionalPropertyTypes": true,
 
     "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
 
     // Style Options
     // "noImplicitReturns": true,

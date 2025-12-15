@@ -22,13 +22,12 @@ const server = fastify({
   }
 })
 
-// Log incoming requests
 server.addHook('onRequest', async (request, reply) => {
   console.log(`[PROXY] ${request.method} ${request.url}`);
 });
 
 // Fonction de vérification du JWT via le service authenticate
-async function preHandler(request: FastifyRequest, reply: FastifyReply) {
+async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
   // si authenticate valide le JWT on set des headers avec l'identité de l'envoyeur
   console.log('Verifying JWT for request to ', request.url);
 
@@ -67,10 +66,13 @@ server.register( async function contextPublic(server) {
     http2: false,
   })
 
+  server.setNotFoundHandler((request, reply) => {
+    reply.sendFile('index.html')
+  }) 
 
+  // Routes Privées avec vérification du JWT
   server.register( async function contextPrivate(server) {
-    // Applique la vérification du JWT avant le renvoi de chaque requête
-    server.addHook('preHandler', preHandler);
+    server.addHook('preHandler', checkJWT);
 
     server.register(proxy, {
       upstream: 'http://user:3000',
@@ -80,14 +82,9 @@ server.register( async function contextPublic(server) {
     })
   })
   
-  server.setNotFoundHandler((request, reply) => {
-    reply.sendFile('index.html')
-  }) 
-
 })
 
 
-// Routes Privées avec vérification du JWT
 
 server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {
   if (err) {

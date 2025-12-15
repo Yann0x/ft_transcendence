@@ -1,7 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { UserRegister, UserUpdate, UserQuery } from "./shared/types/user";
-import utils from "./shared/utils";
-const { customFetch } = utils;
+import customFetch from "./shared/utils/fetch";
 
 type LoginBody = {
   email: string;
@@ -71,7 +70,7 @@ export async function loginUserHandler(
   try {
     const credentials = req.body;
     // 1) Find user by email
-    const users = await customFetch(
+    const users : UserQueryResonse = await customFetch(
       'http://database:3000/database/user',
       'GET',
       { email: credentials.email }
@@ -86,7 +85,7 @@ export async function loginUserHandler(
       });
     }
 
-    const user = users[0];
+    const user : User = users[0];
 
     // 2) Get stored password hash (currently stored in password_hash)
     const storedHash = await customFetch(
