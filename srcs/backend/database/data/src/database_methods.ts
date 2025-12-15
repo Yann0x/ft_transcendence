@@ -9,7 +9,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     db.pragma('WAL=1');   
     db.prepare(`
         CREATE TABLE IF NOT EXISTS users (
-            id TEXT NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             name TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
@@ -53,12 +53,12 @@ export function updateUser(
 export function createUser(
     req: FastifyRequest<{ Body: UserRegister }>,
     reply: FastifyReply
-): boolean {
-    const request = db.prepare('INSERT INTO users (id, name, email, password_hash, avatar) VALUES (?, ?, ?, ?, ?)');
-    const result = request.run(req.body.id, req.body.name, req.body.email, req.body.password, req.body.avatar);
+): string | null {
+    const request = db.prepare('INSERT INTO users (name, email, password_hash, avatar) VALUES (?, ?, ?, ?)');
+    const result = request.run(req.body.name, req.body.email, req.body.password, req.body.avatar);
     if (result.changes === 0)
-        return false 
-    return true 
+        return null;
+    return String(result.lastInsertRowid);
 }
 
 export function deleteUser(

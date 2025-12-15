@@ -45,10 +45,16 @@ const dbUpdateUserSchema = {
         name: { type: 'string' },
         email: { type: 'string' },
         password: { type: 'string' },
+        avatar: { type: 'string' },
       }
     },
     response: {
-      200: { type: 'boolean' },
+      200: {
+        oneOf: [
+          { type: 'boolean' },
+          { type: 'string' }
+        ]
+      },
     }
   }
 }
@@ -58,9 +64,8 @@ const dbCreateUserSchema = {
     body: {
       type: 'object',
       additionalProperties: false,
-      required: [ 'id', 'name', 'email', 'password'],
+      required: [ 'name', 'email', 'password'],
       properties: {
-        id : { type: 'string' },
         name: { type: 'string' },
         email: { type: 'string' },
         password: { type: 'string' },
@@ -68,7 +73,7 @@ const dbCreateUserSchema = {
       }
     },
     response: {
-      200: { type: 'boolean' }
+      200: { type: 'string' }
     }
   }
 }
@@ -96,7 +101,7 @@ const dbGetPasswordSchema = {
       additionalProperties: false,
       required: ['id'],
       properties: {
-        id : { type: 'string' },
+        id : { type: 'integer' },
       }
     },
     response: {
