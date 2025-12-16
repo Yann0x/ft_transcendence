@@ -1,20 +1,15 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { User, UserRegister, UserUpdate, UserQuery, UserQueryResponse } from "./shared/types/user";
+import { User, UserPublic} from "./shared/types/with_front/types";
 import customFetch from "./shared/utils/fetch";
 
-type LoginBody = {
-  email: string;
-  password: string;
-};
-
 export async function registerUserHandler(
-  req: FastifyRequest<{ Body: UserRegister }>,
+  req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
 ) {
   console.log("[USER] registerUserHandler called with body:", req.body);
   try {
     // Request body is already validated by schema at this point
-    const userData: UserRegister = req.body;
+    const userData: User = req.body;
     // TODO: Hash password before sending to database
     
     console.log("[USER] Calling database service at http://database:3000/database/user");
@@ -63,14 +58,14 @@ export async function registerUserHandler(
 }
 
 export async function loginUserHandler(
-  req: FastifyRequest<{ Body: LoginBody }>,
+  req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
 ) {
   console.log("[USER] loginUserHandler called with body:", req.body);
   try {
-    const credentials = req.body;
+    const credentials: User = req.body;
     // 1) Find user by email
-    const users : UserQueryResponse = await customFetch(
+    const users : User = await customFetch(
       'http://database:3000/database/user',
       'GET',
       { email: credentials.email }
@@ -129,7 +124,7 @@ export async function loginUserHandler(
 }
 
 export async function findUserHandler(
-  req: FastifyRequest<{ Querystring: UserQuery }>,
+  req: FastifyRequest<{ Querystring: User }>,
   reply: FastifyReply
 ) {
   try {
@@ -155,7 +150,7 @@ export async function findUserHandler(
 }
 
 export async function updateUserHandler(
-  req: FastifyRequest<{ Body: UserUpdate }>,
+  req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
 ) {
   try {

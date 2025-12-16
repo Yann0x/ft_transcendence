@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { UserQuery, UserQueryResponse, UserRegister, UserUpdate } from './shared/types/user';
+import { UserQuery, UserQueryResponse, UserRegister, UserUpdate } from './shared/types/with_front/types';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
 let db: Database.Database;
@@ -14,6 +14,18 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             avatar TEXT
+        );
+        CREATE TABLE IF NOT EXISTS match (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            score1 INTEGER,
+            score2 INTEGER,
+            status TEXT
+        );
+        CREATE TABLE IF NOT EXISTS tournament (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+        );
+        CREATE TABLE IF NOT EXISTS message (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
         );
     `).run();
     return db;

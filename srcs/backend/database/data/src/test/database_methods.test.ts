@@ -1,6 +1,6 @@
 import * as db from '../database_methods'
 import { expect, afterAll, it, describe } from 'vitest';
-import { UserRegister, UserQuery, UserUpdate } from '../shared/types/user';
+import { UserRegister, UserQuery, UserUpdate } from '../shared/types/with_front/types';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import fs from 'fs';
 
