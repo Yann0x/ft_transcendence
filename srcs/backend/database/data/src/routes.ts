@@ -122,4 +122,6 @@ export function databaseRoutes(server: FastifyInstance) {
   server.delete('/database/user', dbDeleteUserSchema, db.deleteUser)
 
   server.get('/database/user/password_hash', dbGetPasswordSchema, db.getUserPasswordHash)
+
+  server.get('/database/')
 }

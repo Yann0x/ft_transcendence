@@ -1,8 +1,8 @@
 export class Match {
     constructor(
         public id: string,
-        public player1Id: string,
-        public player2Id: string,
+        public player1Id: User["id"],
+        public player2Id: User["id"],
         public score1: number,
         public score2: number,
         public status: 'pending' | 'ongoing' | 'completed',
@@ -14,7 +14,7 @@ export class Tounament {
     constructor(
         public id: string,
         public name: string,
-        public participants: string[],
+        public participants: User["id"][],
         public status: 'upcoming' | 'ongoing' | 'completed',
         public matches: Match[],
     ) {}
@@ -22,7 +22,7 @@ export class Tounament {
 
 export class Stats {
     constructor(
-        public userId: string,
+        public userId: User["id"],
         public gamesPlayed: number,
         public gamesWon: number,
         public gamesLost: number,
@@ -30,12 +30,15 @@ export class Stats {
     ) {}
 }
 
-export class Chat {
+export class Channel {
     constructor(
-        public id: string,
+        public id: number,
         public name: string,
-        public isPrivate: boolean,
-        public members: string[],
+        public type: 'public' | 'private' = 'private',
+        public members: User["id"][],
+        public moderators: User["id"][],
+        public createdAt: Date,
+        public createdBy: User["id"],
     ) {}
 }
 
@@ -52,7 +55,7 @@ export class User {
         public stats?: Stats,
         public matches?: Match[],
         public tournaments?: Tounament[],
-        public chats?: Chat[],
+        public chats?: Channel[],
     ) {}
 }
 export type UserPublic = Pick<User, 'id' | 'name' | 'avatar' | 'friends'>;
