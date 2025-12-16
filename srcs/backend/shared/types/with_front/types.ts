@@ -10,7 +10,7 @@ export class Match {
 
 }
 
-export class Tounament {
+export class Tournament {
     constructor(
         public id: string,
         public name: string,
@@ -22,11 +22,20 @@ export class Tounament {
 
 export class Stats {
     constructor(
-        public userId: User["id"],
-        public gamesPlayed: number,
-        public gamesWon: number,
-        public gamesLost: number,
-        public winRate: number,
+        public user_id: User["id"],
+        public games_played: number,
+        public games_won: number,
+        public games_lost: number,
+        public win_rate: number,
+    ) {}
+}
+export class Message {
+    constructor(
+        public id: number,
+        public channel_id: Channel["id"],
+        public sender_id: User["id"],
+        public content: string,
+        public sent_at: Date,
     ) {}
 }
 
@@ -37,8 +46,9 @@ export class Channel {
         public type: 'public' | 'private' = 'private',
         public members: User["id"][],
         public moderators: User["id"][],
-        public createdAt: Date,
-        public createdBy: User["id"],
+        public messages: Message[],
+        public created_by: User["id"],
+        public created_at: Date,
     ) {}
 }
 
@@ -54,7 +64,7 @@ export class User {
         public friends : UserPublic[] = [],
         public stats?: Stats,
         public matches?: Match[],
-        public tournaments?: Tounament[],
+        public tournaments?: Tournament[],
         public chats?: Channel[],
     ) {}
 }
