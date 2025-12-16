@@ -7,7 +7,8 @@ let db: Database.Database;
 export function initializeDatabase(path: string | undefined = 'database.db' ): Database.Database {
     db = new Database(path); 
     db.pragma('WAL=1');   
-    db.prepare(`
+    db.prepare(
+    `
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -17,15 +18,30 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
         );
         CREATE TABLE IF NOT EXISTS match (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tournament_id REFERENCES tournament(id) DEFAULT NULL,
             score1 INTEGER,
             score2 INTEGER,
-            status TEXT
+            player1_id REFERENCES users(id),
+            player2_id REFERENCES users(id),
         );
-        CREATE TABLE IF NOT EXISTS tournament (
+        CREATE TABLE IF NOT EXISTS channel (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            type TEXT CHECK( type IN ('public','private') ) NOT NULL,
+            created_by REFERENCES users(id)
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS chanel_member (
+            channel_id REFERENCES channel(id),
+            member1_id REFERENCES users(id),
+            PRIMARY KEY (channel_id, member_id)
         );
         CREATE TABLE IF NOT EXISTS message (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            channel_id REFERENCES channel(id),
+            sender_id REFERENCES users(id),
+            content TEXT NOT NULL,
+            sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     `).run();
     return db;
