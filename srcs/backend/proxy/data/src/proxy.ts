@@ -91,7 +91,12 @@ async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
       http2: false,
       websocket: true, // HMR websockets
   });
-
+  server.register(proxy, {
+    upstream: 'http://database:3000',
+    prefix: '/database',
+    rewritePrefix: '/database/docs',
+    http2: false,
+  })
 
 server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {
   if (err) {
