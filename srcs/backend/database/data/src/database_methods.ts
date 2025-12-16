@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { UserQuery, UserQueryResponse, UserRegister, UserUpdate } from './shared/types/with_front/types';
+import { User, Channel } from './shared/types/with_front/types';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
 let db: Database.Database;
@@ -16,26 +16,38 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             password_hash TEXT NOT NULL,
             avatar TEXT
         );
+    `).run();
+    db.prepare(
+    `
         CREATE TABLE IF NOT EXISTS match (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             tournament_id REFERENCES tournament(id) DEFAULT NULL,
             score1 INTEGER,
             score2 INTEGER,
             player1_id REFERENCES users(id),
-            player2_id REFERENCES users(id),
+            player2_id REFERENCES users(id)
         );
+    `).run();
+    db.prepare(
+    `
         CREATE TABLE IF NOT EXISTS channel (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             type TEXT CHECK( type IN ('public','private') ) NOT NULL,
-            created_by REFERENCES users(id)
+            created_by REFERENCES users(id),
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
+    `).run();
+    db.prepare(
+    `
         CREATE TABLE IF NOT EXISTS chanel_member (
             channel_id REFERENCES channel(id),
-            member1_id REFERENCES users(id),
+            member_id REFERENCES users(id),
             PRIMARY KEY (channel_id, member_id)
         );
+    `).run();
+    db.prepare(
+    `
         CREATE TABLE IF NOT EXISTS message (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             channel_id REFERENCES channel(id),
@@ -51,9 +63,9 @@ export function getUser
 (
     req: FastifyRequest <{ Params : {id? : string, email?: string, name?: string}} >,
     reply: FastifyReply
-): UserQueryResponse[] {
+): User[] {
 
-    const query = req.params as UserQuery;
+    const query = req.params as User;
       const users = db.prepare(
         `SELECT id, name, email FROM users 
          WHERE (${query.id ? 'id = ?' : '1=1'})
@@ -63,12 +75,12 @@ export function getUser
         ...(query.id ? [query.id] : []),
         ...(query.email ? [query.email] : []),
         ...(query.name ? [query.name] : [])
-      ) as UserQueryResponse[];
+      ) as User[];
       return users;
 }
 
 export function updateUser(
-    req: FastifyRequest<{ Body: UserUpdate }>,
+    req: FastifyRequest<{ Body: User }>,
     reply: FastifyReply
 ): boolean | string {
     const request = db.prepare('UPDATE users SET name = ?, email = ?, avatar = ?, password_hash = ? WHERE id = ?');
@@ -79,7 +91,7 @@ export function updateUser(
 }
 
 export function createUser(
-    req: FastifyRequest<{ Body: UserRegister }>,
+    req: FastifyRequest<{ Body: User }>,
     reply: FastifyReply
 ): string | null {
     const request = db.prepare('INSERT INTO users (name, email, password_hash, avatar) VALUES (?, ?, ?, ?)');
@@ -108,3 +120,40 @@ export function getUserPasswordHash(
     const result = request.get(req.query.id) as {password_hash: string} | null;
     return result?.password_hash ?? null;
 }
+
+export function getChannel(
+    req: FastifyRequest <{ Params : {id : string}} >,
+    reply: FastifyReply
+): Channel | null {
+
+    const query = req.params;
+    const channel: Channel | null = db.prepare(
+      `SELECT id, name, type, created_by, created_at FROM channel 
+       WHERE id = ?`
+    ).get(
+      query.id
+    ) as Channel | null;
+    channel.messages = db.prepare(
+      `SELECT id, channel_id, sender_id, content, sent_at FROM message 
+       WHERE channel_id = ?`
+    ).all(
+      query.id
+    ) as Channel[] | null;
+    const members = db.prepare(
+      `SELECT member_id FROM chanel_member 
+       WHERE channel_id = ?`
+    ).all( query.id ) as {member_id: string}[];
+    channel.members = members.map( (m) => m.member_id );
+    const moderators = db.prepare(
+      `SELECT member_id FROM chanel_member 
+       WHERE channel_id = ?`
+    ).all( query.id ) as {member_id: string}[];
+    channel.moderators = moderators.map( (m) => m.member_id );
+    return channel;
+}
+
+export function updateChannel(
+    req: FastifyRequest<{ Body: Channel }>,
+    reply: FastifyReply) {
+        
+    }

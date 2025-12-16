@@ -1,6 +1,6 @@
 import * as db from '../database_methods'
 import { expect, afterAll, it, describe } from 'vitest';
-import { UserRegister, UserQuery, UserUpdate } from '../shared/types/with_front/types';
+import { User, User, User } from '../shared/types/with_front/types';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import fs from 'fs';
 
@@ -14,8 +14,8 @@ afterAll(() => {
 const mockReply = {} as FastifyReply;
 
 // Helper functions to create mock requests
-function mockGetRequest(params: Partial<UserQuery>): FastifyRequest<{ Params: UserQuery }> {
-    return { params } as FastifyRequest<{ Params: UserQuery }>;
+function mockGetRequest(params: Partial<User>): FastifyRequest<{ Params: User }> {
+    return { params } as FastifyRequest<{ Params: User }>;
 }
 
 function mockBodyRequest<T>(body: T): FastifyRequest<{ Body: T }> {
@@ -24,7 +24,7 @@ function mockBodyRequest<T>(body: T): FastifyRequest<{ Body: T }> {
 
 describe('Database Methods Tests', () => {
 
-    const testUser: UserRegister = {
+    const testUser: User = {
         id : "test_user_id",
         name: "Test User",
         email: "test@gmail.com",
@@ -56,7 +56,7 @@ describe('Database Methods Tests', () => {
         expect(users[0]).toBeDefined();
         if (users[0] === undefined) return;
         
-        const userToUpdate: UserUpdate = {
+        const userToUpdate: User = {
             id: users[0].id,
             name: "Updated User",
             email: "test_new@gmail.com",
