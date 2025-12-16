@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { UserRegister, UserUpdate, UserQuery } from "./shared/types/user";
+import { User, UserRegister, UserUpdate, UserQuery, UserQueryResponse } from "./shared/types/user";
 import customFetch from "./shared/utils/fetch";
 
 type LoginBody = {
@@ -14,7 +14,7 @@ export async function registerUserHandler(
   console.log("[USER] registerUserHandler called with body:", req.body);
   try {
     // Request body is already validated by schema at this point
-    const userData = req.body;
+    const userData: UserRegister = req.body;
     // TODO: Hash password before sending to database
     
     console.log("[USER] Calling database service at http://database:3000/database/user");
@@ -70,7 +70,7 @@ export async function loginUserHandler(
   try {
     const credentials = req.body;
     // 1) Find user by email
-    const users : UserQueryResonse = await customFetch(
+    const users : UserQueryResponse = await customFetch(
       'http://database:3000/database/user',
       'GET',
       { email: credentials.email }

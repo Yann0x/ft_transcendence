@@ -16,10 +16,10 @@ if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
 
 const server = fastify({
   logger: true,
-  // https: {
-  //   key: fs.readFileSync(path.resolve(keyPath)),
-  //   cert: fs.readFileSync(path.resolve(certPath)),
-  // }
+  https: {
+    key: fs.readFileSync(path.resolve(keyPath)),
+    cert: fs.readFileSync(path.resolve(certPath)),
+  }
 })
 
 // Log WebSocket upgrade attempts
