@@ -3,7 +3,7 @@ import fastifyStatic from '@fastify/static'
 import proxy from '@fastify/http-proxy'
 import fs from 'fs'
 import path from 'path'
-import {SenderIdentity} from './shared/types/user'
+import {SenderIdentity} from './shared/types/with_front/types'
 
 // self signed certificate 
 const keyPath = '/certs/selfsigned.key'

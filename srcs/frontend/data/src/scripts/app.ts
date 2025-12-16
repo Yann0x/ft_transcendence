@@ -5,12 +5,14 @@
 import { Intro } from './intro'
 import { Router } from './router'
 import { AuthModal } from './auth-modal'
+import { User } from '../shared/types'
 
 /**
  * Application principale
  */
 const App = {
   appContainer: null as HTMLElement | null,
+  me: new User() as User,
 
   /**
    * Initialise l'application

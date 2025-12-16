@@ -1,4 +1,4 @@
-class Match {
+export class Match {
     constructor(
         public id: string,
         public player1Id: string,
@@ -10,7 +10,7 @@ class Match {
 
 }
 
-class Tounament {
+export class Tounament {
     constructor(
         public id: string,
         public name: string,
@@ -20,7 +20,7 @@ class Tounament {
     ) {}
 }
 
-class Stats {
+export class Stats {
     constructor(
         public userId: string,
         public gamesPlayed: number,
@@ -30,7 +30,7 @@ class Stats {
     ) {}
 }
 
-class Chat {
+export class Chat {
     constructor(
         public id: string,
         public name: string,
@@ -38,3 +38,22 @@ class Chat {
         public members: string[],
     ) {}
 }
+
+export class User {
+    constructor 
+    (
+        public role: 'guest' | 'user' | 'admin' = 'guest',
+        public id?: string,
+        public name: string | 'guest' = 'guest',
+        public email?: string,
+        public avatar?: string,
+        public password?: string,
+        public friends : UserPublic[] = [],
+        public stats?: Stats,
+        public matches?: Match[],
+        public tournaments?: Tounament[],
+        public chats?: Chat[],
+    ) {}
+}
+export type UserPublic = Pick<User, 'id' | 'name' | 'avatar' | 'friends'>;
+
