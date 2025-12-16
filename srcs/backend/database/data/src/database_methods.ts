@@ -9,7 +9,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     db.pragma('WAL=1');   
     db.prepare(`
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,

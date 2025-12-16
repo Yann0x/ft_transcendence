@@ -49,7 +49,7 @@ export default defineConfig({
     hmr: {
       host: 'localhost',
       clientPort: 8080,
-      protocol: 'ws',
+      protocol: 'wss',
     },
     watch: {
       usePolling: true,

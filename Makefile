@@ -38,7 +38,7 @@ front:
 
 
 # <--- DEV TOOLS--->
-nodeclean: fclean
+nodeclean: down 
 	find -type d -name data -exec sh -c 'cd "{}" && npm run fclean' \;
 
 .PHONY: all run clean fclean re

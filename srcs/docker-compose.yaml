@@ -92,6 +92,7 @@ services:
       - transcendence
     volumes:
       - ./frontend/data:/data
+      - ./backend/shared/with_front/:/data/src/shared:ro
     restart: always
 
 
