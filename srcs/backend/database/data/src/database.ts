@@ -7,7 +7,7 @@ import ajvFormats from 'ajv-formats'
 import { databaseRoutes } from './routes';
 import * as db from './database_methods';
 import swagger from '@fastify/swagger';
-import swaggerUI from '@fastify/swagger'
+import swaggerUI from '@fastify/swagger-ui'
 import  handleThisError  from './shared/utils/error'
 
 
@@ -34,16 +34,16 @@ server.addHook('onRequest', async (request, reply) => {
 
 server.setErrorHandler(handleThisError);
 
-// server.register(swagger, {
-//   exposeRoute: true,
-//   swagger: {
-//     info: {
-//       title: 'Database Service API',
-//       description: 'Database management microservice',
-//       version: '1.0.0'
-//     }
-//   },
-// });
+server.register(swagger, {
+  exposeRoute: true,
+  swagger: {
+    info: {
+      title: 'Database Service API',
+      description: 'Database management microservice',
+      version: '1.0.0'
+    }
+  },
+});
 
 // Register Swagger UI
 await server.register(swaggerUI, {
