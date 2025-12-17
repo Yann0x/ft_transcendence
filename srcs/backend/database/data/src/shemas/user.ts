@@ -1,11 +1,21 @@
-import { FastifyInstance } from "fastify"
-import * as db from './database_methods';
-import {Type} from '@sinclair/typebox'
-import UserSchema from './shared/types/with_front/typeBox'
+import { Type, Static } from '@sinclair/typebox'
 
 const dbGetUserSchema = {
   schema: {
-    querystring: UserSchema,
+    querystring: {
+      type: 'object',
+      additionalProperties: false,
+      anyOf: [
+        { required: ['id']},
+        { required: ['email']},
+        { required: ['name']},
+      ],
+      properties: {
+        id : {type: 'string'},
+        name: {type: "string"},
+        email: {type: "string"},
+      }
+    },
     response: {
       200: {
         type: 'array',
@@ -165,20 +175,4 @@ const dbUpdateChannelSchema = {
       200: { type: 'boolean' }
     }
   }
-}
-        
-export function databaseRoutes(server: FastifyInstance) { 
-  
-  server.get('/database/user', dbGetUserSchema, db.getUser)
-
-  server.put('/database/user', dbUpdateUserSchema, db.updateUser)
-
-  server.post('/database/user', dbCreateUserSchema, db.createUser)
-
-  server.delete('/database/user', dbDeleteUserSchema, db.deleteUser)
-
-  server.get('/database/user/password_hash', dbGetPasswordSchema, db.getUserPasswordHash)
-
-  server.get('/database/chat/channel', dbGetChannelSchema, db.getChannel)
-  
 }
