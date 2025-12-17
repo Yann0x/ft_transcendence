@@ -3,7 +3,7 @@ import fastifyStatic from '@fastify/static'
 import proxy from '@fastify/http-proxy'
 import fs from 'fs'
 import path from 'path'
-import {SenderIdentity} from './shared/types/with_front/types'
+import {SenderIdentity} from './shared/types/with_front/typeBox'
 
 // self signed certificate 
 const keyPath = '/certs/selfsigned.key'
@@ -83,7 +83,13 @@ async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
     rewritePrefix: '/user/public',
     http2: false,
   })
- // Dev routes 
+ // Dev routes  
+  server.register(proxy, {
+    upstream: 'http://database:3000',
+    prefix: '/database',
+    rewritePrefix: '/database/docs',
+    http2: false,
+  })
    server.register(proxy, {
       upstream: 'http://frontend:3000',
       prefix: '/',
@@ -91,12 +97,7 @@ async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
       http2: false,
       websocket: true, // HMR websockets
   });
-  server.register(proxy, {
-    upstream: 'http://database:3000',
-    prefix: '/database',
-    rewritePrefix: '/database/docs',
-    http2: false,
-  })
+
 
 server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {
   if (err) {

@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { User, UserPublic} from "./shared/types/with_front/types";
+import { User } from "./shared/types/with_front/typeBox";
 import customFetch from "./shared/utils/fetch";
 
 export async function registerUserHandler(
@@ -81,6 +81,7 @@ export async function loginUserHandler(
     }
 
     const user : User = users[0];
+    console.log("[USER] Found user:", user);
 
     // 2) Get stored password hash (currently stored in password_hash)
     const storedHash = await customFetch(

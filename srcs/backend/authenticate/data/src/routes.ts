@@ -1,33 +1,18 @@
 import { FastifyInstance } from 'fastify'
 import { buildCheckJwtHandler, buildGetJwtHandler } from './authenticate_methods'
-
-const errorResponseSchema = {
-  type: 'object',
-  properties: {
-    error: { type: 'string' },
-    message: { type: 'string' },
-    statusCode: { type: 'number' },
-    service: { type: 'string' },
-    details: { type: 'object' },
-  },
-}
+import { ErrorResponseSchema, UserSchema } from './shared/types/with_front/typeBox'
+import { Type } from '@sinclair/typebox'
 
 const getJwtSchema = {
   schema: {
-    body: {
-      type: 'object',
-      required: ['id', 'name', 'email'],
-      additionalProperties: false,
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        email: { type: 'string', format: 'email' },
-      },
-    },
+    body: Type.Object(
+      Type.Pick(UserSchema, ['id', 'name', 'email']).properties,
+      { required: ['id', 'email'] }
+    ),
     response: {
       200: { type: 'string' },
-      400: errorResponseSchema,
-      500: errorResponseSchema,
+      400: ErrorResponseSchema,
+      500: ErrorResponseSchema,
     },
   },
 }
@@ -49,8 +34,8 @@ const checkJwtSchema = {
           email: { type: 'string' },
         },
       },
-      401: errorResponseSchema,
-      500: errorResponseSchema,
+      401: ErrorResponseSchema,
+      500: ErrorResponseSchema,
     },
   },
 }

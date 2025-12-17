@@ -1,42 +1,33 @@
 import { FastifyInstance } from "fastify"
+import { Type } from '@sinclair/typebox'
+
 import * as db from './database_methods';
-import {Type} from '@sinclair/typebox'
-import UserSchema from './shared/types/with_front/typeBox'
+import { UserSchema, UserPublicSchema, ChannelSchema } from './shared/types/with_front/typeBox'
 
 const dbGetUserSchema = {
   schema: {
-    querystring: UserSchema,
-    response: {
-      200: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            name: { type: 'string' },
-            email: { type: 'string' },
-          },
-          required: ['id', 'name', 'email']
-        }
+    querystring: Type.Object(
+      Type.Pick(UserSchema, ['id', 'email', 'name']).properties,
+      {
+        anyOf: [
+          { required: ['id'] },
+          { required: ['email'] },
+          { required: ['name'] },
+        ]
       }
+    ),
+    response: {
+      200: Type.Array(UserSchema)
     }
   }
 }
 
 const dbUpdateUserSchema = {
   schema: {
-    body: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['id'],
-      properties: {
-        id: { type: 'string' },
-        name: { type: 'string' },
-        email: { type: 'string' },
-        password: { type: 'string' },
-        avatar: { type: 'string' },
-      }
-    },
+    body: Type.Object(
+      UserSchema.properties,
+          { required: ['id'] },
+    ),
     response: {
       200: {
         oneOf: [
@@ -50,17 +41,10 @@ const dbUpdateUserSchema = {
 
 const dbCreateUserSchema = {
   schema: {
-    body: {
-      type: 'object',
-      additionalProperties: false,
-      required: [ 'name', 'email', 'password'],
-      properties: {
-        name: { type: 'string' },
-        email: { type: 'string' },
-        password: { type: 'string' },
-        avatar: { type: 'string' },
-      }
-    },
+    body: Type.Object(
+      Type.Pick(UserSchema, ['name', 'email', 'password', 'avatar']).properties,
+      { required: ['name', 'email', 'password'] }
+    ),
     response: {
       200: { type: 'string' }
     }
@@ -69,14 +53,10 @@ const dbCreateUserSchema = {
 
 const dbDeleteUserSchema = {
   schema: {
-    body: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['id'],
-      properties: {
-        id : { type: 'string' },
-      }
-    },
+    body: Type.Object(
+      UserSchema.properties,
+          { required: ['id'] },
+    ),
     response: {
       200: { type: 'boolean' }
     }
@@ -85,14 +65,10 @@ const dbDeleteUserSchema = {
 
 const dbGetPasswordSchema = {
   schema: {
-    querystring: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['id'],
-      properties: {
-        id : { type: 'integer' },
-      }
-    },
+    querystring: Type.Object(
+      UserSchema.properties,
+          { required: ['id'] },
+    ),
     response: {
       200: { type: 'string' },
       404: { type: 'null' }
@@ -102,14 +78,10 @@ const dbGetPasswordSchema = {
 
 const dbGetChannelSchema = {
   schema: {
-    querystring: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['id'],
-      properties: {
-        id : { type: 'string' },
-      }
-    },
+    querystring: Type.Object(
+      ChannelSchema.properties,
+          { required: ['id'] },
+    ),
     response: {
       200: {
         type: 'object',
