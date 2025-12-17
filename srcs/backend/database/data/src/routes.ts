@@ -28,11 +28,11 @@ const dbGetUserSchema = {
             email: { type: 'string' },
           },
           required: ['id', 'name', 'email']
-          }
         }
       }
     }
   }
+}
 
 const dbUpdateUserSchema = {
   schema: {
@@ -177,7 +177,6 @@ const dbUpdateChannelSchema = {
     }
   }
 }
-
         
 export function databaseRoutes(server: FastifyInstance) { 
   

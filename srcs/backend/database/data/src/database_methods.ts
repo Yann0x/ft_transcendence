@@ -1,5 +1,5 @@
 import Database from 'better-sqlite3';
-import { User, Channel } from './shared/types/with_front/types';
+import { User, Channel, Message } from './shared/types/with_front/types';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
 let db: Database.Database;
@@ -145,15 +145,34 @@ export function getChannel(
     ).all( query.id ) as {member_id: string}[];
     channel.members = members.map( (m) => m.member_id );
     const moderators = db.prepare(
-      `SELECT member_id FROM chanel_member 
-       WHERE channel_id = ?`
+      `
+      SELECT member_id FROM chanel_member 
+       WHERE channel_id = ?
+     `
     ).all( query.id ) as {member_id: string}[];
     channel.moderators = moderators.map( (m) => m.member_id );
     return channel;
 }
 
-export function updateChannel(
-    req: FastifyRequest<{ Body: Channel }>,
-    reply: FastifyReply) {
-        
-    }
+export function getMessages(
+    req: FastifyRequest <{ Params : {channel_id : string, last_messageg_id: string}} >,
+    reply: FastifyReply
+)
+{
+    const query = req.params;
+    const messages = db.prepare(
+    `
+        SELECT *
+        FROM messages
+        WHERE channel_id = ?
+        AND id < ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT 100;
+    `
+    ).all(
+      query.channel_id, 
+      query.last_messageg_id
+    ) as Message [];
+    return messages;
+}
+
