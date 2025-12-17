@@ -1,72 +1,63 @@
-export class Match {
-    constructor(
-        public id: string,
-        public player1Id: User["id"],
-        public player2Id: User["id"],
-        public score1: number,
-        public score2: number,
-        public status: 'pending' | 'ongoing' | 'completed',
-    ) {}
-
+export interface Match {
+    
+        id: string,
+        player1Id: User["id"],
+        player2Id: User["id"],
+        score1: number,
+        score2: number,
+        status: string,
 }
 
-export class Tournament {
-    constructor(
-        public id: string,
-        public name: string,
-        public participants: User["id"][],
-        public status: 'upcoming' | 'ongoing' | 'completed',
-        public matches: Match[],
-    ) {}
+export interface Tournament {
+    
+        id: string,
+        name: string,
+        participants: User["id"][],
+        status: string,
+        matches: Match[],
 }
 
-export class Stats {
-    constructor(
-        public user_id: User["id"],
-        public games_played: number,
-        public games_won: number,
-        public games_lost: number,
-        public win_rate: number,
-    ) {}
+export interface Stats {
+        user_id: User["id"],
+        games_played: number,
+        games_won: number,
+        games_lost: number,
+        win_rate: number,
 }
-export class Message {
-    constructor(
-        public id: number,
-        public channel_id: Channel["id"],
-        public sender_id: User["id"],
-        public content: string,
-        public sent_at: Date,
-    ) {}
+export interface Message {
+    
+        id: number,
+        channel_id: Channel["id"],
+        sender_id: User["id"],
+        content: string,
+        sent_at: Date,
 }
 
-export class Channel {
-    constructor(
-        public id: number,
-        public name: string,
-        public type: 'public' | 'private' = 'private',
-        public members: User["id"][],
-        public moderators: User["id"][],
-        public messages: Message[],
-        public created_by: User["id"],
-        public created_at: Date,
-    ) {}
+export interface Channel {
+    
+        id: number,
+        name: string,
+        type: string,
+        members: User["id"][],
+        moderators: User["id"][],
+        messages: Message[],
+        created_by: User["id"],
+        created_at: Date,
 }
 
-export class User {
-    constructor 
-    (
-        public role: 'guest' | 'user' | 'admin' = 'guest',
-        public id?: string,
-        public name: string | 'guest' = 'guest',
-        public email?: string,
-        public avatar?: string,
-        public password?: string,
-        public friends : UserPublic[] = [],
-        public stats?: Stats,
-        public matches?: Match[],
-        public tournaments?: Tournament[],
-        public chats?: Channel[],
-    ) {}
+export interface User {
+        role: string,
+        id?: string,
+        name: string,
+        email?: string,
+        avatar?: string,
+        password?: string,
+        friends : UserPublic[],
+        stats?: Stats,
+        matches?: Match[],
+        tournaments?: Tournament[],
+        chats?: Channel[],
 }
-export type UserPublic = Pick<User, 'id' | 'name' | 'avatar' | 'friends'>;
+
+export type UserPublic= Pick<User, 'id' | 'name' | 'avatar' | 'friends'>;
 
