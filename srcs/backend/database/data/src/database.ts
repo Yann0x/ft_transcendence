@@ -1,9 +1,15 @@
 import fastify from 'fastify'
+
+import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
+import ajvFormats from 'ajv-formats'
+
+
 import { databaseRoutes } from './routes';
 import * as db from './database_methods';
 import swagger from '@fastify/swagger';
 import swaggerUI from '@fastify/swagger'
 import  handleThisError  from './shared/utils/error'
+
 
 const server = fastify({
   logger: true,
@@ -13,9 +19,10 @@ const server = fastify({
       useDefaults: true,
       coerceTypes: true,
       allErrors: true // Return ALL validation errors, not just first one
-    }
+    },
+    plugins: [ajvFormats]
   }
-})
+}).withTypeProvider<TypeBoxTypeProvider>()
 
 db.initializeDatabase();
 
