@@ -69,7 +69,7 @@ export async function loginUserHandler(
       'http://database:3000/database/user',
       'GET',
       { email: credentials.email }
-    ) as Array<{ id: string; name: string; email: string }>;
+    ) as Array<User>;
 
     if (!users || users.length === 0) {
       return reply.status(401).send({

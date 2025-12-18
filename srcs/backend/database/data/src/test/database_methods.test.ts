@@ -18,6 +18,10 @@ function mockGetRequest(params: Partial<User>): FastifyRequest<{ Params: User }>
     return { params } as FastifyRequest<{ Params: User }>;
 }
 
+function mockQueryRequest<T>(query: T): FastifyRequest<{ Querystring: T }> {
+    return { query } as FastifyRequest<{ Querystring: T }>;
+}
+
 function mockBodyRequest<T>(body: T): FastifyRequest<{ Body: T }> {
     return { body } as FastifyRequest<{ Body: T }>;
 }
@@ -43,6 +47,15 @@ describe('Database Methods Tests', () => {
 
     it('should retrieve the created user', () => {
         const req = mockGetRequest({email: testUser.email});
+        const users = db.getUser(req, mockReply);
+        expect(users.length).toBe(1);
+        expect(users[0]).toBeDefined();
+        if (users[0] === undefined) return;
+        expect(users[0].email).toBe(testUser.email);
+    });
+
+    it('should retrieve the user via querystring email', () => {
+        const req = mockQueryRequest({ email: testUser.email });
         const users = db.getUser(req, mockReply);
         expect(users.length).toBe(1);
         expect(users[0]).toBeDefined();
@@ -81,7 +94,7 @@ describe('Database Methods Tests', () => {
         expect(users[0]).toBeDefined();
         if (users[0] === undefined) return;
         
-        const hashReq = mockGetRequest({id: users[0].id});
+        const hashReq = mockQueryRequest({id: users[0].id});
         const password_hash = db.getUserPasswordHash(hashReq, mockReply);
         expect(password_hash).toBe("new_hashed_password");
     });
@@ -99,4 +112,18 @@ describe('Database Methods Tests', () => {
         const deletedUser = db.getUser(checkReq, mockReply);
         expect(deletedUser.length).toBe(0);
     });
+    it('should delete create a channel', () => {
+        const getReq = mockPostRequest({name: "test", type: 'private', created_at : Date.now(), created_by: testUser});
+        const users = db.getUser(getReq, mockReply);
+        if (users[0] === undefined) return;
+        
+        const deleteReq = mockBodyRequest({id: users[0].id});
+        const result = db.deleteUser(deleteReq, mockReply);
+        expect(result).toBe(true);
+        
+        const checkReq = mockGetRequest({id: users[0].id});
+        const deletedUser = db.getUser(checkReq, mockReply);
+        expect(deletedUser.length).toBe(0);
+    }))
 });
+

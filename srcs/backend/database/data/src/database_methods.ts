@@ -58,31 +58,36 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     `).run();
     return db;
 }
+export function getUser(req, reply): User[] {
+    // Accept both querystring (preferred) and path params as input filters
+    const query = (req.query || req.params || {}) as User;
 
-export function getUser
-(
-    req: FastifyRequest <{ Params : {id? : string, email?: string, name?: string}} >,
-    reply: FastifyReply
-): User[] {
+    const conditions: string[] = [];
+    const values: Array<string> = [];
 
-    const query = req.params as User;
-      const users = db.prepare(
-        `SELECT id, name, email FROM users 
-         WHERE (${query.id ? 'id = ?' : '1=1'})
-         AND (${query.email ? 'email = ?' : '1=1'})
-         AND (${query.name ? 'name = ?' : '1=1'})`
-      ).all(
-        ...(query.id ? [query.id] : []),
-        ...(query.email ? [query.email] : []),
-        ...(query.name ? [query.name] : [])
-      ) as User[];
-      return users;
+    if (query.id) {
+        conditions.push('id = ?');
+        values.push(String(query.id));
+    }
+    if (query.email) {
+        conditions.push('email = ?');
+        values.push(query.email);
+    }
+    if (query.name) {
+        conditions.push('name = ?');
+        values.push(query.name);
+    }
+
+    const whereClause = conditions.length ? conditions.join(' AND ') : '1=1';
+
+    const users = db.prepare(
+        `SELECT id, name, email FROM users WHERE ${whereClause}`
+    ).all(...values) as User[];
+
+    return users;
 }
 
-export function updateUser(
-    req: FastifyRequest<{ Body: User }>,
-    reply: FastifyReply
-): boolean | string {
+export function updateUser(req, reply): boolean | string {
     const request = db.prepare('UPDATE users SET name = ?, email = ?, avatar = ?, password_hash = ? WHERE id = ?');
     const result = request.run(req.body.name, req.body.email, req.body.avatar, req.body.password, req.body.id);
     if (result.changes === 0)
@@ -90,10 +95,7 @@ export function updateUser(
     return true 
 }
 
-export function createUser(
-    req: FastifyRequest<{ Body: User }>,
-    reply: FastifyReply
-): string | null {
+export function createUser(req, reply): string | null {
     const request = db.prepare('INSERT INTO users (name, email, password_hash, avatar) VALUES (?, ?, ?, ?)');
     const result = request.run(req.body.name, req.body.email, req.body.password, req.body.avatar);
     if (result.changes === 0)
@@ -101,10 +103,7 @@ export function createUser(
     return String(result.lastInsertRowid);
 }
 
-export function deleteUser(
-    req: FastifyRequest<{ Body: { id: string } }>,
-    reply: FastifyReply
-): boolean {
+export function deleteUser(req, reply): boolean {
     const request = db.prepare('DELETE FROM users WHERE id = ?');
     const result = request.run(req.body.id);
     if (result.changes === 0)
@@ -112,19 +111,14 @@ export function deleteUser(
     return true;
 }
 
-export function getUserPasswordHash(
-    req: FastifyRequest<{ Querystring: { id: string } }>,
-    reply: FastifyReply
-) {
+export function getUserPasswordHash( req, reply) {
     const request = db.prepare('SELECT password_hash FROM users WHERE id = ?');
     const result = request.get(req.query.id) as {password_hash: string} | null;
+    console.log('[DATABASE] found password : ', result.password_hash)
     return result?.password_hash ?? null;
 }
 
-export function getChannel(
-    req: FastifyRequest <{ Params : {id : string}} >,
-    reply: FastifyReply
-): Channel | null {
+export function getChannel(req, reply): Channel | null {
 
     const query = req.params;
     const channel: Channel | null = db.prepare(
@@ -154,10 +148,17 @@ export function getChannel(
     return channel;
 }
 
-export function getMessages(
-    req: FastifyRequest <{ Params : {channel_id : string, last_messageg_id: string}} >,
-    reply: FastifyReply
-)
+export function postChannel(req, reply) 
+{
+    const request = db.prepare('INSERT INTO channel (name, type, created_by, created_at) VALUES (?, ?, ?, ?)'
+    )
+    const result = request.run(req.body.name, req.body.type, req.body.created_by, req.body.created_at);
+    if (result.changes === 0)
+        return ('No Change made')
+    return String(result.lastInsertRowid)
+}
+
+export function getMessage(req, reply)
 {
     const query = req.params;
     const messages = db.prepare(
@@ -171,8 +172,17 @@ export function getMessages(
     `
     ).all(
       query.channel_id, 
-      query.last_messageg_id
+      query.id
     ) as Message [];
     return messages;
 }
 
+export function postMessage( req, reply )
+{
+    const message = req.body;
+    const request = db.prepare(`INSERT INTO message (channel_id, sender_id, content, sent_at) VALUES (?, ?, ?, ?)`)
+    const result = request.run(message.channel_id, message.sender_id, message.content, message.sent_at)
+    if (result.changes === 0)
+        return false
+    return String(result.lastInsertRowid)
+}
