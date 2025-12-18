@@ -2,7 +2,7 @@ import { FastifyInstance } from "fastify"
 import { Type } from '@sinclair/typebox'
 
 import * as db from './database_methods';
-import { UserSchema, UserPublicSchema, ChannelSchema } from './shared/types/with_front/typeBox'
+import { UserSchema, UserPublicSchema, ChannelSchema, MessageSchema } from './shared/types/with_front/typeBox'
 
 const dbGetUserSchema = {
   schema: {
@@ -79,63 +79,47 @@ const dbGetPasswordSchema = {
 const dbGetChannelSchema = {
   schema: {
     querystring: Type.Object(
-      ChannelSchema.properties,
-          { required: ['id'] },
-    ),
+      Type.Partial(ChannelSchema).properties,
+        { required: ['id'] }
+      ),
     response: {
-      200: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          name: { type: 'string' },
-          type : { type: 'string' },
-          members: { 
-            type: 'array', 
-            items: { type: 'object' }
-          },
-          moderators: { 
-            type: 'array', 
-            items: { type: 'object' }
-          },
-          messages: { 
-            type: 'array', 
-            items: { type: 'object' }
-          },          
-          created_by: { type: 'string' },
-          created_at: { type: 'string' },
-        }
-      }
+      200: ChannelSchema
     }
   }
 }
-        
-const dbUpdateChannelSchema = {
+
+const dbPostChannelSchema = {
   schema: {
-    body: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['id'],
-      properties: {
-        id : { type: 'string' },
-        name: { type: 'string' },
-        type : { type: 'string' },
-        members: { 
-          type: 'array', 
-          items: { type: 'object' }
-        },
-        moderators: { 
-          type: 'array', 
-          items: { type: 'object' }
-        },
-        messages: { 
-          type: 'array', 
-          items: { type: 'object' }
-        },
-      }
-    },
-    response: {
-      200: { type: 'boolean' }
+    querystring: Type.Pick(ChannelSchema, ['id', 'name' , 'type', 'created_by', 'created_at']),
+    response : {
+      200: Type.Object(ChannelSchema.properties, {required: ['id']}),
     }
+  }
+}
+
+
+const dbGetMessageSchema = {
+  schema: {
+    querystring: Type.Object(
+      Type.Pick(Type.Partial(MessageSchema), ['channel_id', 'id']).properties,
+        { 
+          required: ['channel_id'] 
+        }
+    ),
+    response: {
+      200: Type.Array(MessageSchema)
+    },
+    description : `Retourne une array de Message et prend en parametres de requete l'id du channel dont on veut récupérer les 100 derniers messages. On peut passer l'id du plus anciens message pour récupérer les 100 précédents.`,
+  }
+}
+
+const dbPostMessageSchema = {
+  schema: {
+    body: Type.Omit(MessageSchema, ['id']), 
+    response: {
+      200: Type.Pick(MessageSchema, ['id'])
+    },
+    description : ``,
   }
 }
         
@@ -151,6 +135,12 @@ export function databaseRoutes(server: FastifyInstance) {
 
   server.get('/database/user/password_hash', dbGetPasswordSchema, db.getUserPasswordHash)
 
-  server.get('/database/chat/channel', dbGetChannelSchema, db.getChannel)
+  server.get('/database/channel', dbGetChannelSchema, db.getChannel)
+
+  server.post('/database/channel', dbPostChannelSchema, db.postChannel)
   
+  server.get('/database/message', dbGetMessageSchema, db.getMessage)
+  
+  server.post('/database/message', dbPostMessageSchema, db.postMessage)
+
 }
