@@ -13,11 +13,12 @@ const dbGetUserSchema = {
           { required: ['id'] },
           { required: ['email'] },
           { required: ['name'] },
-        ]
+        ],
+		additionalProperties: false
       }
     ),
     response: {
-      200: Type.Array(UserSchema)
+      200: Type.Array(Type.Pick(UserSchema, ['id', 'name', 'email', 'avatar']))
     }
   }
 }
@@ -100,6 +101,18 @@ const dbPostChannelSchema = {
   }
 }
 
+const dbPutChannelSchema = {
+  schema: {
+    body: Type.Object(
+      ChannelSchema.properties,
+      { required: ['id'] }
+    ),
+    response : {
+      200: Type.Pick(ChannelSchema, ['id'])
+    }
+  }
+}
+
 
 const dbGetMessageSchema = {
   schema: {
@@ -125,9 +138,19 @@ const dbPostMessageSchema = {
     description : ``,
   }
 }
-        
+
+const dbPutMessageSchema = {
+  schema: {
+    body: MessageSchema,
+    response: {
+      200: Type.Pick(MessageSchema, ['id'])
+    },
+    description : `Update message (usefull for read comfirmation)`,
+  }
+}
+
 export function databaseRoutes(server: FastifyInstance) { 
-  
+
   server.get('/database/user', dbGetUserSchema, db.getUser)
 
   server.put('/database/user', dbUpdateUserSchema, db.updateUser)
@@ -141,9 +164,12 @@ export function databaseRoutes(server: FastifyInstance) {
   server.get('/database/channel', dbGetChannelSchema, db.getChannel)
 
   server.post('/database/channel', dbPostChannelSchema, db.postChannel)
-  
+
+  server.put('/database/channel/name', dbPutChannelSchema, db.putChannelName)
+
   server.get('/database/message', dbGetMessageSchema, db.getMessage)
-  
+
   server.post('/database/message', dbPostMessageSchema, db.postMessage)
 
+  server.put('/database/message', dbPutMessageSchema, db.putMessage)
 }

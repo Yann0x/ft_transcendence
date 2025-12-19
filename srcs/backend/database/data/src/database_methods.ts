@@ -53,7 +53,8 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             channel_id REFERENCES channel(id),
             sender_id REFERENCES users(id),
             content TEXT NOT NULL,
-            sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            read_at DATETIME DEFAULT NULL
         );
     `).run();
     return db;
@@ -114,7 +115,7 @@ export function deleteUser(req, reply): boolean {
 export function getUserPasswordHash( req, reply) {
     const request = db.prepare('SELECT password_hash FROM users WHERE id = ?');
     const result = request.get(req.query.id) as {password_hash: string} | null;
-    console.log('[DATABASE] found password : ', result?.password_hash ?? null)
+    console.log('STORE THE FUNCKING PASSWORD IN HASH')
     return result?.password_hash ?? null;
 }
 
@@ -163,6 +164,15 @@ export function postChannel(req, reply)
     return String(result.lastInsertRowid)
 }
 
+export function putChannelName(req, reply)
+{
+    const request = db.prepare('UPDATE channel SET name = ? WHERE id = ?')
+    const result = request.run(req.body.name, req.body.id);
+    if (result.changes === 0)
+        return ('No Change made')
+    return String(result.lastInsertRowid)
+}
+
 export function getMessage(req, reply)
 {
     const query = req.query;
@@ -187,6 +197,17 @@ export function postMessage( req, reply )
     const message = req.body;
     const request = db.prepare(`INSERT INTO message (channel_id, sender_id, content, sent_at) VALUES (?, ?, ?, ?)`)
     const result = request.run(message.channel_id, message.sender_id, message.content, message.sent_at)
+    if (result.changes === 0)
+        return false
+    return String(result.lastInsertRowid)
+
+}
+
+export function putMessage( req, reply )
+{
+    const message = req.body;
+    const request = db.prepare(`UPDATE message SET content = ? , read_at = ? WHERE id = ?`)
+    const result = request.run(message.content, message.read_at, message.id)
     if (result.changes === 0)
         return false
     return String(result.lastInsertRowid)

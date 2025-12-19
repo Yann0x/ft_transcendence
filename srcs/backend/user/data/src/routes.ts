@@ -54,10 +54,15 @@ const findUserSchema = {
         { required: ['name'] }
       ]
     }),
-      200: Type.Array(UserPublicSchema),
+    response: {
+      200: Type.Union([
+        Type.Array(UserSchema),
+        Type.Array(UserPublicSchema)
+      ]),
       400: ErrorResponseSchema,
       500: ErrorResponseSchema
     }
+  }
 };
 
 const updateUserSchema = {

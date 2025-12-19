@@ -171,6 +171,34 @@ describe('Database Methods Tests', () => {
             expect(typeof result).toBe('string');
             expect(result).not.toBe('No Change made');
         });
+
+        it('should update channel name', () => {
+            const updateData = {
+                id: Number(createdChannelId),
+                name: "Updated Test Channel"
+            };
+            const req = mockBodyRequest(updateData);
+            const result = db.putChannelName(req, mockReply);
+            expect(typeof result).toBe('string');
+            expect(result).not.toBe('No Change made');
+
+            // Verify the channel name was updated
+            const getReq = mockQueryRequest({ id: createdChannelId });
+            const channel = db.getChannel(getReq, mockReply);
+            expect(channel).not.toBe(null);
+            if (channel === null) return;
+            expect(channel.name).toBe("Updated Test Channel");
+        });
+
+        it('should return "No Change made" when updating non-existent channel', () => {
+            const updateData = {
+                id: 99999,
+                name: "Non Existent Channel"
+            };
+            const req = mockBodyRequest(updateData);
+            const result = db.putChannelName(req, mockReply);
+            expect(result).toBe('No Change made');
+        });
     });
 
     describe('Message Endpoints', () => {
@@ -262,6 +290,100 @@ describe('Database Methods Tests', () => {
             const messages = db.getMessage(req, mockReply);
             expect(Array.isArray(messages)).toBe(true);
             expect(messages.length).toBe(0);
+        });
+
+        it('should update message content', () => {
+            const updateData = {
+                id: Number(createdMessageId),
+                content: "Updated message content!",
+                read_at: null
+            };
+            const req = mockBodyRequest(updateData);
+            const result = db.putMessage(req, mockReply);
+            expect(result).not.toBe(false);
+            expect(typeof result).toBe('string');
+
+            // Verify the message content was updated
+            const getReq = mockQueryRequest({
+                channel_id: Number(createdChannelId),
+                id: 999999
+            });
+            const messages = db.getMessage(getReq, mockReply);
+            const updatedMessage = messages.find(msg => msg.id === Number(createdMessageId));
+            expect(updatedMessage).toBeDefined();
+            if (!updatedMessage) return;
+            expect(updatedMessage.content).toBe("Updated message content!");
+        });
+
+        it('should update message read_at timestamp', () => {
+            const readTimestamp = new Date().toISOString();
+            const updateData = {
+                id: Number(createdMessageId),
+                content: "Updated message content!",
+                read_at: readTimestamp
+            };
+            const req = mockBodyRequest(updateData);
+            const result = db.putMessage(req, mockReply);
+            expect(result).not.toBe(false);
+            expect(typeof result).toBe('string');
+
+            // Verify the read_at was updated
+            const getReq = mockQueryRequest({
+                channel_id: Number(createdChannelId),
+                id: 999999
+            });
+            const messages = db.getMessage(getReq, mockReply);
+            const updatedMessage = messages.find(msg => msg.id === Number(createdMessageId));
+            expect(updatedMessage).toBeDefined();
+            if (!updatedMessage) return;
+            expect(updatedMessage.read_at).toBe(readTimestamp);
+        });
+
+        it('should return false when updating non-existent message', () => {
+            const updateData = {
+                id: 99999,
+                content: "Non existent message",
+                read_at: null
+            };
+            const req = mockBodyRequest(updateData);
+            const result = db.putMessage(req, mockReply);
+            expect(result).toBe(false);
+        });
+
+        it('should handle updating read_at from null to timestamp', () => {
+            // Create a new message with null read_at
+            const messageData = {
+                channel_id: Number(createdChannelId),
+                sender_id: createdUserId,
+                content: "Unread message",
+                sent_at: new Date().toISOString()
+            };
+            const createReq = mockBodyRequest(messageData);
+            const newMessageId = db.postMessage(createReq, mockReply);
+            expect(typeof newMessageId).toBe('string');
+            if (typeof newMessageId !== 'string') return;
+
+            // Update read_at to mark as read
+            const readTimestamp = new Date().toISOString();
+            const updateData = {
+                id: Number(newMessageId),
+                content: "Unread message",
+                read_at: readTimestamp
+            };
+            const updateReq = mockBodyRequest(updateData);
+            const result = db.putMessage(updateReq, mockReply);
+            expect(result).not.toBe(false);
+
+            // Verify the update
+            const getReq = mockQueryRequest({
+                channel_id: Number(createdChannelId),
+                id: 999999
+            });
+            const messages = db.getMessage(getReq, mockReply);
+            const readMessage = messages.find(msg => msg.id === Number(newMessageId));
+            expect(readMessage).toBeDefined();
+            if (!readMessage) return;
+            expect(readMessage.read_at).toBe(readTimestamp);
         });
     });
 

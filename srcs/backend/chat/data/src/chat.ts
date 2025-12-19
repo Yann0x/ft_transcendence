@@ -1,5 +1,9 @@
 import fastify from 'fastify'
-import chatRoutes from './routes'
+import  swagger  from '@fastify/swagger'
+import  swaggerUI  from '@fastify/swagger-ui'
+import { chatRoutes } from './routes'
+import handleThisError from './shared/utils/error'
+import customFetch from './shared/utils/fetch'
 
 const server = fastify({
   logger: true,
@@ -33,7 +37,7 @@ server.setErrorHandler(handleThisError);
 
  // Register Swagger UI
  await server.register(swaggerUI, {
-   routePrefix: '/chat/public/docs',
+   routePrefix: '/chat/docs',
    uiConfig: {
      docExpansion: 'list',
      deepLinking: false

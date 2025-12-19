@@ -43,6 +43,7 @@ export const MessageSchema = Type.Object({
   sender_id:    Type.String(),
   content:      Type.String(),
   sent_at:      Type.String({ format: 'date-time' }),
+  read_at:      Type.String({ format: 'date-time', default: null }),
 })
 export type Message = Static<typeof MessageSchema>;
 

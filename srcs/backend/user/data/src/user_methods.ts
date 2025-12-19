@@ -11,7 +11,7 @@ export async function registerUserHandler(
     // Request body is already validated by schema at this point
     const userData: User = req.body;
     // TODO: Hash password before sending to database
-    
+
     console.log("[USER] Calling database service at http://database:3000/database/user");
     // Call database service
     const result = await customFetch(
@@ -21,7 +21,7 @@ export async function registerUserHandler(
     );
     console.log("[USER] Database returned:", result);
     userData.id = result as string;
-    
+
     // Get JWT from internal authenticate service for immediate login
     const token = await customFetch(
       'http://authenticate:3000/get_jwt',
@@ -39,7 +39,7 @@ export async function registerUserHandler(
       userId: userData.id,
       access_token: token
     };
-    
+
   } catch (error: any) {
     console.log("[USER] Error occurred:", error);
     // Propagate database errors to frontend
@@ -51,7 +51,7 @@ export async function registerUserHandler(
       service: error.service || 'user',
       details: error.details
     };
-    
+
     req.log.error(errorResponse);
     return reply.status(statusCode).send(errorResponse);
   }
@@ -130,15 +130,93 @@ export async function findUserHandler(
 ) {
   try {
     const query = req.query;
-    
+    const requestingUserId = req.headers['x-sender-id'] as string;
+
     const users = await customFetch(
       'http://database:3000/database/user',
       'GET',
       query
-    );
-    
-    return users;
-    
+    ) as User[];
+
+    if (!users || users.length === 0) {
+      return [];
+    }
+
+    const user = users[0];
+
+    // Check if user is requesting their own data
+    if (requestingUserId && requestingUserId === user.id) {
+      // Return full User object with all fields populated
+
+      // Fetch user's channels/chats
+      try {
+        // TODO: Implement endpoint to get user's channels
+        // user.chats = await customFetch('http://chat:3000/chat/user-channels', 'GET', { user_id: user.id });
+        user.chats = [];
+      } catch (error) {
+        user.chats = [];
+      }
+
+      // Fetch user's tournaments
+      try {
+        // TODO: Implement endpoint to get user's tournaments
+        // user.tournaments = await customFetch('http://game:3000/game/user-tournaments', 'GET', { user_id: user.id });
+        user.tournaments = [];
+      } catch (error) {
+        user.tournaments = [];
+      }
+
+      // Fetch user's matches
+      try {
+        // TODO: Implement endpoint to get user's matches
+        // user.matches = await customFetch('http://game:3000/game/user-matches', 'GET', { user_id: user.id });
+        user.matches = [];
+      } catch (error) {
+        user.matches = [];
+      }
+
+      // Fetch user's stats
+      try {
+        // TODO: Implement endpoint to get user's stats
+        // user.stats = await customFetch('http://game:3000/game/user-stats', 'GET', { user_id: user.id });
+        user.stats = {
+          user_id: user.id!,
+          games_played: 0,
+          games_won: 0,
+          games_lost: 0,
+          win_rate: 0
+        };
+      } catch (error) {
+        user.stats = {
+          user_id: user.id!,
+          games_played: 0,
+          games_won: 0,
+          games_lost: 0,
+          win_rate: 0
+        };
+      }
+
+      // Fetch user's friends
+      try {
+        // TODO: Implement endpoint to get user's friends
+        // user.friends = await customFetch('http://user:3000/user/friends', 'GET', { user_id: user.id });
+        user.friends = [];
+      } catch (error) {
+        user.friends = [];
+      }
+
+      return [user];
+    } else {
+      // Return only public user data
+      const publicUser = {
+        id: user.id,
+        name: user.name,
+        avatar: user.avatar,
+        status: user.status
+      };
+      return [publicUser];
+    }
+
   } catch (error: any) {
     const statusCode = error.statusCode || 500;
     return reply.status(statusCode).send({
@@ -156,18 +234,18 @@ export async function updateUserHandler(
 ) {
   try {
     const updateData = req.body;
-    
+
     const result = await customFetch(
       'http://database:3000/database/user',
       'PUT',
       updateData
     );
-    
+
     return {
       success: true,
       message: 'User updated successfully'
     };
-    
+
   } catch (error: any) {
     const statusCode = error.statusCode || 500;
     return reply.status(statusCode).send({
@@ -189,12 +267,12 @@ export async function deleteUserHandler(
       'DELETE',
       req.body
     );
-    
+
     return {
       success: true,
       message: 'User deleted successfully'
     };
-    
+
   } catch (error: any) {
     const statusCode = error.statusCode || 500;
     return reply.status(statusCode).send({
