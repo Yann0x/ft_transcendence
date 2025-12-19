@@ -1,11 +1,10 @@
 import fastify, { FastifyRequest, FastifyReply } from 'fastify'
-import fastifyStatic from '@fastify/static'
 import proxy from '@fastify/http-proxy'
 import swagger from '@fastify/swagger'
 import swaggerUI from '@fastify/swagger-ui'
 import fs from 'fs'
 import path from 'path'
-import {SenderIdentity} from './shared/types/with_front/typeBox'
+import {SenderIdentity} from './shared/typeBox'
 
 // self signed certificate 
 const keyPath = '/certs/selfsigned.key'
@@ -56,113 +55,70 @@ async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
     reply.status(401).send({ error: 'Unauthorized' });
 }
 
-  // Routes Privées avec vérification du JWT
-  server.register( async function contextPrivate(server) {
-    server.addHook('preHandler', checkJWT);
-
-    server.register(proxy, {
-      upstream: 'http://user:3000',
-      prefix: '/user',
-      rewritePrefix: '/user',
-      http2: false,
-    })
-  })
-
-
-// Routes Publique pas de vérification du JWT
-  
-  // sert les fichiers statiques du frontend
-  // server.register(fastifyStatic, {
-    // root:'/frontend/data/build', 
-    // prefix: '/',
-  // })
-
-
+// Routes Privées avec vérification du JWT
+server.register( async function contextPrivate(server) {
+  server.addHook('preHandler', checkJWT);
 
   server.register(proxy, {
     upstream: 'http://user:3000',
-    prefix: '/user/public',
-    rewritePrefix: '/user/public',
+    prefix: '/user',
+    rewritePrefix: '/user',
     http2: false,
   })
+})
 
-  // Register swagger first (required by swagger-ui)
-  await server.register(swagger, {
-    openapi: {
-      info: {
-        title: 'Transcendence API Gateway',
-        description: 'Centralized API documentation for all microservices',
-        version: '1.0.0'
-      }
+// Routes Publique pas de vérification du JWT
+
+server.register(proxy, {
+  upstream: 'http://user:3000',
+  prefix: '/user/public',
+  rewritePrefix: '/user/public',
+  http2: false,
+})
+
+// Register swagger first (required by swagger-ui)
+await server.register(swagger, {
+  openapi: {
+    info: {
+      title: 'Transcendence API Gateway',
+      description: 'Centralized API documentation for all microservices',
+      version: '1.0.0'
     }
-  })
+  }
+})
 
-  // Centralized API Documentation
-  await server.register(async function publicDocs(instance) {
-    await instance.register(swaggerUI, {
-      routePrefix: '/docs',
-      uiConfig: {
-        urls: [
-          {
-            name: 'Authenticate API (Internal)',
-            url: '/authenticate/docs/json'
-          },
-          {
-            name: 'Database API (Internal)',
-            url: '/database/docs/json'
-          },
-          {
-            name: 'User API',
-            url: '/user/public/docs/json'
-          },
-          {
-            name: 'Chat API',
-            url: '/chat/docs/json'
-          },
-          {
-            name: 'Game API',
-            url: '/game/docs/json'
-          }
-        ],
-        "urls.primaryName": "User API"
-      },
-      staticCSP: true
-    })
+// Centralized API Documentation
+await server.register(async function publicDocs(instance) {
+  await instance.register(swaggerUI, {
+    routePrefix: '/docs',
+    uiConfig: {
+      urls: [
+        {
+          name: 'Authenticate API (Internal)',
+          url: '/authenticate/docs/json'
+        },
+        {
+          name: 'Database API (Internal)',
+          url: '/database/docs/json'
+        },
+        {
+          name: 'User API',
+          url: '/user/public/docs/json'
+        },
+        {
+          name: 'Chat API',
+          url: '/chat/docs/json'
+        },
+        {
+          name: 'Game API',
+          url: '/game/docs/json'
+        }
+      ],
+      "urls.primaryName": "User API"
+    },
+    staticCSP: true
   })
-
-  // Internal API Documentation (includes all services)
-  await server.register(async function internalDocs(instance) {
-    await instance.register(swaggerUI, {
-      routePrefix: '/docs/internal',
-      uiConfig: {
-        urls: [
-          {
-            name: 'Authenticate API (Internal)',
-            url: '/authenticate/docs/json'
-          },
-          {
-            name: 'Database API (Internal)',
-            url: '/database/docs/json'
-          },
-          {
-            name: 'User API',
-            url: '/user/public/docs/json'
-          },
-          {
-            name: 'Chat API',
-            url: '/chat/docs/json'
-          },
-          {
-            name: 'Game API',
-            url: '/game/docs/json'
-          }
-        ],
-        "urls.primaryName": "Database API (Internal)"
-      },
-      staticCSP: true
-    })
-  })
-
+})
 
  // Dev routes
   server.register(proxy, {
