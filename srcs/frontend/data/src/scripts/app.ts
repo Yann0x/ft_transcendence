@@ -5,7 +5,7 @@
 import { Intro } from './intro'
 import { Router } from './router'
 import { AuthModal } from './auth-modal'
-import { User } from '../shared/typeBox'
+import { User } from '../shared/types'
 
 /**
  * Application principale

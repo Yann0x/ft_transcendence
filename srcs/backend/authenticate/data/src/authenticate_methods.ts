@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { SenderIdentity } from './shared/typeBox'
+import { SenderIdentity } from './shared/with_front/types'
 
 export function buildGetJwtHandler(server: FastifyInstance) {
   return async (request: FastifyRequest<{ Body: SenderIdentity }>, reply: FastifyReply) => {

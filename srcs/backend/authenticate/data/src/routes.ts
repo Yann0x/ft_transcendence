@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { buildCheckJwtHandler, buildGetJwtHandler } from './authenticate_methods'
-import { ErrorResponseSchema, UserSchema } from './shared/typeBox'
+import { ErrorResponseSchema, UserSchema } from './shared/with_front/types'
 import { Type } from '@sinclair/typebox'
 
 const getJwtSchema = {
