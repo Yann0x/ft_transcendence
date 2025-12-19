@@ -1,17 +1,50 @@
 import fastify from 'fastify'
+import chatRoutes from './routes'
 
-const server = fastify()
+const server = fastify({
+  logger: true,
+  ajv: {
+    customOptions: {
+      removeAdditional: false,
+      useDefaults: true,
+      coerceTypes: true,
+      allErrors: true // Return ALL validation errors, not just first one
+    }
+  }
+})
 
-// Log incoming requests
 server.addHook('onRequest', async (request, reply) => {
   console.log(`[CHAT] ${request.method} ${request.url}`);
 });
 
-server.get('/chat', async (request, reply) => {
-  return {chat: 'response'}
-})
+ //Custom error handler for schema validation
+server.setErrorHandler(handleThisError);
 
-server.listen({ port: 3000, host: '0.0.0.0' }, (err, address) => {
+ await server.register(swagger, {
+   exposeRoute: true,
+   swagger: {
+     info: {
+       title: 'Chat Service API',
+       description: 'User management microservice',
+       version: '1.0.0'
+     }
+   },
+ });
+
+ // Register Swagger UI
+ await server.register(swaggerUI, {
+   routePrefix: '/chat/public/docs',
+   uiConfig: {
+     docExpansion: 'list',
+     deepLinking: false
+   },
+   staticCSP: true
+ });
+
+server.register(chatRoutes);
+
+
+server.listen({ port: 3000, host: '0.0.0.0'}, (err, address) => {
   if (err) {
     console.error(err)
     process.exit(1)

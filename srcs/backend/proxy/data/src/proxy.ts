@@ -65,6 +65,13 @@ server.register( async function contextPrivate(server) {
     rewritePrefix: '/user',
     http2: false,
   })
+  server.register(proxy, {
+    upstream: 'http://chat:3000',
+    prefix: '/chat',
+    rewritePrefix: '/chat',
+    http2: false,
+	websocket: true,
+  })
 })
 
 // Routes Publique pas de vérification du JWT
