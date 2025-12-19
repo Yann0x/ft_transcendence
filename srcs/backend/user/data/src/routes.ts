@@ -2,12 +2,13 @@ import { FastifyInstance } from 'fastify';
 import * as handlers from './user_methods';
 import { ErrorResponseSchema, UserSchema, UserPublicSchema } from './shared/typeBox';
 import { Type } from '@sinclair/typebox/type';
+import * as check from './shared/check_functions'
 
 const registerUserSchema = {
   schema: {
     body: Type.Object(
-      Type.Pick(UserSchema, ['name', 'email', 'password', 'avatar']).properties,
-      { required: ['name', 'email', 'password'] }
+      Type.Pick(UserSchema, ['name', 'email', 'password']).properties,
+      { required: ['name', 'email', 'password'], additionalProperties: false }
     ),
     response: {
       200: {
@@ -29,7 +30,7 @@ const loginUserSchema = {
   schema: {
     body: Type.Object(
       Type.Pick(UserSchema, ['email', 'password']).properties,
-      { required: ['email', 'password'] }
+      { required: ['email', 'password'], additionalProperties: false }
     ),
     response: {
       200: {
@@ -63,7 +64,7 @@ const updateUserSchema = {
   schema: {
     body: Type.Object(
       Type.Pick(UserSchema, ['id', 'name', 'email', 'password', 'avatar']).properties,
-          { required: ['id'] },
+          { required: ['id'], additionalProperties: false },
     ),
     response: {
       200: {
@@ -83,7 +84,7 @@ const deleteUserSchema = {
   schema: {
     body: Type.Object(
       Type.Pick(UserSchema, ['id']).properties,
-          { required: ['id'] },
+          { required: ['id'], additionalProperties: false },
     ),
     response: {
       200: {
