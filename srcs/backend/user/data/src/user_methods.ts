@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { User } from "./shared/types/with_front/typeBox";
+import { User } from "./shared/typeBox";
 import customFetch from "./shared/utils/fetch";
 
 export async function registerUserHandler(

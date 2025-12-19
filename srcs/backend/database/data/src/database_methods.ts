@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { FastifyRequest, FastifyReply,} from 'fastify';
-import { User, Channel, Message } from './shared/types/with_front/typeBox';
+import { User, Channel, Message } from './shared/typeBox';
 
 let db: Database.Database;
 
