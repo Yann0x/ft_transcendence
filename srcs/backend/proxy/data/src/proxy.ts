@@ -4,7 +4,7 @@ import swagger from '@fastify/swagger'
 import swaggerUI from '@fastify/swagger-ui'
 import fs from 'fs'
 import path from 'path'
-import {SenderIdentity} from './shared/typeBox'
+import {SenderIdentity} from './shared/with_front/types'
 
 // self signed certificate 
 const keyPath = '/certs/selfsigned.key'

@@ -2,7 +2,7 @@ import { FastifyInstance } from "fastify"
 import { Type } from '@sinclair/typebox'
 
 import * as db from './database_methods';
-import { UserSchema, UserPublicSchema, ChannelSchema, MessageSchema } from './shared/typeBox'
+import { UserSchema, UserPublicSchema, ChannelSchema, MessageSchema } from './shared/with_front/types'
 
 const dbGetUserSchema = {
   schema: {
