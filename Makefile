@@ -41,5 +41,9 @@ front:
 nodeclean: down 
 	find -type d -name data -exec sh -c 'cd "{}" && npm run fclean' \;
 
+v vi vim :
+	vim $$(find -type f -not -name *.json -not -wholename *node* -not -wholename *test*)
+
+
 .PHONY: all run clean fclean re
 .IGNORE: clean fclean re nodeclean
