@@ -1,5 +1,7 @@
 import fastify from 'fastify'
 import jwt from '@fastify/jwt'
+import swagger from '@fastify/swagger'
+import swaggerUI from '@fastify/swagger-ui'
 import { authenticateRoutes } from './routes'
 import handleThisError from './shared/utils/error';
 
@@ -22,6 +24,27 @@ server.addHook('onRequest', async (request, reply) => {
 
 server.register(jwt, {
   secret: 'MOCKsupersecret',
+})
+
+// Swagger documentation
+await server.register(swagger, {
+  exposeRoute: true,
+  swagger: {
+    info: {
+      title: 'Authenticate Service API',
+      description: 'Authentication and JWT management microservice',
+      version: '1.0.0'
+    }
+  },
+})
+
+await server.register(swaggerUI, {
+  routePrefix: '/authenticate/docs',
+  uiConfig: {
+    docExpansion: 'list',
+    deepLinking: false
+  },
+  staticCSP: true
 })
 
 // Routes
