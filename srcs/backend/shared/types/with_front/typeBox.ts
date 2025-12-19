@@ -7,7 +7,6 @@ export const ErrorResponseSchema = Type.Object({
   service:   Type.Optional(Type.String()),
   details:   Type.Optional(Type.Optional(Type.Record(Type.String(), Type.Unknown()))),
 });
-
 export type ErrorResponse = Static<typeof ErrorResponseSchema>;
 
 export const MatchSchema = Type.Object({
@@ -81,5 +80,4 @@ export const UserSchema = Type.Object({
   chats:        Type.Optional(Type.Array(ChannelSchema)),
 })
 export type User = Static<typeof UserSchema>;
-
 export type Channel = Static<typeof ChannelSchema>;

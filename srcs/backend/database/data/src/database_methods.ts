@@ -114,25 +114,30 @@ export function deleteUser(req, reply): boolean {
 export function getUserPasswordHash( req, reply) {
     const request = db.prepare('SELECT password_hash FROM users WHERE id = ?');
     const result = request.get(req.query.id) as {password_hash: string} | null;
-    console.log('[DATABASE] found password : ', result.password_hash)
+    console.log('[DATABASE] found password : ', result?.password_hash ?? null)
     return result?.password_hash ?? null;
 }
 
 export function getChannel(req, reply): Channel | null {
 
-    const query = req.params;
+    const query = req.query;
     const channel: Channel | null = db.prepare(
-      `SELECT id, name, type, created_by, created_at FROM channel 
+      `SELECT id, name, type, created_by, created_at FROM channel
        WHERE id = ?`
     ).get(
       query.id
     ) as Channel | null;
+
+    if (!channel) {
+        return null;
+    }
+
     channel.messages = db.prepare(
-      `SELECT id, channel_id, sender_id, content, sent_at FROM message 
+      `SELECT id, channel_id, sender_id, content, sent_at FROM message
        WHERE channel_id = ?`
     ).all(
       query.id
-    ) as Channel[] | null;
+    ) as Message[];
     const members = db.prepare(
       `SELECT member_id FROM chanel_member 
        WHERE channel_id = ?`
@@ -160,18 +165,18 @@ export function postChannel(req, reply)
 
 export function getMessage(req, reply)
 {
-    const query = req.params;
+    const query = req.query;
     const messages = db.prepare(
     `
         SELECT *
-        FROM messages
+        FROM message
         WHERE channel_id = ?
         AND id < ?
-        ORDER BY created_at DESC, id DESC
+        ORDER BY sent_at DESC, id DESC
         LIMIT 100;
     `
     ).all(
-      query.channel_id, 
+      query.channel_id,
       query.id
     ) as Message [];
     return messages;
@@ -185,4 +190,5 @@ export function postMessage( req, reply )
     if (result.changes === 0)
         return false
     return String(result.lastInsertRowid)
+
 }

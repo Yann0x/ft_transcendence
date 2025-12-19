@@ -21,29 +21,29 @@ server.addHook('onRequest', async (request, reply) => {
   console.log(`[USER] ${request.method} ${request.url}`);
 });
 
-// Custom error handler for schema validation
+ //Custom error handler for schema validation
 server.setErrorHandler(handleThisError);
 
-await server.register(swagger, {
-  exposeRoute: true,
-  swagger: {
-    info: {
-      title: 'User Service API',
-      description: 'User management microservice',
-      version: '1.0.0'
-    }
-  },
-});
+ await server.register(swagger, {
+   exposeRoute: true,
+   swagger: {
+     info: {
+       title: 'User Service API',
+       description: 'User management microservice',
+       version: '1.0.0'
+     }
+   },
+ });
 
-// Register Swagger UI
-await server.register(swaggerUI, {
-  routePrefix: '/user/public/docs',
-  uiConfig: {
-    docExpansion: 'list',
-    deepLinking: false
-  },
-  staticCSP: true
-});
+ // Register Swagger UI
+ await server.register(swaggerUI, {
+   routePrefix: '/user/public/docs',
+   uiConfig: {
+     docExpansion: 'list',
+     deepLinking: false
+   },
+   staticCSP: true
+ });
 
 server.register(userRoutes);
 

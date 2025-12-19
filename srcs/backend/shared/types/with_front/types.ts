@@ -25,7 +25,7 @@ export interface Stats {
         win_rate: number,
 }
 export interface Message {
-    
+ 
         id: number,
         channel_id: Channel["id"],
         sender_id: User["id"],
