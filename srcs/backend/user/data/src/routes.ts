@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import * as handlers from './user_methods';
-import { ErrorResponseSchema, UserSchema, UserPublicSchema } from './shared/typeBox';
+import { ErrorResponseSchema, UserSchema, UserPublicSchema } from './shared/with_front/types';
 import { Type } from '@sinclair/typebox/type';
 import * as check from './shared/check_functions'
 

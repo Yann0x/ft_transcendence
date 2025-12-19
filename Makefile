@@ -32,9 +32,9 @@ init:
 	./setup.sh
 
 devfront:
-	cd srcs/frontend/data && npm install && npm run dev
+#	cd srcs/frontend/data && npm install && npm run dev
 front:
-	cd srcs/frontend/data && npm install && npm run build
+#	cd srcs/frontend/data && npm install && npm run build
 
 
 # <--- DEV TOOLS--->
