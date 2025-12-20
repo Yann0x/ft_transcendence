@@ -11,20 +11,27 @@ const postChatSchema = {
 }
 
 const chatWssSchema = {
-  description: 'WebSocket endpoint for chat communication',
-  tags: ['chat'],
-  response: {
-	101: Type.Object({
-		message: Type.String(),
-	}),
-	'4xx': ErrorResponseSchema,
-	'5xx': ErrorResponseSchema,
-  },
+	schema: {
+		description: 'WebSocket endpoint for chat communication',
+		response: {
+			101: Type.Object({
+				message: Type.String(),
+			}),
+		},
+	},
+	websocket: true
 };	
 
 export function chatRoutes(server: FastifyInstance) {
-
- 	server.post('/chat/channel', postChatSchema, handlers.postChat);
-
-	server.get('/chat/wss', 
+  server.get('/chat/wss', {
+    websocket: true,
+    schema: {
+      description: 'WebSocket endpoint for chat communication',
+      response: {
+        101: Type.Object({
+          message: Type.String(),
+        }),
+      },
+    }
+  }, handlers.chatWss);
 }
