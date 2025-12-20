@@ -42,8 +42,9 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     `
         CREATE TABLE IF NOT EXISTS chanel_member (
             channel_id REFERENCES channel(id),
-            member_id REFERENCES users(id),
-            PRIMARY KEY (channel_id, member_id)
+            member1_id REFERENCES users(id),
+            member2_id REFERENCES users(id),
+            PRIMARY KEY (channel_id)
         );
     `).run();
     db.prepare(
