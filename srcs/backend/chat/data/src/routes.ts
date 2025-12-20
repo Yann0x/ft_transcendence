@@ -5,6 +5,10 @@ import { Type } from '@sinclair/typebox/type';
 
 
 const postChatSchema = {
+	schema : {
+		body : 
+	},
+	websocket : true
 }
 
 export function chatRoutes(server: FastifyInstance) {
