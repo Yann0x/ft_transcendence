@@ -4,14 +4,27 @@ import { ErrorResponseSchema, ChannelSchema, MessageSchema} from './shared/with_
 import { Type } from '@sinclair/typebox/type';
 
 
+
 const postChatSchema = {
-	schema : {
-		body : 
-	},
-	websocket : true
+
+
 }
+
+const chatWssSchema = {
+  description: 'WebSocket endpoint for chat communication',
+  tags: ['chat'],
+  response: {
+	101: Type.Object({
+		message: Type.String(),
+	}),
+	'4xx': ErrorResponseSchema,
+	'5xx': ErrorResponseSchema,
+  },
+};	
 
 export function chatRoutes(server: FastifyInstance) {
 
- 	server.post('/chat', postChatSchema, handlers.postChat);
+ 	server.post('/chat/channel', postChatSchema, handlers.postChat);
+
+	server.get('/chat/wss', 
 }

@@ -2,6 +2,68 @@ import { FastifyReply, FastifyRequest } from "fastify";
 import { User } from "./shared/with_front/types";
 import customFetch from "./shared/utils/fetch";
 
+function fillUser(user : User): User {
+      try {
+        // TODO: Implement endpoint to get user's channels
+        // user.chats = await customFetch('http://chat:3000/chat/user-channels', 'GET', { user_id: user.id });
+        user.chats = [];
+      } catch (error) {
+        user.chats = [];
+      }
+
+      // Fetch user's tournaments
+      try {
+        // TODO: Implement endpoint to get user's tournaments
+        // user.tournaments = await customFetch('http://game:3000/game/user-tournaments', 'GET', { user_id: user.id });
+        user.tournaments = [];
+      } catch (error) {
+        user.tournaments = [];
+      }
+
+      // Fetch user's matches
+      try {
+        // TODO: Implement endpoint to get user's matches
+        // user.matches = await customFetch('http://game:3000/game/user-matches', 'GET', { user_id: user.id });
+        user.matches = [];
+      } catch (error) {
+        user.matches = [];
+      }
+
+      // Fetch user's stats
+      try {
+        // TODO: Implement endpoint to get user's stats
+        // user.stats = await customFetch('http://game:3000/game/user-stats', 'GET', { user_id: user.id });
+        user.stats = {
+          user_id: user.id!,
+          games_played: 0,
+          games_won: 0,
+          games_lost: 0,
+          win_rate: 0
+        };
+      } catch (error) {
+        user.stats = {
+          user_id: user.id!,
+          games_played: 0,
+          games_won: 0,
+          games_lost: 0,
+          win_rate: 0
+        };
+      }
+
+      // Fetch user's friends
+      try {
+        // TODO: Implement endpoint to get user's friends
+        // user.friends = await customFetch('http://user:3000/user/friends', 'GET', { user_id: user.id });
+        user.friends = [];
+      } catch (error) {
+        user.friends = [];
+      }
+
+      // Fetch user's channels/chats
+
+      return user;
+}
+
 export async function registerUserHandler(
   req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
@@ -110,7 +172,9 @@ export async function loginUserHandler(
       }
     );
 
-    return { access_token: token };
+    fillUser(user);
+
+    return { access_token: token, ...user};
   } catch (error: any) {
     console.log("[USER] Login error:", error);
     const statusCode = error.statusCode || 500;
@@ -123,6 +187,7 @@ export async function loginUserHandler(
     });
   }
 }
+
 
 export async function findUserHandler(
   req: FastifyRequest<{ Querystring: User }>,
@@ -147,64 +212,7 @@ export async function findUserHandler(
     // Check if user is requesting their own data
     if (requestingUserId && requestingUserId === user.id) {
       // Return full User object with all fields populated
-
-      // Fetch user's channels/chats
-      try {
-        // TODO: Implement endpoint to get user's channels
-        // user.chats = await customFetch('http://chat:3000/chat/user-channels', 'GET', { user_id: user.id });
-        user.chats = [];
-      } catch (error) {
-        user.chats = [];
-      }
-
-      // Fetch user's tournaments
-      try {
-        // TODO: Implement endpoint to get user's tournaments
-        // user.tournaments = await customFetch('http://game:3000/game/user-tournaments', 'GET', { user_id: user.id });
-        user.tournaments = [];
-      } catch (error) {
-        user.tournaments = [];
-      }
-
-      // Fetch user's matches
-      try {
-        // TODO: Implement endpoint to get user's matches
-        // user.matches = await customFetch('http://game:3000/game/user-matches', 'GET', { user_id: user.id });
-        user.matches = [];
-      } catch (error) {
-        user.matches = [];
-      }
-
-      // Fetch user's stats
-      try {
-        // TODO: Implement endpoint to get user's stats
-        // user.stats = await customFetch('http://game:3000/game/user-stats', 'GET', { user_id: user.id });
-        user.stats = {
-          user_id: user.id!,
-          games_played: 0,
-          games_won: 0,
-          games_lost: 0,
-          win_rate: 0
-        };
-      } catch (error) {
-        user.stats = {
-          user_id: user.id!,
-          games_played: 0,
-          games_won: 0,
-          games_lost: 0,
-          win_rate: 0
-        };
-      }
-
-      // Fetch user's friends
-      try {
-        // TODO: Implement endpoint to get user's friends
-        // user.friends = await customFetch('http://user:3000/user/friends', 'GET', { user_id: user.id });
-        user.friends = [];
-      } catch (error) {
-        user.friends = [];
-      }
-
+      fillUser(user);
       return [user];
     } else {
       // Return only public user data

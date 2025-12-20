@@ -57,6 +57,7 @@ export const ChannelSchema = Type.Object({
   created_by:   Type.String(),
   created_at:   Type.String({ format: 'date-time' }),
 })
+export type Channel = Static<typeof ChannelSchema>;
 
 export const UserPublicSchema = Type.Object({
   id:           Type.Optional(Type.String()),
@@ -81,4 +82,3 @@ export const UserSchema = Type.Object({
   chats:        Type.Optional(Type.Array(ChannelSchema)),
 })
 export type User = Static<typeof UserSchema>;
-export type Channel = Static<typeof ChannelSchema>;

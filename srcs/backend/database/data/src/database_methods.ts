@@ -44,7 +44,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             channel_id REFERENCES channel(id),
             member1_id REFERENCES users(id),
             member2_id REFERENCES users(id),
-            PRIMARY KEY (channel_id)
+            PRIMARY KEY (channel_id, member1_id, member2_id)
         );
     `).run();
     db.prepare(

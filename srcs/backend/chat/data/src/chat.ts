@@ -1,6 +1,7 @@
 import fastify from 'fastify'
 import  swagger  from '@fastify/swagger'
 import  swaggerUI  from '@fastify/swagger-ui'
+import websocket from '@fastify/websocket'
 import { chatRoutes } from './routes'
 import handleThisError from './shared/utils/error'
 import customFetch from './shared/utils/fetch'
@@ -16,6 +17,8 @@ const server = fastify({
     }
   }
 })
+
+server.register(websocket)
 
 server.addHook('onRequest', async (request, reply) => {
   console.log(`[CHAT] ${request.method} ${request.url}`);
