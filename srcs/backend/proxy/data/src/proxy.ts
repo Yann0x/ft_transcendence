@@ -135,6 +135,15 @@ await server.register(async function publicDocs(instance) {
     http2: false,
   })
 
+  // Game service (HTTP + WebSocket)
+  server.register(proxy, {
+    upstream: 'http://game:3000',
+    prefix: '/api/game',
+    rewritePrefix: '/game',
+    http2: false,
+    websocket: true,
+  });
+
    server.register(proxy, {
       upstream: 'http://frontend:3000',
       prefix: '/',
