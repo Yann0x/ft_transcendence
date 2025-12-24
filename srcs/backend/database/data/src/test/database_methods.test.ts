@@ -387,6 +387,248 @@ describe('Database Methods Tests', () => {
         });
     });
 
+    describe('Friendship Endpoints', () => {
+
+        let user1Id: string;
+        let user2Id: string;
+        let user3Id: string;
+
+        beforeAll(() => {
+            // Create test users for friendship tests
+            const user1 = { name: "Friend User 1", email: "friend1@test.com", password: "pass1", avatar: "avatar1" };
+            const user2 = { name: "Friend User 2", email: "friend2@test.com", password: "pass2", avatar: "avatar2" };
+            const user3 = { name: "Friend User 3", email: "friend3@test.com", password: "pass3", avatar: "avatar3" };
+
+            user1Id = db.createUser(mockBodyRequest(user1), mockReply) as string;
+            user2Id = db.createUser(mockBodyRequest(user2), mockReply) as string;
+            user3Id = db.createUser(mockBodyRequest(user3), mockReply) as string;
+
+            expect(user1Id).not.toBe(null);
+            expect(user2Id).not.toBe(null);
+            expect(user3Id).not.toBe(null);
+        });
+
+        it('should create a pending friendship request', () => {
+            const req = mockBodyRequest({ user_id: user1Id, friend_id: user2Id });
+            const result = db.putUserFriend(req, mockReply);
+            expect(result).toBe(true);
+        });
+
+        it('should not allow duplicate friendship requests', () => {
+            const req = mockBodyRequest({ user_id: user1Id, friend_id: user2Id });
+            const result = db.putUserFriend(req, mockReply);
+            expect(result).toBe(false); // Already exists
+        });
+
+        it('should not allow user to send request to themselves', () => {
+            const req = mockBodyRequest({ user_id: user1Id, friend_id: user1Id });
+            const result = db.putUserFriend(req, mockReply);
+            expect(result).toBe(false); // CHECK constraint should prevent this
+        });
+
+        it('should retrieve pending friendship with correct metadata', () => {
+            const req = mockQueryRequest({ user_id: user1Id });
+            const friends = db.getUserFriends(req, mockReply);
+
+            expect(Array.isArray(friends)).toBe(true);
+            expect(friends.length).toBeGreaterThan(0);
+
+            const friendship = friends.find((f: any) => f.id === user2Id);
+            expect(friendship).toBeDefined();
+            expect(friendship.status).toBe('pending');
+            expect(friendship.initiated_by).toBe(user1Id);
+            expect(friendship.since).toBeDefined();
+        });
+
+        it('should retrieve pending friendship from receiver perspective', () => {
+            const req = mockQueryRequest({ user_id: user2Id });
+            const friends = db.getUserFriends(req, mockReply);
+
+            expect(Array.isArray(friends)).toBe(true);
+            expect(friends.length).toBeGreaterThan(0);
+
+            const friendship = friends.find((f: any) => f.id === user1Id);
+            expect(friendship).toBeDefined();
+            expect(friendship.status).toBe('pending');
+            expect(friendship.initiated_by).toBe(user1Id); // User1 initiated
+        });
+
+        it('should accept a pending friendship request', () => {
+            // User2 accepts User1's request
+            const req = mockBodyRequest({ user_id: user2Id, friend_id: user1Id });
+            const result = db.putUserFriend(req, mockReply);
+            expect(result).toBe(true);
+        });
+
+        it('should verify friendship is now accepted', () => {
+            const req1 = mockQueryRequest({ user_id: user1Id });
+            const friends1 = db.getUserFriends(req1, mockReply);
+
+            const friendship1 = friends1.find((f: any) => f.id === user2Id);
+            expect(friendship1).toBeDefined();
+            expect(friendship1.status).toBe('accepted');
+
+            const req2 = mockQueryRequest({ user_id: user2Id });
+            const friends2 = db.getUserFriends(req2, mockReply);
+
+            const friendship2 = friends2.find((f: any) => f.id === user1Id);
+            expect(friendship2).toBeDefined();
+            expect(friendship2.status).toBe('accepted');
+        });
+
+        it('should not allow accepting an already accepted friendship', () => {
+            const req = mockBodyRequest({ user_id: user1Id, friend_id: user2Id });
+            const result = db.putUserFriend(req, mockReply);
+            expect(result).toBe(false); // Already accepted
+        });
+
+        it('should handle user1 < user2 constraint correctly (reverse order)', () => {
+            // Create friendship with user3 > user1 (numerically)
+            const req = mockBodyRequest({ user_id: user3Id, friend_id: user1Id });
+            const result = db.putUserFriend(req, mockReply);
+            expect(result).toBe(true);
+
+            // Verify it's stored correctly
+            const getReq = mockQueryRequest({ user_id: user3Id });
+            const friends = db.getUserFriends(getReq, mockReply);
+
+            const friendship = friends.find((f: any) => f.id === user1Id);
+            expect(friendship).toBeDefined();
+            expect(friendship.status).toBe('pending');
+        });
+
+        it('should return empty array when user has no friends', () => {
+            // Create a new user with no friends
+            const lonelyUser = { name: "Lonely User", email: "lonely@test.com", password: "pass", avatar: "avatar" };
+            const lonelyUserId = db.createUser(mockBodyRequest(lonelyUser), mockReply) as string;
+
+            const req = mockQueryRequest({ user_id: lonelyUserId });
+            const friends = db.getUserFriends(req, mockReply);
+
+            expect(Array.isArray(friends)).toBe(true);
+            expect(friends.length).toBe(0);
+        });
+
+        it('should delete a pending friendship (sender cancels)', () => {
+            // User3 cancels their request to User1
+            const req = mockBodyRequest({ user_id: user3Id, friend_id: user1Id });
+            const result = db.deleteUserFriend(req, mockReply);
+            expect(result).toBe(true);
+
+            // Verify it's deleted
+            const getReq = mockQueryRequest({ user_id: user3Id });
+            const friends = db.getUserFriends(getReq, mockReply);
+
+            const friendship = friends.find((f: any) => f.id === user1Id);
+            expect(friendship).toBeUndefined();
+        });
+
+        it('should delete an accepted friendship (unfriend)', () => {
+            // User1 unfriends User2
+            const req = mockBodyRequest({ user_id: user1Id, friend_id: user2Id });
+            const result = db.deleteUserFriend(req, mockReply);
+            expect(result).toBe(true);
+
+            // Verify both users no longer see the friendship
+            const getReq1 = mockQueryRequest({ user_id: user1Id });
+            const friends1 = db.getUserFriends(getReq1, mockReply);
+            expect(friends1.find((f: any) => f.id === user2Id)).toBeUndefined();
+
+            const getReq2 = mockQueryRequest({ user_id: user2Id });
+            const friends2 = db.getUserFriends(getReq2, mockReply);
+            expect(friends2.find((f: any) => f.id === user1Id)).toBeUndefined();
+        });
+
+        it('should return false when deleting non-existent friendship', () => {
+            const req = mockBodyRequest({ user_id: user1Id, friend_id: user2Id });
+            const result = db.deleteUserFriend(req, mockReply);
+            expect(result).toBe(false); // Already deleted
+        });
+
+        it('should handle complete friendship lifecycle', () => {
+            // 1. User1 sends request to User2
+            let req = mockBodyRequest({ user_id: user1Id, friend_id: user2Id });
+            let result = db.putUserFriend(req, mockReply);
+            expect(result).toBe(true);
+
+            // 2. Verify pending status
+            let getReq = mockQueryRequest({ user_id: user1Id });
+            let friends = db.getUserFriends(getReq, mockReply);
+            let friendship = friends.find((f: any) => f.id === user2Id);
+            expect(friendship?.status).toBe('pending');
+            expect(friendship?.initiated_by).toBe(user1Id);
+
+            // 3. User2 accepts
+            req = mockBodyRequest({ user_id: user2Id, friend_id: user1Id });
+            result = db.putUserFriend(req, mockReply);
+            expect(result).toBe(true);
+
+            // 4. Verify accepted status
+            getReq = mockQueryRequest({ user_id: user1Id });
+            friends = db.getUserFriends(getReq, mockReply);
+            friendship = friends.find((f: any) => f.id === user2Id);
+            expect(friendship?.status).toBe('accepted');
+
+            // 5. User1 unfriends User2
+            req = mockBodyRequest({ user_id: user1Id, friend_id: user2Id });
+            result = db.deleteUserFriend(req, mockReply);
+            expect(result).toBe(true);
+
+            // 6. Verify deletion
+            getReq = mockQueryRequest({ user_id: user1Id });
+            friends = db.getUserFriends(getReq, mockReply);
+            friendship = friends.find((f: any) => f.id === user2Id);
+            expect(friendship).toBeUndefined();
+        });
+
+        it('should handle multiple friendships for same user', () => {
+            // User1 sends requests to both User2 and User3
+            const req1 = mockBodyRequest({ user_id: user1Id, friend_id: user2Id });
+            const result1 = db.putUserFriend(req1, mockReply);
+            expect(result1).toBe(true);
+
+            const req2 = mockBodyRequest({ user_id: user1Id, friend_id: user3Id });
+            const result2 = db.putUserFriend(req2, mockReply);
+            expect(result2).toBe(true);
+
+            // Verify User1 has 2 friendships
+            const getReq = mockQueryRequest({ user_id: user1Id });
+            const friends = db.getUserFriends(getReq, mockReply);
+            expect(friends.length).toBe(2);
+
+            // Both should be pending
+            expect(friends.every((f: any) => f.status === 'pending')).toBe(true);
+        });
+
+        it('should CASCADE delete friendships when user is deleted', () => {
+            // Create two test users
+            const tempUser1 = { name: "Temp User 1", email: "temp1@test.com", password: "pass", avatar: "avatar" };
+            const tempUser2 = { name: "Temp User 2", email: "temp2@test.com", password: "pass", avatar: "avatar" };
+
+            const tempId1 = db.createUser(mockBodyRequest(tempUser1), mockReply) as string;
+            const tempId2 = db.createUser(mockBodyRequest(tempUser2), mockReply) as string;
+
+            // Create friendship
+            const friendReq = mockBodyRequest({ user_id: tempId1, friend_id: tempId2 });
+            db.putUserFriend(friendReq, mockReply);
+
+            // Verify friendship exists
+            const getReq = mockQueryRequest({ user_id: tempId1 });
+            let friends = db.getUserFriends(getReq, mockReply);
+            expect(friends.length).toBe(1);
+
+            // Delete one user
+            const deleteReq = mockBodyRequest({ id: tempId1 });
+            const deleteResult = db.deleteUser(deleteReq, mockReply);
+            expect(deleteResult).toBe(true);
+
+            // Verify friendship is also deleted (CASCADE)
+            const getReq2 = mockQueryRequest({ user_id: tempId2 });
+            friends = db.getUserFriends(getReq2, mockReply);
+            expect(friends.find((f: any) => f.id === tempId1)).toBeUndefined();
+        });
+    });
+
     describe('User Deletion', () => {
 
         it('should delete a user without foreign key constraints', () => {

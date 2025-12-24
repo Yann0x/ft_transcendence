@@ -6,17 +6,7 @@ import { UserSchema, UserPublicSchema, ChannelSchema, MessageSchema } from './sh
 
 const dbGetUserSchema = {
   schema: {
-    querystring: Type.Object(
-      Type.Pick(UserSchema, ['id', 'email', 'name']).properties,
-      {
-        anyOf: [
-          { required: ['id'] },
-          { required: ['email'] },
-          { required: ['name'] },
-        ],
-		additionalProperties: false
-      }
-    ),
+    querystring: Type.Pick(UserSchema, ['id', 'email', 'name', 'status']),
     response: {
       200: Type.Array(Type.Pick(UserSchema, ['id', 'name', 'email', 'avatar']))
     }
@@ -131,7 +121,7 @@ const dbGetMessageSchema = {
 
 const dbPostMessageSchema = {
   schema: {
-    body: Type.Omit(MessageSchema, ['id']), 
+    body: Type.Omit(MessageSchema, ['id']),
     response: {
       200: Type.Pick(MessageSchema, ['id'])
     },
@@ -146,6 +136,53 @@ const dbPutMessageSchema = {
       200: Type.Pick(MessageSchema, ['id'])
     },
     description : `Update message (usefull for read comfirmation)`,
+  }
+}
+
+const dbPutUserFriendSchema = {
+  schema: {
+    body: Type.Object({
+      user_id: Type.String(),
+      friend_id: Type.String()
+    }, { required: ['user_id', 'friend_id'] }),
+    response: {
+      200: Type.Boolean()
+    },
+    description: `Send a friend request or accept an existing pending request. Returns true if request created/accepted, false if already exists or error.`,
+  }
+}
+
+const dbDeleteUserFriendSchema = {
+  schema: {
+    body: Type.Object({
+      user_id: Type.String(),
+      friend_id: Type.String()
+    }, { required: ['user_id', 'friend_id'] }),
+    response: {
+      200: Type.Boolean()
+    },
+    description: `Remove a friendship between two users. Returns true if removed, false if not found.`,
+  }
+}
+
+const FriendshipSchema = Type.Object({
+  id: Type.Optional(Type.String()),
+  name: Type.Optional(Type.String()),
+  avatar: Type.Optional(Type.String()),
+  status: Type.String(),
+  initiated_by: Type.String(),
+  since: Type.String()
+})
+
+const dbGetUserFriendsSchema = {
+  schema: {
+    querystring: Type.Object({
+      user_id: Type.String()
+    }, { required: ['user_id'] }),
+    response: {
+      200: Type.Array(FriendshipSchema)
+    },
+    description: `Get all friendships for a given user with status (pending/accepted) and metadata. The calling service can filter based on status and initiated_by fields.`,
   }
 }
 
@@ -172,4 +209,10 @@ export function databaseRoutes(server: FastifyInstance) {
   server.post('/database/message', dbPostMessageSchema, db.postMessage)
 
   server.put('/database/message', dbPutMessageSchema, db.putMessage)
+
+  server.put('/database/friend', dbPutUserFriendSchema, db.putUserFriend)
+
+  server.delete('/database/friend', dbDeleteUserFriendSchema, db.deleteUserFriend)
+
+  server.get('/database/friends', dbGetUserFriendsSchema, db.getUserFriends)
 }

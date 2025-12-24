@@ -31,12 +31,13 @@ server.server.on('upgrade', (req, socket) => {
   });
   socket.on('close', () => console.log('[PROXY] upgrade socket closed', req.url));
 });
+server.addHook('onRequest', async (request, reply) => {
+  console.log(`[PROXY] ${request.method} ${request.url}`);
+});
 
 // Fonction de vérification du JWT via le service authenticate
 async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
   // si authenticate valide le JWT on set des headers avec l'identité de l'envoyeur
-  console.log('Verifying JWT for request to ', request.url);
-
   const authHeader = request.headers.authorization
   const response = await fetch('http://authenticate:3000/check_jwt', {
     method: 'POST',
@@ -44,20 +45,23 @@ async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
       'Authorization': authHeader || ''
     }
   })
-  console.log('Authentication service responded with ', response);
   const sender = await response.json() as SenderIdentity | undefined
   if (sender && sender.id) {
     request.headers['x-sender-id'] = sender.id.toString()
     request.headers['x-sender-name'] = sender.name
     request.headers['x-sender-email'] = sender.email
+	console.log(['[PROXY] Valid JWT'])
   }
-  else
+  else {
     reply.status(401).send({ error: 'Unauthorized' });
+	console.log(['[PROXY] Invalid JWT'])
+  }
 }
+  // Social service with WebSocket (outside auth for now - auth handled internally)
   server.register(proxy, {
-    upstream: 'http://chat:3000',
-    prefix: '/chat',
-    rewritePrefix: '/chat',
+    upstream: 'http://social:3000',
+    prefix: '/social',
+    rewritePrefix: '/social',
     http2: false,
 	  websocket: true,
   })
@@ -69,6 +73,21 @@ server.register( async function contextPrivate(server) {
     upstream: 'http://user:3000',
     prefix: '/user',
     rewritePrefix: '/user',
+    http2: false,
+  })
+
+  // Social REST endpoints (require auth)
+  server.register(proxy, {
+    upstream: 'http://social:3000',
+    prefix: '/social/friend',
+    rewritePrefix: '/social/friend',
+    http2: false,
+  })
+
+  server.register(proxy, {
+    upstream: 'http://social:3000',
+    prefix: '/social/friends',
+    rewritePrefix: '/social/friends',
     http2: false,
   })
 

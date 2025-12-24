@@ -174,7 +174,7 @@ export async function loginUserHandler(
 
     fillUser(user);
 
-    return { access_token: token, ...user};
+    return { token, user };
   } catch (error: any) {
     console.log("[USER] Login error:", error);
     const statusCode = error.statusCode || 500;

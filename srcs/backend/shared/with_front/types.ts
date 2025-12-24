@@ -82,3 +82,41 @@ export const UserSchema = Type.Object({
   chats:        Type.Optional(Type.Array(ChannelSchema)),
 })
 export type User = Static<typeof UserSchema>;
+
+// WebSocket Social Event Types
+export const SocialEventTypeSchema = Type.Union([
+  Type.Literal('auth'),
+  Type.Literal('auth_success'),
+  Type.Literal('auth_failed'),
+  Type.Literal('friend_request_sent'),
+  Type.Literal('friend_request_received'),
+  Type.Literal('friend_request_accepted'),
+  Type.Literal('friend_request_rejected'),
+  Type.Literal('friend_removed'),
+  Type.Literal('user_online'),
+  Type.Literal('user_offline'),
+  Type.Literal('error'),
+]);
+export type SocialEventType = Static<typeof SocialEventTypeSchema>;
+
+export const SocialEventSchema = Type.Object({
+  type: SocialEventTypeSchema,
+  data: Type.Optional(Type.Any()),
+  timestamp: Type.String({ format: 'date-time' }),
+});
+export type SocialEvent = Static<typeof SocialEventSchema>;
+
+// Friend request data
+export const FriendRequestDataSchema = Type.Object({
+  userId: Type.String(),
+  userName: Type.String(),
+  userAvatar: Type.Optional(Type.String()),
+});
+export type FriendRequestData = Static<typeof FriendRequestDataSchema>;
+
+// User status data
+export const UserStatusDataSchema = Type.Object({
+  userId: Type.String(),
+  status: Type.Union([Type.Literal('online'), Type.Literal('offline')]),
+});
+export type UserStatusData = Static<typeof UserStatusDataSchema>;

@@ -63,19 +63,19 @@ services:
       - ./backend/game/data:/data
       - ./backend/shared/:/data/src/shared:ro
     restart: always
-  chat:
-    container_name: chat
+  social:
+    container_name: social
     init: true
     env_file:
       - .env
     build:
-      context: backend/chat
+      context: backend/social
     expose:
       - 3000
-    networks:  
+    networks:
       - transcendence
     volumes:
-      - ./backend/chat/data:/data
+      - ./backend/social/data:/data
       - ./backend/shared/:/data/src/shared:ro
     restart: always
   database:

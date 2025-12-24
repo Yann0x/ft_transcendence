@@ -2,12 +2,15 @@
    AUTH MODAL - Authentication Modal Management
    ============================================ */
 
+import { User } from '../shared/types';
+
 export const AuthModal = {
   modal: null as HTMLElement | null,
   loginTab: null as HTMLElement | null,
   signupTab: null as HTMLElement | null,
   loginForm: null as HTMLElement | null,
   signupForm: null as HTMLElement | null,
+  onLoginSuccess: null as ((user: User) => void) | null,
 
   /**
    * Initialize the auth modal
@@ -142,8 +145,14 @@ export const AuthModal = {
 
         const data = await response.json();
         if (data.token) {
-          localStorage.setItem('authToken', data.token);
+          sessionStorage.setItem('authToken', data.token);
         }
+
+        // Store user data and notify app
+        if (this.onLoginSuccess && data.user) {
+          this.onLoginSuccess(data.user as User);
+        }
+
         alert('Login successful!');
         this.close();
       } catch (error) {
