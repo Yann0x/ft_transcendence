@@ -82,6 +82,7 @@ export function bouncePaddles(state: GameState): void {
 
   for (let i = 0; i < 2; i++) {
     const paddle = paddles[i];
+    if (!paddle) continue;
     const isLeft = i === 0;
 
     // Check direction (balle doit aller vers le paddle)

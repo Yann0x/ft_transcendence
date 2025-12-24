@@ -39,3 +39,8 @@ export const WIN_SCORE = 11;
 // Viewport (taille fixe cote serveur)
 export const VIEWPORT_WIDTH = 800;
 export const VIEWPORT_HEIGHT = 600;
+
+// AI
+export const AI_PERCEPTION_INTERVAL = 1000; // ms entre chaque perception
+export const AI_ERROR_RANGE = 50; // erreur aleatoire
+export const AI_DEADZONE = 5;
