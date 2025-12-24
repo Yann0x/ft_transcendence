@@ -44,11 +44,8 @@ export function drawFps(): void {
  */
 export function drawControls(viewportHeight: number): void {
   const controls = [
-    'W/S - Player 1',
-    'Arrows - Player 2 (2P mode)',
+    'W/S or Arrows - Move paddle',
     'SPACE - Start/Restart',
-    'A - Toggle AI/2P',
-    'R - Reset ball',
     'F - Toggle FPS',
     'H - Toggle Hitboxes'
   ];
