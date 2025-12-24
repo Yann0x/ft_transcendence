@@ -1,9 +1,10 @@
 // ROOM - Gestion des parties
 
-import type { WebSocket } from '@fastify/websocket';
+import type { WebSocket } from 'ws';
 import { createGameState, type GameState, type PlayerInput } from './state.js';
 import { physicsTick } from './physics.js';
 import { TICK_INTERVAL } from './config.js';
+import { createAIState, updateAI, getAIInput, type AIState } from './ai.js';
 
 export interface Player {
   id: string;
@@ -16,6 +17,7 @@ export interface Room {
   players: Player[];
   state: GameState;
   intervalId: NodeJS.Timeout | null;
+  ai: AIState | null; // IA pour mode solo
 }
 
 const rooms = new Map<string, Room>();
@@ -30,7 +32,8 @@ export function createRoom(): Room {
     id,
     players: [],
     state: createGameState(),
-    intervalId: null
+    intervalId: null,
+    ai: null
   };
   rooms.set(id, room);
   console.log(`[ROOM] Created room ${id}`);
@@ -51,8 +54,8 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string): Play
 
   console.log(`[ROOM] Player ${playerId} joined ${room.id} as ${side}`);
 
-  // Si 2 joueurs, passer en ready
-  if (room.players.length === 2) {
+  // Passer en ready des qu'un joueur rejoint (mode solo ou duo)
+  if (room.players.length >= 1 && room.state.phase === 'waiting') {
     room.state.phase = 'ready';
     broadcastState(room);
   }
@@ -90,6 +93,12 @@ export function removePlayer(room: Room, playerId: string): void {
 export function startGameLoop(room: Room): void {
   if (room.intervalId) return;
 
+  // Activer l'IA si un seul joueur
+  if (room.players.length === 1) {
+    room.ai = createAIState();
+    console.log(`[ROOM] AI enabled for ${room.id}`);
+  }
+
   room.state.phase = 'playing';
   let lastTick = Date.now();
 
@@ -97,6 +106,12 @@ export function startGameLoop(room: Room): void {
     const now = Date.now();
     const dt = now - lastTick;
     lastTick = now;
+
+    // Update IA si active
+    if (room.ai) {
+      updateAI(room.ai, room.state, now);
+      room.state.inputs[1] = getAIInput(room.ai);
+    }
 
     physicsTick(room.state, dt);
     broadcastState(room);
