@@ -12,7 +12,7 @@ import  handleThisError  from './shared/utils/error'
 
 
 const server = fastify({
-  logger: true,
+  logger: false,
   ajv: {
     customOptions: {
       removeAdditional: false,
@@ -28,7 +28,7 @@ db.initializeDatabase();
 
 // Log incoming requests
 server.addHook('onRequest', async (request, reply) => {
-  console.log(`[DATABASE] ${request.method} ${request.url}`);
+  console.log(`[REQUEST] ${request.method} ${request.url}`);
 });
 
 

@@ -1,12 +1,6 @@
 import { SocketStream } from '@fastify/websocket';
 import { SocialEvent } from './shared/with_front/types';
 
-interface UserConnection {
-  userId: string;
-  socket: SocketStream;
-  authenticated: boolean;
-}
-
 /**
  * Manages WebSocket connections for the social service
  * Tracks online users and provides methods to broadcast events
@@ -57,10 +51,38 @@ class ConnectionManager {
 
   /**
    * Check if a user is online (has at least one active connection)
+   * Also performs cleanup of dead sockets found during the check
    */
   isUserOnline(userId: string): boolean {
     const sockets = this.connections.get(userId);
-    return sockets !== undefined && sockets.size > 0;
+    if (!sockets || sockets.size === 0) {
+      return false;
+    }
+
+    // Check if any sockets are actually alive
+    const deadSockets: SocketStream[] = [];
+    sockets.forEach(socket => {
+      if (socket.readyState !== socket.OPEN) {
+        deadSockets.push(socket);
+      }
+    });
+
+    // Clean up dead sockets if found
+    if (deadSockets.length > 0) {
+      deadSockets.forEach(socket => {
+        sockets.delete(socket);
+        this.socketToUser.delete(socket);
+      });
+
+      // Remove user if no active connections remain
+      if (sockets.size === 0) {
+        this.connections.delete(userId);
+        console.log(`[SOCIAL] isUserOnline cleanup: User ${userId} removed (no active connections)`);
+        return false;
+      }
+    }
+
+    return sockets.size > 0;
   }
 
   /**
@@ -88,13 +110,39 @@ class ConnectionManager {
     }
 
     const message = JSON.stringify(event);
+    const deadSockets: SocketStream[] = [];
+
     sockets.forEach(socket => {
       try {
-        socket.send(message);
+        // Check if socket is still open before sending
+        if (socket.readyState === socket.OPEN) {
+          socket.send(message);
+        } else {
+          console.log(`[SOCIAL] Socket for user ${userId} is not open (state: ${socket.readyState}), marking as dead`);
+          deadSockets.push(socket);
+        }
       } catch (error) {
         console.error(`[SOCIAL] Error sending to user ${userId}:`, error);
+        // Mark socket as dead if send fails
+        deadSockets.push(socket);
       }
     });
+
+    // Clean up dead sockets
+    if (deadSockets.length > 0) {
+      deadSockets.forEach(socket => {
+        sockets.delete(socket);
+        this.socketToUser.delete(socket);
+      });
+
+      // If user has no more connections, remove them from the map
+      if (sockets.size === 0) {
+        this.connections.delete(userId);
+        console.log(`[SOCIAL] User ${userId} has no more active connections, removed from online users`);
+      } else {
+        console.log(`[SOCIAL] Removed ${deadSockets.length} dead socket(s) for user ${userId}, ${sockets.size} remaining`);
+      }
+    }
   }
 
   /**
@@ -109,15 +157,46 @@ class ConnectionManager {
    */
   broadcast(event: SocialEvent): void {
     const message = JSON.stringify(event);
+    const usersToCleanup: string[] = [];
+
     this.connections.forEach((sockets, userId) => {
+      const deadSockets: SocketStream[] = [];
+
       sockets.forEach(socket => {
         try {
-          socket.send(message);
+          // Check if socket is still open before sending
+          if (socket.readyState === socket.OPEN) {
+            socket.send(message);
+          } else {
+            deadSockets.push(socket);
+          }
         } catch (error) {
           console.error(`[SOCIAL] Error broadcasting to user ${userId}:`, error);
+          deadSockets.push(socket);
         }
       });
+
+      // Clean up dead sockets for this user
+      if (deadSockets.length > 0) {
+        deadSockets.forEach(socket => {
+          sockets.delete(socket);
+          this.socketToUser.delete(socket);
+        });
+
+        // Mark user for cleanup if they have no more connections
+        if (sockets.size === 0) {
+          usersToCleanup.push(userId);
+        }
+      }
     });
+
+    // Remove users with no active connections
+    if (usersToCleanup.length > 0) {
+      usersToCleanup.forEach(userId => {
+        this.connections.delete(userId);
+        console.log(`[SOCIAL] Broadcast cleanup: User ${userId} removed (no active connections)`);
+      });
+    }
   }
 
   /**
@@ -132,6 +211,56 @@ class ConnectionManager {
       totalUsers: this.connections.size,
       totalConnections
     };
+  }
+
+  /**
+   * Perform health check and cleanup of dead connections
+   * This should be called periodically to ensure connection map stays clean
+   */
+  performHealthCheck(): void {
+    const usersToCleanup: string[] = [];
+    let totalDeadSockets = 0;
+
+    this.connections.forEach((sockets, userId) => {
+      const deadSockets: SocketStream[] = [];
+
+      sockets.forEach(socket => {
+        if (socket.readyState !== socket.OPEN) {
+          deadSockets.push(socket);
+        }
+      });
+
+      if (deadSockets.length > 0) {
+        totalDeadSockets += deadSockets.length;
+        deadSockets.forEach(socket => {
+          sockets.delete(socket);
+          this.socketToUser.delete(socket);
+        });
+
+        if (sockets.size === 0) {
+          usersToCleanup.push(userId);
+        }
+      }
+    });
+
+    // Remove users with no active connections
+    usersToCleanup.forEach(userId => {
+      this.connections.delete(userId);
+    });
+
+    if (totalDeadSockets > 0 || usersToCleanup.length > 0) {
+      console.log(`[SOCIAL] Health check: Cleaned up ${totalDeadSockets} dead socket(s), removed ${usersToCleanup.length} user(s) with no connections`);
+    }
+  }
+
+  /**
+   * Start periodic health checks
+   */
+  startHealthChecks(intervalMs: number = 30000): NodeJS.Timeout {
+    console.log(`[SOCIAL] Starting periodic health checks every ${intervalMs}ms`);
+    return setInterval(() => {
+      this.performHealthCheck();
+    }, intervalMs);
   }
 }
 

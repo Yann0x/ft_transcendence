@@ -4,7 +4,7 @@ const server = fastify()
 
 // Log incoming requests
 server.addHook('onRequest', async (request, reply) => {
-  console.log(`[GAME] ${request.method} ${request.url}`);
+  console.log(`[REQUEST] ${request.method} ${request.url}`);
 });
 
 server.get('/game', async (request, reply) => {

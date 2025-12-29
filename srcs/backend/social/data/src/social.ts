@@ -4,9 +4,10 @@ import swaggerUI from '@fastify/swagger-ui'
 import websocket from '@fastify/websocket'
 import { socialRoutes } from './routes'
 import handleThisError from './shared/utils/error'
+import { connectionManager } from './connection_manager'
 
 const server = fastify({
-  logger: true,
+  logger: false,
   ajv: {
     customOptions: {
       removeAdditional: false,
@@ -19,8 +20,16 @@ const server = fastify({
 
 server.register(websocket)
 
+// Log WebSocket upgrade attempts
+server.server.on('upgrade', (req, socket) => {
+  console.log('[WEBSOCKET] upgrade start', req.url, {
+    protocol: req.headers['sec-websocket-protocol'],
+    origin: req.headers.origin,
+  });
+  socket.on('close', () => console.log('[PROXY] upgrade socket closed', req.url));
+});
 server.addHook('onRequest', async (request, reply) => {
-  console.log(`[SOCIAL] ${request.method} ${request.url}`);
+  console.log(`[REQUEST] ${request.method} ${request.url}`);
 });
 
 // Custom error handler for schema validation
@@ -48,6 +57,10 @@ await server.register(swaggerUI, {
 });
 
 server.register(socialRoutes);
+
+// Start periodic health checks for WebSocket connections
+// Runs every 30 seconds to clean up dead sockets
+connectionManager.startHealthChecks(30000);
 
 server.listen({ port: 3000, host: '0.0.0.0'}, (err, address) => {
   if (err) {

@@ -6,7 +6,7 @@ import { authenticateRoutes } from './routes'
 import handleThisError from './shared/utils/error';
 
 const server = fastify({
-  logger: true,
+  logger: false,
   ajv: {
     customOptions: {
       removeAdditional: false,
@@ -19,7 +19,7 @@ const server = fastify({
 
 // Log incoming requests
 server.addHook('onRequest', async (request, reply) => {
-  console.log(`[AUTHENTICATE] ${request.method} ${request.url}`);
+  console.log(`[REQUEST] ${request.method} ${request.url}`);
 });
 
 server.register(jwt, {

@@ -440,7 +440,7 @@ describe('Database Methods Tests', () => {
             expect(friendship.since).toBeDefined();
         });
 
-        it('should retrieve pending friendship from receiver perspective', () => {
+        it('should retrieve pending friendship from REQUESTr perspective', () => {
             const req = mockQueryRequest({ user_id: user2Id });
             const friends = db.getUserFriends(req, mockReply);
 

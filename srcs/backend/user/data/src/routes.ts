@@ -45,12 +45,7 @@ const loginUserSchema = {
 
 const findUserSchema = {
   schema: {
-    querystring: Type.Object({
-      id: Type.Optional(Type.String()),
-      email: Type.Optional(Type.String()),
-      name: Type.Optional(Type.String()),
-      status: Type.Optional(Type.String())
-    }),
+    querystring: Type.Pick(UserSchema, ['id', 'email', 'name']),
     response: {
       200: Type.Union([
         Type.Array(UserSchema),

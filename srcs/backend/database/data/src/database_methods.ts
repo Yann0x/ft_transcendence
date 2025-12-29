@@ -332,7 +332,7 @@ export function deleteUserFriend(req, reply): boolean {
 
     try {
         // Delete the friendship regardless of status (pending or accepted)
-        // Both users can cancel/remove: sender can cancel their request, receiver can reject it
+        // Both users can cancel/remove: sender can cancel their request, REQUESTr can reject it
         const request = db.prepare(
             `DELETE FROM friendships WHERE user1 = ? AND user2 = ?`
         );
