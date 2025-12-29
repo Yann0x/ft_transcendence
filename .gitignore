@@ -4,4 +4,4 @@ build/
 *.log
 .vscode/
 *.db
-*.json
+*lock.json
