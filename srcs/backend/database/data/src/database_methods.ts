@@ -277,8 +277,7 @@ export function putUserFriend(req, reply): boolean {
 }
 
 export function getUserFriends(req, reply) {
-    const query = req.query;
-    const userId = query.user_id;
+    const userId = req.query.user_id;
 
     // Get all friendships where the user is either user1 or user2
     // Return friend_id, status, initiated_by, and since timestamp

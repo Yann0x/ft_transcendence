@@ -207,23 +207,21 @@ export async function findUserHandler(
       return [];
     }
 
-    const user = users[0];
-
-    // Check if user is requesting their own data
-    if (requestingUserId && requestingUserId === user.id) {
-      // Return full User object with all fields populated
-      fillUser(user);
-      return [user];
-    } else {
-      // Return only public user data
-      const publicUser = {
-        id: user.id,
-        name: user.name,
-        avatar: user.avatar,
-        status: user.status
-      };
-      return [publicUser];
-    }
+    // Map users: if requesting user, return full user, else public data
+    const result = await Promise.all(users.map(async (user) => {
+      if (requestingUserId && requestingUserId === user.id) {
+        fillUser(user);
+        return user;
+      } else {
+        return {
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          status: user.status
+        };
+      }
+    }));
+    return result;
 
   } catch (error: any) {
     const statusCode = error.statusCode || 500;

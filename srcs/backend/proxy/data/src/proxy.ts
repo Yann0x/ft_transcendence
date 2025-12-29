@@ -29,7 +29,7 @@ server.server.on('upgrade', (req, socket) => {
     protocol: req.headers['sec-websocket-protocol'],
     origin: req.headers.origin,
   });
-  socket.on('close', () => console.log('[PROXY] upgrade socket closed', req.url));
+  socket.on('close', () => console.log('[WEBSOCKET] upgrade socket closed', req.url));
 });
 server.addHook('onRequest', async (request, reply) => {
   console.log(`[REQUEST] ${request.method} ${request.url}`);

@@ -27,7 +27,7 @@ async function customFetch(url: string, method: string, body?: any) {
     } else {
       data = await response.text();
     }
-    console.log(`service ${method} ${fetchUrl} respond with status ${response.status} : '${data}'`) 
+    console.log(`service ${method} ${fetchUrl} respond with status ${response.status} : '${JSON.stringify(data)}'`) 
     
     // If response is not ok, throw error with details
     if (!response.ok) {

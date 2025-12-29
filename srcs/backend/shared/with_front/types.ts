@@ -70,7 +70,7 @@ export type UserPublic = Static<typeof UserPublicSchema>;
 export const UserSchema = Type.Object({
   role:         Type.Optional(Type.String({default: 'user'})),
   id:           Type.Optional(Type.String()),
-  name:         Type.Optional(Type.String({minLength: 2, maxLength: 50, pattern: "^[\\p{L}][\\p{L}\\p{M} .'-]*$"})),
+  name:         Type.Optional(Type.String({maxLength: 50})),
   email:        Type.Optional(Type.String({format: 'email', minLength:6, maxLength: 254})),
   avatar:       Type.Optional(Type.String()),
   status:       Type.String({default: 'offline'}),
