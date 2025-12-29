@@ -6,7 +6,7 @@ import customFetch from "./shared/utils/fetch";
 import handleThisError from "./shared/utils/error";
 
 const server = fastify({
-  logger: true,
+  logger: false,
   ajv: {
     customOptions: {
       removeAdditional: false,
@@ -18,7 +18,7 @@ const server = fastify({
 })
 
 server.addHook('onRequest', async (request, reply) => {
-  console.log(`[USER] ${request.method} ${request.url}`);
+  console.log(`[REQUEST] ${request.method} ${request.url}`);
 });
 
  //Custom error handler for schema validation

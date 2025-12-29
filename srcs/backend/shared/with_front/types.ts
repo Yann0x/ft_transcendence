@@ -89,7 +89,7 @@ export const SocialEventTypeSchema = Type.Union([
   Type.Literal('auth_success'),
   Type.Literal('auth_failed'),
   Type.Literal('friend_request_sent'),
-  Type.Literal('friend_request_received'),
+  Type.Literal('friend_request_REQUESTd'),
   Type.Literal('friend_request_accepted'),
   Type.Literal('friend_request_rejected'),
   Type.Literal('friend_removed'),

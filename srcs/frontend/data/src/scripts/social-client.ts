@@ -32,24 +32,20 @@ export class SocialClient {
     this.authenticated = false;
 
     // Use wss:// for secure WebSocket connection
+    // Pass token as Authorization header via subprotocol (browser limitation workaround)
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/social/wss`;
 
     console.log('[SOCIAL] Connecting to', wsUrl);
 
     try {
-      this.ws = new WebSocket(wsUrl);
+      // Pass the JWT token as a subprotocol - proxy will handle authentication
+      this.ws = new WebSocket(wsUrl, [`Bearer.${token}`]);
 
       this.ws.addEventListener('open', () => {
-        console.log('[SOCIAL] WebSocket connected');
+        console.log('[SOCIAL] WebSocket connected and authenticated by proxy');
         this.reconnectAttempts = 0;
-
-        // Send authentication
-        this.send({
-          type: 'auth',
-          data: { token },
-          timestamp: new Date().toISOString()
-        });
+        // No need to send auth message - proxy already authenticated us
       });
 
       this.ws.addEventListener('message', (event) => {
@@ -113,11 +109,11 @@ export class SocialClient {
   private handleEvent(event: SocialEvent): void {
     console.log('[SOCIAL] Received event:', event.type, event);
 
-    // Handle authentication events
-    if (event.type === 'auth_success') {
+    // Handle connection confirmation from server
+    if (event.type === 'connected') {
       this.authenticated = true;
-      console.log('[SOCIAL] Authenticated successfully');
-    } else if (event.type === 'auth_failed') {
+      console.log('[SOCIAL] Connected and authenticated successfully');
+    } else if (event.type === 'error' && event.data?.reason?.includes('Unauthorized')) {
       console.error('[SOCIAL] Authentication failed:', event.data);
       this.disconnect();
       return;

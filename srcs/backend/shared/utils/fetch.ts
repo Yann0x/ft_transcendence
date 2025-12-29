@@ -18,9 +18,8 @@ async function customFetch(url: string, method: string, body?: any) {
   }
   
   try {
-    console.log(`utils.customFetch: Sending ${method} request to ${fetchUrl} with options:`, fetchOptions);
+    console.log(`Sending ${method} request to ${fetchUrl} with options:`, fetchOptions);
     const response = await fetch(fetchUrl, fetchOptions);
-    console.log(`utils.customFetch: Received response with status ${response.status} for ${method} ${fetchUrl}`); 
     const isJson = response.headers.get('content-type')?.includes('application/json');
     let data: any;
     if (isJson) {
@@ -28,6 +27,7 @@ async function customFetch(url: string, method: string, body?: any) {
     } else {
       data = await response.text();
     }
+    console.log(`service ${method} ${fetchUrl} respond with status ${response.status} : '${data}'`) 
     
     // If response is not ok, throw error with details
     if (!response.ok) {

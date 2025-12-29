@@ -34,9 +34,9 @@ export const Friends = {
    * Setup WebSocket event listeners
    */
   setupSocialEventListeners(): void {
-    // Friend request received
-    socialClient.on('friend_request_received', (event: SocialEvent) => {
-      console.log('[FRIENDS] Friend request received:', event.data);
+    // Friend request REQUESTd
+    socialClient.on('friend_request_REQUESTd', (event: SocialEvent) => {
+      console.log('[FRIENDS] Friend request REQUESTd:', event.data);
       // Reload pending requests to show new request
       this.loadFriends();
       this.loadPendingRequests();
@@ -218,19 +218,19 @@ export const Friends = {
 
       pendingSection?.classList.remove('hidden');
 
-      // Separate sent and received requests
+      // Separate sent and REQUESTd requests
       const sentRequests = pendingRequests.filter((f: any) => f.initiated_by === this.currentUser?.id);
-      const receivedRequests = pendingRequests.filter((f: any) => f.initiated_by !== this.currentUser?.id);
+      const REQUESTdRequests = pendingRequests.filter((f: any) => f.initiated_by !== this.currentUser?.id);
 
       let html = '';
 
-      if (receivedRequests.length > 0) {
+      if (REQUESTdRequests.length > 0) {
         html += '<h4 class="text-sm font-semibold text-blue-400 mb-2">Invitations reçues</h4>';
-        html += receivedRequests.map(friend => this.createUserCard(friend, 'pending-received')).join('');
+        html += REQUESTdRequests.map(friend => this.createUserCard(friend, 'pending-REQUESTd')).join('');
       }
 
       if (sentRequests.length > 0) {
-        if (receivedRequests.length > 0) html += '<div class="h-4"></div>';
+        if (REQUESTdRequests.length > 0) html += '<div class="h-4"></div>';
         html += '<h4 class="text-sm font-semibold text-neutral-400 mb-2">Invitations envoyées</h4>';
         html += sentRequests.map(friend => this.createUserCard(friend, 'pending-sent')).join('');
       }
@@ -305,7 +305,7 @@ export const Friends = {
   /**
    * Create a user card HTML
    */
-  createUserCard(user: any, type: 'search' | 'friend' | 'pending-received' | 'pending-sent'): string {
+  createUserCard(user: any, type: 'search' | 'friend' | 'pending-REQUESTd' | 'pending-sent'): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
     const onlineStatus = user.onlineStatus || 'offline';
     const statusColor = onlineStatus === 'online' ? 'bg-green-500' : 'bg-neutral-500';
@@ -330,7 +330,7 @@ export const Friends = {
           Retirer
         </button>
       `;
-    } else if (type === 'pending-received') {
+    } else if (type === 'pending-REQUESTd') {
       actionButton = `
         <button class="accept-friend-btn px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition mr-2" data-user-id="${user.id}">
           <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

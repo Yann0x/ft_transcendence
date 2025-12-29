@@ -6,15 +6,42 @@ import customFetch from './shared/utils/fetch';
 
 /**
  * WebSocket handler for social features
- * Handles authentication and real-time event broadcasting
+ * Authentication is handled by proxy - we trust the headers it sets
  */
 export async function socialWss(connection: SocketStream, req: FastifyRequest) {
   if (!connection || !connection.socket) return;
 
-  let userId: string | undefined;
-  let authenticated = false;
+  // Get user identity from headers set by proxy
+  const userId = req.headers['x-sender-id'] as string | undefined;
+  const userName = req.headers['x-sender-name'] as string | undefined;
+  const userEmail = req.headers['x-sender-email'] as string | undefined;
 
-  console.log('[SOCIAL] New WebSocket connection');
+  // If no user identity, proxy didn't authenticate - close connection
+  if (!userId) {
+    console.error('[SOCIAL] WebSocket connection without user identity - proxy authentication failed');
+    connection.socket.send(JSON.stringify({
+      type: 'error',
+      data: { reason: 'Unauthorized - no user identity' },
+      timestamp: new Date().toISOString()
+    } as SocialEvent));
+    connection.socket.close();
+    return;
+  }
+
+  console.log(`[SOCIAL] New WebSocket connection for user ${userId} (${userName})`);
+
+  // Add connection to manager immediately (proxy already authenticated)
+  connectionManager.addConnection(userId, connection.socket);
+
+  // Send connection success
+  connection.socket.send(JSON.stringify({
+    type: 'connected',
+    data: { userId, userName, userEmail },
+    timestamp: new Date().toISOString()
+  } as SocialEvent));
+
+  // Notify friends that user is online
+  await notifyFriendsUserOnline(userId);
 
   // Handle incoming messages
   connection.socket.on('message', async (rawMessage: Buffer) => {
@@ -22,80 +49,8 @@ export async function socialWss(connection: SocketStream, req: FastifyRequest) {
       const message = rawMessage.toString();
       const event = JSON.parse(message) as SocialEvent;
 
-      // First message must be authentication
-      if (!authenticated) {
-        if (event.type !== 'auth') {
-          connection.socket.send(JSON.stringify({
-            type: 'auth_failed',
-            data: { reason: 'First message must be auth' },
-            timestamp: new Date().toISOString()
-          } as SocialEvent));
-          connection.socket.close();
-          return;
-        }
-
-        // Validate JWT token
-        const token = event.data?.token;
-        if (!token) {
-          connection.socket.send(JSON.stringify({
-            type: 'auth_failed',
-            data: { reason: 'No token provided' },
-            timestamp: new Date().toISOString()
-          } as SocialEvent));
-          connection.socket.close();
-          return;
-        }
-
-        try {
-          // Validate token via authenticate service
-          const response = await fetch('http://authenticate:3000/check_jwt', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (!response.ok) {
-            connection.socket.send(JSON.stringify({
-              type: 'auth_failed',
-              data: { reason: 'Invalid token' },
-              timestamp: new Date().toISOString()
-            } as SocialEvent));
-            connection.socket.close();
-            return;
-          }
-
-          const userData = await response.json() as { id: string; name: string; email: string };
-          userId = userData.id;
-          authenticated = true;
-
-          // Add connection to manager
-          connectionManager.addConnection(userId, connection.socket);
-
-          // Send auth success
-          connection.socket.send(JSON.stringify({
-            type: 'auth_success',
-            data: { userId },
-            timestamp: new Date().toISOString()
-          } as SocialEvent));
-
-          // Notify friends that user is online
-          await notifyFriendsUserOnline(userId);
-
-        } catch (error) {
-          console.error('[SOCIAL] Auth error:', error);
-          connection.socket.send(JSON.stringify({
-            type: 'auth_failed',
-            data: { reason: 'Authentication failed' },
-            timestamp: new Date().toISOString()
-          } as SocialEvent));
-          connection.socket.close();
-          return;
-        }
-      } else {
-        // Handle other event types (future expansion)
-        console.log(`[SOCIAL] Received event from user ${userId}:`, event.type);
-      }
+      // Handle different event types (future expansion)
+      console.log(`[SOCIAL] Received event from user ${userId}:`, event.type);
 
     } catch (error) {
       console.error('[SOCIAL] Error processing message:', error);
@@ -240,7 +195,7 @@ export async function sendFriendRequestHandler(
 
       // Send real-time notification to friend
       const event: SocialEvent = {
-        type: 'friend_request_received',
+        type: 'friend_request_REQUESTd',
         data: {
           userId: user.id,
           userName: user.name,
