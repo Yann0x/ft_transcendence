@@ -25,7 +25,7 @@ const server = fastify({
 
 // Log WebSocket upgrade attempts
 server.server.on('upgrade', (req, socket) => {
-  console.log('[WEBSOCKET] upgrade start', req.url, {
+  console.log('[WEBSOCKET] upgrade request', req.url, {
     protocol: req.headers['sec-websocket-protocol'],
     origin: req.headers.origin,
   });

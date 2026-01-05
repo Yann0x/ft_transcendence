@@ -58,10 +58,6 @@ await server.register(swaggerUI, {
 
 server.register(socialRoutes);
 
-// Start periodic health checks for WebSocket connections
-// Runs every 30 seconds to clean up dead sockets
-connectionManager.startHealthChecks(30000);
-
 server.listen({ port: 3000, host: '0.0.0.0'}, (err, address) => {
   if (err) {
     console.error(err)
