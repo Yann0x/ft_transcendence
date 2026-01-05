@@ -30,6 +30,7 @@ export class SocialClient {
       });
 
       this.ws.addEventListener('message', (event) => {
+        console.log('[SOCIAL] Message received:', event.data);
         try {
           const socialEvent = JSON.parse(event.data) as SocialEvent;
           this.handleEvent(socialEvent);
