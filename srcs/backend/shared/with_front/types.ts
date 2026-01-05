@@ -85,14 +85,10 @@ export type User = Static<typeof UserSchema>;
 
 // WebSocket Social Event Types
 export const SocialEventTypeSchema = Type.Union([
+  Type.Literal('connected'),
   Type.Literal('auth'),
   Type.Literal('auth_success'),
   Type.Literal('auth_failed'),
-  Type.Literal('friend_request_sent'),
-  Type.Literal('friend_request_REQUESTd'),
-  Type.Literal('friend_request_accepted'),
-  Type.Literal('friend_request_rejected'),
-  Type.Literal('friend_removed'),
   Type.Literal('user_online'),
   Type.Literal('user_offline'),
   Type.Literal('error'),

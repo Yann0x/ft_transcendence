@@ -1,56 +1,38 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { SocketStream } from '@fastify/websocket';
-import { connectionManager } from './connection_manager';
 import { SocialEvent, User } from './shared/with_front/types';
 import customFetch from './shared/utils/fetch';
+import {UserManager} from './connexion_manager'
 
-/**
- * WebSocket handler for social features
- * Authentication is handled by proxy - we trust the headers it sets
- */
+const manager = UserManager.getInstance();
+
 export async function socialWss(connection: SocketStream, req: FastifyRequest) {
   if (!connection || !connection.socket) return;
-
-  // Get user identity from headers set by proxy
-  const userId = req.headers['x-sender-id'] as string | undefined;
-  const userName = req.headers['x-sender-name'] as string | undefined;
-  const userEmail = req.headers['x-sender-email'] as string | undefined;
-
-  // If no user identity, proxy didn't authenticate - close connection
-  if (!userId) {
-    console.error('[SOCIAL] WebSocket connection without user identity - proxy authentication failed');
-    connection.socket.send(JSON.stringify({
-      type: 'error',
-      data: { reason: 'Unauthorized - no user identity' },
-      timestamp: new Date().toISOString()
-    } as SocialEvent));
-    connection.socket.close();
-    return;
-  }
-
+  
   console.log(`[SOCIAL] New WebSocket connection for user ${userId} (${userName})`);
 
-  // Add connection to manager immediately (proxy already authenticated)
-  connectionManager.addConnection(userId, connection.socket);
+  const user = {
+    id: req.headers['x-sender-id'] as string | undefined,
+    name: req.headers['x-sender-name'] as string | undefined,
+    email: req.headers['x-sender-email'] as string | undefined
+  }
+  
+  // TODO add connection to manager immediately
+  
+  manager.addConnected(user)
 
-  // Send connection success
   connection.socket.send(JSON.stringify({
     type: 'connected',
-    data: { userId, userName, userEmail },
     timestamp: new Date().toISOString()
   } as SocialEvent));
 
-  // Notify friends that user is online
-  await notifyFriendsUserOnline(userId);
-
-  // Handle incoming messages
   connection.socket.on('message', async (rawMessage: Buffer) => {
     try {
       const message = rawMessage.toString();
       const event = JSON.parse(message) as SocialEvent;
 
       // Handle different event types (future expansion)
-      console.log(`[SOCIAL] Received event from user ${userId}:`, event.type);
+      console.log(`[SOCIAL] Received event from user ${user}:`, event.type);
 
     } catch (error) {
       console.error('[SOCIAL] Error processing message:', error);
@@ -62,26 +44,17 @@ export async function socialWss(connection: SocketStream, req: FastifyRequest) {
     }
   });
 
-  // Handle disconnection
   connection.socket.on('close', async () => {
-    if (userId) {
-      const removedUserId = connectionManager.removeConnection(connection.socket);
-      if (removedUserId && !connectionManager.isUserOnline(removedUserId)) {
-        // User has no more connections, notify friends they're offline
-        await notifyFriendsUserOffline(removedUserId);
-      }
-    }
     console.log('[SOCIAL] WebSocket connection closed');
+    manager.removeConnected(user)
   });
 
   connection.socket.on('error', (error) => {
     console.error('[SOCIAL] WebSocket error:', error);
+    manager.removeConnected(user)
   });
 }
 
-/**
- * Notify friends that a user came online
- */
 async function notifyFriendsUserOnline(userId: string): Promise<void> {
   try {
     // Get user's friends from database
@@ -126,9 +99,6 @@ async function notifyFriendsUserOnline(userId: string): Promise<void> {
   }
 }
 
-/**
- * Notify friends that a user went offline
- */
 async function notifyFriendsUserOffline(userId: string): Promise<void> {
   try {
     // Get user's friends from database
