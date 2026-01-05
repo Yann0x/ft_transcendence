@@ -1,28 +1,37 @@
 import {UserPublic}  from './shared/with_front/types'
+import { SocketStream } from '@fastify/websocket';
+import { Type } from '@sinclair/typebox';
 
-export class UserManager {
-    private static instance: UserManager
-    static #connected: UserPublic[];
+export class ConnexionManager {
+    private static instance: ConnexionManager
+    private connected: Map <UserPublic.id, SocketStream> = new Map();
 
     private constructor() {}
 
-    public static getInstance(): UserManager {
-        if (!UserManager.instance)
-            UserManager.instance = new UserManager();
-        return UserManager.instance
+    public static getInstance(): ConnexionManager {
+        if (!ConnexionManager.instance)
+            ConnexionManager.instance = new ConnexionManager();
+        return ConnexionManager.instance
     }
 
-    public addConnected(user: UserPublic)
+    public addConnected(user_id: UserPublic.id, socket: SocketStream)
     {
-       UserManager.#connected.push(user)
+       this.connected.set(user_id, socket)
     }
 
-    public removeConnected(user: UserPublic)
+    public removeConnected(user_id: UserPublic.id)
     {
-        UserManager.#connected = UserManager.#connected.filter(u => u.id !== user.id)
+        this.connected.delete(user_id)
     }
 
     public static getCount () {
-        return UserManager.#connected.length;
+        return this.connected.size;
+    }
+    
+    public sendToUser(user_id: UserPublic.id, event: any) {
+        const socket = this.connected.get(user_id);
+        if (socket && socket.socket.readyState === socket.socket.OPEN) {
+            socket.socket.send(JSON.stringify(event));
+        }
     }
 }
