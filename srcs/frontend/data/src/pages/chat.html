@@ -7,10 +7,10 @@
       
       <!-- Tabs -->
       <div class="flex border-b border-neutral-800">
-        <button class="flex-1 px-4 py-3 text-sm font-semibold text-center border-b-2 border-blue-500 text-white tab-btn active" data-tab="direct">
+        <button class="flex-1 px-4 py-3 text-sm font-semibold text-center border-b-2 border-blue-500 text-white tab-btn active" data-tab="direct" data-i18n="chat.direct">
           Direct
         </button>
-        <button class="flex-1 px-4 py-3 text-sm font-semibold text-center border-b-2 border-transparent text-neutral-400 hover:text-white tab-btn" data-tab="tournaments">
+        <button class="flex-1 px-4 py-3 text-sm font-semibold text-center border-b-2 border-transparent text-neutral-400 hover:text-white tab-btn" data-tab="tournaments" data-i18n="chat.tournaments">
           Tournois
         </button>
       </div>
@@ -19,7 +19,8 @@
       <div class="p-4 border-b border-neutral-800">
         <input 
           type="text" 
-          placeholder="Chercher..." 
+          placeholder="Chercher..."
+          data-i18n-placeholder="chat.search_placeholder" 
           class="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500"
         >
       </div>
@@ -28,7 +29,7 @@
       <div class="flex-1 overflow-y-auto space-y-2 p-2 tab-content" id="direct-tab">
         <!-- Empty State -->
         <div class="p-8 text-center text-neutral-500 text-sm">
-          <p>Aucune conversation directe</p>
+          <p data-i18n="chat.no_direct">Aucune conversation directe</p>
         </div>
       </div>
 
@@ -39,8 +40,8 @@
           <div class="flex items-center gap-2">
             <span class="text-xl">🏆</span>
             <div class="flex-1">
-              <p class="text-sm font-semibold">Notifications Tournois</p>
-              <p class="text-xs text-neutral-400">Alertes et prochains matchs</p>
+              <p class="text-sm font-semibold" data-i18n="chat.tournament_notifications">Notifications Tournois</p>
+              <p class="text-xs text-neutral-400" data-i18n="chat.tournament_notifications_desc">Alertes et prochains matchs</p>
             </div>
           </div>
         </div>
@@ -49,8 +50,8 @@
           <div class="flex items-center gap-2">
             <span class="text-xl">💬</span>
             <div class="flex-1">
-              <p class="text-sm font-semibold">Chat Général</p>
-              <p class="text-xs text-neutral-400">Discussions tournois</p>
+              <p class="text-sm font-semibold" data-i18n="chat.tournament_general">Chat Général</p>
+              <p class="text-xs text-neutral-400" data-i18n="chat.tournament_general_desc">Discussions tournois</p>
             </div>
           </div>
         </div>
@@ -65,18 +66,18 @@
         <div class="flex items-center gap-3">
           <span class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-sm font-bold">-</span>
           <div>
-            <p class="font-semibold">Sélectionnez une conversation</p>
-            <p class="text-xs text-neutral-400">-</p>
+            <p class="font-semibold" data-i18n="chat.select_conversation">Sélectionnez une conversation</p>
+            <p class="text-xs text-neutral-400" data-i18n="chat.select_subtitle">-</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button class="btn btn-outline text-sm" title="Voir le profil">
+          <button class="btn btn-outline text-sm" title="Voir le profil" data-i18n-title="chat.view_profile">
             <span>👤</span>
           </button>
-          <button class="btn btn-outline text-sm" title="Inviter à jouer">
+          <button class="btn btn-outline text-sm" title="Inviter à jouer" data-i18n-title="chat.invite_play">
             <span>🎮</span>
           </button>
-          <button class="btn btn-outline text-sm" title="Bloquer l'utilisateur">
+          <button class="btn btn-outline text-sm" title="Bloquer l'utilisateur" data-i18n-title="chat.block_user">
             <span>🚫</span>
           </button>
         </div>
@@ -86,8 +87,8 @@
       <div class="chat-messages flex-1 overflow-y-auto p-4 space-y-4">
         <!-- Welcome Message -->
         <div class="text-center text-neutral-500 text-sm py-8">
-          <p class="mb-2">💬 Sélectionnez une conversation pour commencer</p>
-          <p class="text-xs">Ou lancez une nouvelle discussion</p>
+          <p class="mb-2" data-i18n="chat.welcome">💬 Sélectionnez une conversation pour commencer</p>
+          <p class="text-xs" data-i18n="chat.welcome_subtitle">Ou lancez une nouvelle discussion</p>
         </div>
       </div>
 
@@ -96,11 +97,13 @@
         <div class="flex gap-2">
           <input 
             type="text" 
-            placeholder="Écrivez votre message..." 
+            placeholder="Écrivez votre message..."
+            data-i18n-placeholder="chat.message_placeholder" 
             class="flex-1 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500"
           >
           <button class="btn btn-secondary">
-            <span>📤</span>
+            <span aria-hidden="true">📤</span>
+            <span data-i18n="chat.send">Envoyer</span>
           </button>
         </div>
       </div>

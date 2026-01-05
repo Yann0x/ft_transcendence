@@ -157,3 +157,76 @@
   display: none !important;
 }
 
+/* ---- High Contrast Mode ---- */
+body.hc {
+  background-color: #000000;
+  color: #ffffff;
+}
+
+body.hc .bg-neutral-950,
+body.hc .bg-neutral-900,
+body.hc .bg-neutral-800,
+body.hc nav,
+body.hc footer,
+body.hc .card,
+body.hc .card-header,
+body.hc .card-footer,
+body.hc .stat-card {
+  background-color: #000000 !important;
+  border-color: #ffffff !important;
+}
+
+body.hc .text-neutral-500,
+body.hc .text-neutral-400,
+body.hc .text-neutral-300 {
+  color: #ffffff !important;
+}
+
+body.hc a {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+body.hc .btn,
+body.hc .btn-outline {
+  border: 2px solid #ffffff;
+}
+
+body.hc .btn-outline {
+  color: #ffffff;
+  background-color: transparent;
+}
+
+body.hc .btn-primary,
+body.hc .btn-secondary {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+body.hc .nav-link.active {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+body.hc input,
+body.hc select,
+body.hc textarea {
+  background-color: #000000;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+body.hc .badge {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+body.hc .conversation-item.active {
+  background-color: #000000;
+  border-left-color: #ffffff;
+}
+
+body.hc :focus-visible {
+  outline: 3px solid #ffffff;
+  outline-offset: 2px;
+}
