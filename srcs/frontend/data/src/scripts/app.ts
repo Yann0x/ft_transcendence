@@ -5,6 +5,8 @@
 import { Intro } from './intro'
 import { Router } from './router'
 import { AuthModal } from './auth-modal'
+import { I18n } from './i18n'
+import { Contrast } from './contrast'
 import { User } from '../shared/types'
 
 /**
@@ -22,12 +24,17 @@ const App = {
     
     this.appContainer = document.getElementById('app');
     
+    I18n.init();
+    Contrast.init();
+
     // Load auth modal
     await this.loadAuthModal();
+    I18n.refresh();
     
     // Load intro animation
     await this.loadIntro();
     Intro.init();
+    I18n.refresh();
     
     // Initialize auth modal
     setTimeout(() => {
@@ -80,24 +87,26 @@ const App = {
     
     // Re-attach auth buttons after page loads
     this.setupAuthButtons();
+    I18n.refresh();
+    Contrast.bindControls();
   },
 
   /**
    * Setup auth modal buttons
    */
   setupAuthButtons(): void {
-    const authButtons = document.querySelectorAll('.btn-outline, .btn-secondary');
-    authButtons.forEach(btn => {
-      const text = btn.textContent?.trim();
-      if (text === 'Connexion') {
-        btn.addEventListener('click', () => {
-          AuthModal.open();
-        });
-      } else if (text === 'Inscription') {
-        btn.addEventListener('click', () => {
-          AuthModal.openSignup();
-        });
-      }
+    const loginButtons = document.querySelectorAll('[data-auth="login"]');
+    loginButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        AuthModal.open();
+      });
+    });
+
+    const signupButtons = document.querySelectorAll('[data-auth="signup"]');
+    signupButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        AuthModal.openSignup();
+      });
     });
   }
 };
