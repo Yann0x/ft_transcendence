@@ -7,14 +7,13 @@ import { Router } from './router'
 import { AuthModal } from './auth-modal'
 import { I18n } from './i18n'
 import { Contrast } from './contrast'
-import { User } from '../shared/types'
 
 /**
  * Application principale
  */
 const App = {
   appContainer: null as HTMLElement | null,
-  me: null as User | null,
+  me: null as { id: string; username: string } | null,
 
   /**
    * Initialise l'application
