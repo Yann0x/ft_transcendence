@@ -217,7 +217,7 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
   }
 };
 
-let currentLang = DEFAULT_LANG;
+let currentLang: 'fr' | 'en' = DEFAULT_LANG;
 
 function resolveLanguage(lang: string): (typeof SUPPORTED_LANGS)[number] {
   if (SUPPORTED_LANGS.includes(lang as (typeof SUPPORTED_LANGS)[number])) {
