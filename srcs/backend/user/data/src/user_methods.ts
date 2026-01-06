@@ -188,6 +188,11 @@ export async function loginUserHandler(
   }
 }
 
+export async function logoutUserHandler(
+  req: FastifyRequest<{ Body: User }>,
+  reply: FastifyReply
+  ){
+  }
 
 export async function findUserHandler(
   req: FastifyRequest<{ Querystring: User }>,

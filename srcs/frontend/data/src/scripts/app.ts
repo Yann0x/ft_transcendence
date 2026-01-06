@@ -272,7 +272,7 @@ const App = {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ user_id: this.me.id })
+        body: JSON.stringify({ id: this.me.id })
       });
 
       if (!response.ok) {

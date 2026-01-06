@@ -43,6 +43,23 @@ const loginUserSchema = {
   }
 };
 
+const logoutUserSchema = {
+  schema: {
+    body: Type.Object(
+      Type.Pick(UserSchema, ['id']).properties,
+      { required: ['id'], additionalProperties: true }
+    ),
+    response: {
+      200: Type.Object({
+        token: Type.String(),
+        user: UserSchema
+      }),
+      400: ErrorResponseSchema,
+      500: ErrorResponseSchema
+    }
+  }
+};
+
 const findUserSchema = {
   schema: {
     querystring: Type.Pick(UserSchema, ['id', 'email', 'name']),
@@ -101,6 +118,7 @@ export function userRoutes(server: FastifyInstance) {
   // Public routes (no auth required)
   server.post('/user/public/register', registerUserSchema, handlers.registerUserHandler);
   server.post('/user/public/login', loginUserSchema, handlers.loginUserHandler);
+  server.post('/user/public/logout', logoutUserSchema, handlers.logoutUserHandler);
 
   // Private routes (auth required - handled by proxy)
   server.get('/user/find', findUserSchema, handlers.findUserHandler);
