@@ -22,21 +22,35 @@ export const Friends = {
   },
 
   setupSocialEventListeners(): void {
-    socialClient.on('user_online', (event: SocialEvent) => {
-      console.log('[FRIENDS] User came online:', event.data);
-      this.updateUserOnlineStatus(event.data.userId, 'online');
+    // Handle bulk online users (sent when we first connect)
+    socialClient.on('users_online', (event: SocialEvent) => {
+      console.log('[FRIENDS] Received online users list:', event.data);
+      if (event.data && event.data.userIds && Array.isArray(event.data.userIds)) {
+        event.data.userIds.forEach((userId: string) => {
+          this.updateUserOnlineStatus(userId, 'online');
+        });
+      }
     });
 
+    // Handle single user coming online
+    socialClient.on('user_online', (event: SocialEvent) => {
+      console.log('[FRIENDS] User came online:', event.data);
+      if (event.data && event.data.id) {
+        this.updateUserOnlineStatus(event.data.id, 'online');
+      }
+    });
+
+    // Handle user going offline
     socialClient.on('user_offline', (event: SocialEvent) => {
       console.log('[FRIENDS] User went offline:', event.data);
-      this.updateUserOnlineStatus(event.data.userId, 'offline');
+      if (event.data && event.data.id) {
+        this.updateUserOnlineStatus(event.data.id, 'offline');
+      }
     });
   },
 
   updateUserOnlineStatus(userId: string, status: 'online' | 'offline'): void {
-    const userUpdate : UserPublic | undefined = this.currentUser.friend.find((obj: UserPublic) => obj.id === userId)
-    if (userUpdate)
-      userUpdate.status = status
+    // Only update UI card - don't try to update currentUser.friend which may not exist
     this.updateUserOnlineStatusCard(userId, status);
   },
 

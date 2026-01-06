@@ -4,7 +4,6 @@ import swaggerUI from '@fastify/swagger-ui'
 import websocket from '@fastify/websocket'
 import { socialRoutes } from './routes'
 import handleThisError from './shared/utils/error'
-import { connectionManager } from './connection_manager'
 
 const server = fastify({
   logger: false,
@@ -26,7 +25,7 @@ server.server.on('upgrade', (req, socket) => {
     protocol: req.headers['sec-websocket-protocol'],
     origin: req.headers.origin,
   });
-  socket.on('close', () => console.log('[PROXY] upgrade socket closed', req.url));
+  socket.on('close', () => console.log('[SOCIAL] upgrade socket closed', req.url));
 });
 server.addHook('onRequest', async (request, reply) => {
   console.log(`[REQUEST] ${request.method} ${request.url}`);

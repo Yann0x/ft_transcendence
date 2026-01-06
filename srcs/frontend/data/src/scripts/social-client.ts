@@ -10,7 +10,7 @@ export class SocialClient {
 
   connect(token: string): void {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      console.log('[SOCIAL] Already connected');
+      console.log('[SOCIAL-CLIENT] Already connected');
       return;
     }
 
@@ -19,37 +19,37 @@ export class SocialClient {
 
     const wsUrl = `wss://${window.location.host}/social/wss`;
 
-    console.log('[SOCIAL] Connecting to', wsUrl);
+    console.log('[SOCIAL-CLIENT] Connecting to', wsUrl);
 
     try {
       // Pass the JWT token as a subprotocol - proxy will handle authentication
       this.ws = new WebSocket(wsUrl, [`Bearer.${token}`]);
 
       this.ws.addEventListener('open', () => {
-        console.log('[SOCIAL] WebSocket connected and authenticated by proxy');
+        console.log('[SOCIAL-CLIENT] WebSocket connected and authenticated by proxy');
       });
 
       this.ws.addEventListener('message', (event) => {
-        console.log('[SOCIAL] Message received:', event.data);
+        console.log('[SOCIAL-CLIENT] Message received:', event.data);
         try {
           const socialEvent = JSON.parse(event.data) as SocialEvent;
           this.handleEvent(socialEvent);
         } catch (error) {
-          console.error('[SOCIAL] Error parsing message:', error);
+          console.error('[SOCIAL-CLIENT] Error parsing message:', error);
         }
       });
 
       this.ws.addEventListener('close', () => {
-        console.log('[SOCIAL] WebSocket disconnected');
+        console.log('[SOCIAL-CLIENT] WebSocket disconnected');
         this.authenticated = false;
       });
 
       this.ws.addEventListener('error', (error) => {
-        console.error('[SOCIAL] WebSocket error:', error);
+        console.error('[SOCIAL-CLIENT] WebSocket error:', error);
       });
 
     } catch (error) {
-      console.error('[SOCIAL] Error creating WebSocket:', error);
+      console.error('[SOCIAL-CLIENT] Error creating WebSocket:', error);
     }
   }
 
@@ -63,7 +63,7 @@ export class SocialClient {
 
   private send(event: SocialEvent): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.error('[SOCIAL] Cannot send, WebSocket not connected');
+      console.error('[SOCIAL-CLIENT] Cannot send, WebSocket not connected');
       return;
     }
 
@@ -71,10 +71,10 @@ export class SocialClient {
   }
 
   private handleEvent(event: SocialEvent): void {
-    console.log('[SOCIAL] Received event:', event.type, event);
+    console.log('[SOCIAL-CLIENT] Received event:', event.type, event);
     if (event.type === 'connected') {
       this.authenticated = true;
-      console.log('[SOCIAL] Connected and authenticated successfully');
+      console.log('[SOCIAL-CLIENT] Connected and authenticated successfully');
     }
 
     const handlers = this.eventHandlers.get(event.type);
@@ -83,7 +83,7 @@ export class SocialClient {
         try {
           handler(event);
         } catch (error) {
-          console.error(`[SOCIAL] Error in handler for ${event.type}:`, error);
+          console.error(`[SOCIAL-CLIENT] Error in handler for ${event.type}:`, error);
         }
       });
     }
@@ -95,7 +95,7 @@ export class SocialClient {
         try {
           handler(event);
         } catch (error) {
-          console.error('[SOCIAL] Error in wildcard handler:', error);
+          console.error('[SOCIAL-CLIENT] Error in wildcard handler:', error);
         }
       });
     }

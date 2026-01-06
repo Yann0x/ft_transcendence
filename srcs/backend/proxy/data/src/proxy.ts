@@ -71,6 +71,18 @@ async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+// Reusable WebSocket client options for forwarding auth headers
+const wsClientOptionsWithAuth = {
+  rewriteRequestHeaders: (headers: any, request: any) => {
+    return {
+      ...headers,
+      'x-sender-id': request.headers['x-sender-id'],
+      'x-sender-name': request.headers['x-sender-name'],
+      'x-sender-email': request.headers['x-sender-email'],
+    };
+  }
+};
+
 // // Social service with WebSocket (outside auth for now - auth handled internally)
 // server.register(proxy, {
 //     upstream: 'http://social:3000',
@@ -115,6 +127,7 @@ server.register( async function contextPrivate(server) {
     rewritePrefix: '/social',
     http2: false,
     websocket: true,
+    wsClientOptions: wsClientOptionsWithAuth,
   })
 
 })
