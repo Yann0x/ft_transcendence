@@ -3,7 +3,7 @@ import customFetch from './shared/utils/fetch';
 
 export class UserManager {
   private static instance: UserManager;
-  private users: Map<string, User> = new Map(); // userId -> User
+  private users: Map<string, User> = new Map(); // <userId, User>
 
   private constructor() {}
 
@@ -19,12 +19,8 @@ export class UserManager {
     if (this.users.has(userId)) {
       return this.users.get(userId)!;
     }
-
     try {
-      // customFetch handles response.ok check and JSON parsing
-      // Database returns an array of users
       const users = await customFetch(`http://database:3000/database/user`, 'GET', { id: userId }) as User[];
-
       if (!users || users.length === 0) {
         console.error(`[UserManager] User ${userId} not found in database`);
         return null;
@@ -46,7 +42,7 @@ export class UserManager {
     }
   }
 
-  // Add friend relationship (bidirectional)
+  // Add friend relationship 
   async addFriend(userId: string, friendId: string): Promise<boolean> {
     const user = await this.getUser(userId);
     const friend = await this.getUser(friendId);
@@ -67,7 +63,7 @@ export class UserManager {
     return true;
   }
 
-  // Remove friend relationship (bidirectional)
+  // Remove friend relationship 
   async removeFriend(userId: string, friendId: string): Promise<boolean> {
     const user = await this.getUser(userId);
     const friend = await this.getUser(friendId);

@@ -1,5 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { User } from "./shared/with_front/types";
+import { User, UserPublic } from "./shared/with_front/types";
 import customFetch from "./shared/utils/fetch";
 import { UserManager } from "./user_manager.js";
 
@@ -192,7 +192,8 @@ export async function loginUserHandler(
 export async function logoutUserHandler(
   req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
-  ){
+  ){ 
+    // NO LOGOUT LOGIC NEED YET
   }
 
 export async function findUserHandler(
@@ -223,17 +224,13 @@ export async function findUserHandler(
         // Return full user data with friends, stats, etc.
         await fillUser(user);
         console.log(`[USER] Returning full user data for ${user.id}`, user);
-        return user;
+        return user as User;
       } else {
-        // Return only public data
-        return {
-          id: user.id,
-          name: user.name,
-          avatar: user.avatar,
-          status: user.status
-        };
+        console.log(`[USER] Returning public user data for ${user.id}`, user);
+        return user as UserPublic;
       }
-    }));
+   }
+));
     return result;
 
   } catch (error: any) {
