@@ -5,5 +5,6 @@ export function socialRoutes(server: FastifyInstance) {
   // WebSocket endpoint for real-time social features
   server.get('/social/wss', { websocket: true }, handlers.socialWss);
 
-  // REST endpoints for friend management
+  // REST endpoint for user update notifications
+  server.post('/social/notify/user_update', handlers.notifyUserUpdate);
 }

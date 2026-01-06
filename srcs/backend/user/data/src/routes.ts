@@ -114,6 +114,51 @@ const deleteUserSchema = {
   }
 }
 
+const addFriendSchema = {
+  schema: {
+    description: 'Add a friend',
+    body: Type.Object({
+      friendId: Type.String()
+    }),
+    response: {
+      200: Type.Object({
+        success: Type.Boolean(),
+        message: Type.String()
+      }),
+      400: ErrorResponseSchema,
+      500: ErrorResponseSchema
+    }
+  }
+};
+
+const removeFriendSchema = {
+  schema: {
+    description: 'Remove a friend',
+    body: Type.Object({
+      friendId: Type.String()
+    }),
+    response: {
+      200: Type.Object({
+        success: Type.Boolean(),
+        message: Type.String()
+      }),
+      400: ErrorResponseSchema,
+      500: ErrorResponseSchema
+    }
+  }
+};
+
+const getFriendsSchema = {
+  schema: {
+    description: 'Get user friends list',
+    response: {
+      200: Type.Array(UserPublicSchema),
+      400: ErrorResponseSchema,
+      500: ErrorResponseSchema
+    }
+  }
+};
+
 export function userRoutes(server: FastifyInstance) {
   // Public routes (no auth required)
   server.post('/user/public/register', registerUserSchema, handlers.registerUserHandler);
@@ -124,4 +169,9 @@ export function userRoutes(server: FastifyInstance) {
   server.get('/user/find', findUserSchema, handlers.findUserHandler);
   server.put('/user/update', updateUserSchema, handlers.updateUserHandler);
   server.delete('/user/delete', deleteUserSchema, handlers.deleteUserHandler);
+
+  // Friend management endpoints (authenticated)
+  server.post('/user/addFriend', addFriendSchema, handlers.addFriendHandler);
+  server.delete('/user/rmFriend', removeFriendSchema, handlers.removeFriendHandler);
+  server.get('/user/getFriends', getFriendsSchema, handlers.getFriendsHandler);
 }

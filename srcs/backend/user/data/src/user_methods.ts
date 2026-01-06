@@ -1,8 +1,11 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { User } from "./shared/with_front/types";
 import customFetch from "./shared/utils/fetch";
+import { UserManager } from "./user_manager.js";
 
-function fillUser(user : User): User {
+const userManager = UserManager.getInstance();
+
+async function fillUser(user : User): Promise<User> {
       try {
         // TODO: Implement endpoint to get user's channels
         // user.chats = await customFetch('http://chat:3000/chat/user-channels', 'GET', { user_id: user.id });
@@ -50,11 +53,9 @@ function fillUser(user : User): User {
         };
       }
 
-      // Fetch user's friends
+      // Fetch user's friends from UserManager
       try {
-        // TODO: Implement endpoint to get user's friends
-        // user.friends = await customFetch('http://user:3000/user/friends', 'GET', { user_id: user.id });
-        user.friends = [];
+        user.friends = await userManager.getFriends(user.id!);
       } catch (error) {
         user.friends = [];
       }
@@ -172,7 +173,7 @@ export async function loginUserHandler(
       }
     );
 
-    fillUser(user);
+    await fillUser(user);
 
     return { token, user };
   } catch (error: any) {
@@ -212,12 +213,19 @@ export async function findUserHandler(
       return [];
     }
 
-    // Map users: if requesting user, return full user, else public data
+    // Map users: if requesting user searches for themselves, return full user, else public data
     const result = await Promise.all(users.map(async (user) => {
-      if (requestingUserId && requestingUserId === user.id) {
-        fillUser(user);
+      // Check if this is the requesting user searching for themselves
+      const isOwnData = requestingUserId && user.id && requestingUserId === user.id;
+      console.log(`[USER] Processing user ${user.id}, requestingUserId: ${requestingUserId}, isOwnData: ${isOwnData}`);
+
+      if (isOwnData) {
+        // Return full user data with friends, stats, etc.
+        await fillUser(user);
+        console.log(`[USER] Returning full user data for ${user.id}`, user);
         return user;
       } else {
+        // Return only public data
         return {
           id: user.id,
           name: user.name,
@@ -292,5 +300,106 @@ export async function deleteUserHandler(
       statusCode: statusCode,
       service: error.service || 'user'
     });
+  }
+}
+
+export async function addFriendHandler(
+  req: FastifyRequest<{ Body: { friendId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const userId = req.headers['x-sender-id'] as string;
+    const { friendId } = req.body;
+
+    if (!userId) {
+      return reply.status(401).send({ success: false, message: 'Unauthorized' });
+    }
+
+    if (userId === friendId) {
+      return reply.status(400).send({ success: false, message: 'Cannot add yourself as friend' });
+    }
+
+    const success = await userManager.addFriend(userId, friendId);
+
+    if (!success) {
+      return reply.status(400).send({ success: false, message: 'Failed to add friend' });
+    }
+
+    // Notify both users that they need to refresh their own data
+    try {
+      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
+        notifyUserIds: [userId, friendId],
+        updatedUserId: userId
+      });
+      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
+        notifyUserIds: [userId, friendId],
+        updatedUserId: friendId
+      });
+    } catch (error) {
+      console.error('[USER] Failed to notify social service:', error);
+    }
+
+    return reply.status(200).send({ success: true, message: 'Friend added' });
+  } catch (error: any) {
+    console.error('[USER] addFriend error:', error);
+    return reply.status(500).send({ success: false, message: 'Internal server error' });
+  }
+}
+
+export async function removeFriendHandler(
+  req: FastifyRequest<{ Body: { friendId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const userId = req.headers['x-sender-id'] as string;
+    const { friendId } = req.body;
+
+    if (!userId) {
+      return reply.status(401).send({ success: false, message: 'Unauthorized' });
+    }
+
+    const success = await userManager.removeFriend(userId, friendId);
+
+    if (!success) {
+      return reply.status(400).send({ success: false, message: 'Failed to remove friend' });
+    }
+
+    // Notify both users that they need to refresh their own data
+    try {
+      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
+        notifyUserIds: [userId, friendId],
+        updatedUserId: userId
+      });
+      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
+        notifyUserIds: [userId, friendId],
+        updatedUserId: friendId
+      });
+    } catch (error) {
+      console.error('[USER] Failed to notify social service:', error);
+    }
+
+    return reply.status(200).send({ success: true, message: 'Friend removed' });
+  } catch (error: any) {
+    console.error('[USER] removeFriend error:', error);
+    return reply.status(500).send({ success: false, message: 'Internal server error' });
+  }
+}
+
+export async function getFriendsHandler(
+  req: FastifyRequest,
+  reply: FastifyReply
+) {
+  try {
+    const userId = req.headers['x-sender-id'] as string;
+
+    if (!userId) {
+      return reply.status(401).send([]);
+    }
+
+    const friends = await userManager.getFriends(userId);
+    return reply.status(200).send(friends);
+  } catch (error: any) {
+    console.error('[USER] getFriends error:', error);
+    return reply.status(500).send([]);
   }
 }

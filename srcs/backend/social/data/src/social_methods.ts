@@ -87,3 +87,33 @@ export async function socialWss(socket: WebSocket, req: FastifyRequest) {
     if (user.id) manager.removeConnected(user.id);
   });
 }
+
+export async function notifyUserUpdate(request: FastifyRequest, reply: FastifyReply) {
+  const { notifyUserIds, updatedUserId } = request.body as {
+    notifyUserIds: string | string[];
+    updatedUserId: string
+  };
+
+  if (!updatedUserId) {
+    return reply.status(400).send({ success: false, message: 'updatedUserId required' });
+  }
+
+  // Convert single ID to array for uniform handling
+  const userIdsArray = Array.isArray(notifyUserIds) ? notifyUserIds : [notifyUserIds];
+
+  if (!userIdsArray || userIdsArray.length === 0) {
+    return reply.status(400).send({ success: false, message: 'notifyUserIds required' });
+  }
+
+  // Send user_update event to each user in the notify list
+  userIdsArray.forEach(userId => {
+    const event: SocialEvent = {
+      type: 'user_update',
+      data: { userId: updatedUserId },
+      timestamp: new Date().toISOString()
+    };
+    manager.sendToUser(userId, event);
+  });
+
+  return reply.status(200).send({ success: true });
+}

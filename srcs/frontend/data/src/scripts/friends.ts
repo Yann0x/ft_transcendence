@@ -49,6 +49,16 @@ export const Friends = {
     });
   },
 
+  /**
+   * Callback invoked by App when current user data is refreshed
+   * This includes friend list updates, avatar changes, etc.
+   */
+  onUserDataRefreshed(updatedUser: User): void {
+    console.log('[FRIENDS] User data refreshed, updating display');
+    this.currentUser = updatedUser;
+    this.loadUsers();
+  },
+
   updateUserOnlineStatus(userId: string, status: 'online' | 'offline'): void {
     // Only update UI card - don't try to update currentUser.friend which may not exist
     this.updateUserOnlineStatusCard(userId, status);
@@ -180,6 +190,39 @@ export const Friends = {
       });
     });
   },
+
+  async addFriend(targetId: string): Promise<void> {
+    try {
+      const token = sessionStorage.getItem('authToken');
+      if (!token) {
+        alert('Not authenticated');
+        return;
+      }
+
+      const response = await fetch('/user/addFriend', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ friendId: targetId })
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        alert(result.message || 'Failed to add friend');
+        return;
+      }
+
+      const result = await response.json();
+      console.log('[FRIENDS] Friend added successfully:', result);
+      // The user_update WebSocket event will trigger refreshUserData
+    } catch (error) {
+      console.error('[FRIENDS] Error adding friend:', error);
+      alert('Error adding friend');
+    }
+  },
+
 async loadUsers(): Promise<void> {
     const usersList = document.getElementById('users-list');
     const usersCount = document.getElementById('users-count');

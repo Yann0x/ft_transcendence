@@ -33,6 +33,8 @@ const App = {
         // Reconnect to social WebSocket if user was already logged in
         console.log('[APP] User already logged in, connecting to social WebSocket...');
         socialClient.connect(savedToken);
+        // Setup listener for user_update events
+        this.setupUserUpdateListener();
       } catch (e) {
         console.error('Failed to parse saved user:', e);
         sessionStorage.removeItem('currentUser');
@@ -247,8 +249,73 @@ const App = {
     if (token) {
       console.log('[APP] Connecting to social WebSocket...');
       socialClient.connect(token);
+
+      // Setup listener for user_update events to keep App.me in sync
+      this.setupUserUpdateListener();
     } else {
       console.error('[APP] No auth token found, cannot connect to social WebSocket');
+    }
+  },
+
+  /**
+   * Setup listener for user data updates from social service
+   */
+  setupUserUpdateListener(): void {
+    socialClient.on('user_update', async (event: any) => {
+      console.log('[APP] User update event:', event.data);
+
+      if (!event.data || !event.data.userId) return;
+
+      const updatedUserId = event.data.userId;
+
+      // If the update is for the current user, refresh their data
+      if (this.me && updatedUserId === this.me.id) {
+        await this.refreshCurrentUser();
+      }
+    });
+  },
+
+  /**
+   * Refresh current user data from backend
+   */
+  async refreshCurrentUser(): Promise<void> {
+    try {
+      const token = sessionStorage.getItem('authToken');
+      if (!token || !this.me?.id) return;
+
+      console.log('[APP] Refreshing current user data...');
+
+      const response = await fetch(`/user/find?id=${this.me.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error('[APP] Failed to refresh user data');
+        return;
+      }
+
+      const users = await response.json();
+      if (users && users.length > 0) {
+        const updatedUser = users[0];
+        this.me = updatedUser;
+
+        // Update sessionStorage
+        sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+        // Update navbar UI
+        this.updateNavbar();
+
+        // Notify Friends page if it's active
+        if (Friends && typeof Friends.onUserDataRefreshed === 'function') {
+          Friends.onUserDataRefreshed(updatedUser);
+        }
+
+        console.log('[APP] Current user data refreshed successfully');
+      }
+    } catch (error) {
+      console.error('[APP] Error refreshing user data:', error);
     }
   },
 
