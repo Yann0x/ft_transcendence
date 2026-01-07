@@ -14,8 +14,8 @@ export async function socialWss(socket: WebSocket, req: FastifyRequest) {
   const user = {
     id: req.headers['x-sender-id'] as string | undefined,
     name: req.headers['x-sender-name'] as string | undefined,
-    email: req.headers['x-sender-email'] as string | undefined,
-    status:  'online'
+    avatar: req.headers['x-sender-avatar'] as string | undefined,
+    status: 'online' as const
   }
   console.log(`[SOCIAL] New WebSocket connection for user ${user.id} (${user.name})`);
 
@@ -25,26 +25,26 @@ export async function socialWss(socket: WebSocket, req: FastifyRequest) {
     return;
   }
 
-  // Get list of already connected user IDs BEFORE adding this user
-  const alreadyConnectedUserIds = manager.getAllConnectedUserIds();
+  // Get list of already connected users BEFORE adding this user
+  const alreadyConnectedUsers = manager.getAllConnectedUsers();
 
   // Add this user to connected users
-  manager.addConnected(user.id, socket)
+  manager.addConnected(user, socket)
 
-  // Send list of already online users to the new user (just IDs)
-  if (alreadyConnectedUserIds.length > 0) {
-    console.log(`[SOCIAL] Sending ${alreadyConnectedUserIds.length} already online user IDs to ${user.id}`);
+  // Send list of already online users to the new user (full UserPublic objects)
+  if (alreadyConnectedUsers.length > 0) {
+    console.log(`[SOCIAL] Sending ${alreadyConnectedUsers.length} already online users to ${user.id}`);
     socket.send(JSON.stringify({
       type: 'users_online',
-      data: { userIds: alreadyConnectedUserIds },
+      data: { users: alreadyConnectedUsers },
       timestamp: new Date().toISOString()
     } as SocialEvent));
   }
 
-  // Notify all OTHER users that this user came online
+  // Notify all OTHER users that this user came online (send full user object)
   const newConnexionEvent: SocialEvent = {
     type: 'user_online',
-    data: { id: user.id },
+    data: { user: user },
     timestamp: new Date().toISOString()
   }
   manager.sendToAll(newConnexionEvent);

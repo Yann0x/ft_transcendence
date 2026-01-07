@@ -1,9 +1,14 @@
 import {UserPublic, SocialEvent}  from './shared/with_front/types'
 import { WebSocket } from '@fastify/websocket';
 
+interface ConnectedUser {
+    user: UserPublic;
+    socket: WebSocket;
+}
+
 export class ConnexionManager {
     private static instance: ConnexionManager
-    private connected: Map <UserPublic.id, WebSocket> = new Map();
+    private connected: Map<UserPublic.id, ConnectedUser> = new Map();
 
     private constructor() {}
 
@@ -13,10 +18,10 @@ export class ConnexionManager {
         return ConnexionManager.instance
     }
 
-    public addConnected(user_id: UserPublic.id, socket: WebSocket)
+    public addConnected(user: UserPublic, socket: WebSocket)
     {
-       console.log(`[SOCIAL] Add ${user_id} to connected users`)
-       this.connected.set(user_id, socket)
+       console.log(`[SOCIAL] Add ${user.id} to connected users`)
+       this.connected.set(user.id!, { user, socket })
     }
 
     public removeConnected(user_id: UserPublic.id)
@@ -33,18 +38,22 @@ export class ConnexionManager {
         return Array.from(this.connected.keys());
     }
 
+    public getAllConnectedUsers(): UserPublic[] {
+        return Array.from(this.connected.values()).map(c => c.user);
+    }
+
     public sendToUser(user_id: UserPublic.id, event: any) {
        console.log(`[SOCIAL] Send to ${user_id} : ${event}`)
-        const socket = this.connected.get(user_id);
-        if (socket && socket.readyState === socket.OPEN) {
-            socket.send(JSON.stringify(event));
+        const connectedUser = this.connected.get(user_id);
+        if (connectedUser && connectedUser.socket.readyState === connectedUser.socket.OPEN) {
+            connectedUser.socket.send(JSON.stringify(event));
         }
     }
     public sendToAll(event: SocialEvent) {
        console.log(`[SOCIAL] Send to all : ${event}`)
-        this.connected.forEach((socket) => {
-        if (socket.readyState === socket.OPEN) {
-            socket.send(JSON.stringify(event));
+        this.connected.forEach((connectedUser) => {
+        if (connectedUser.socket.readyState === connectedUser.socket.OPEN) {
+            connectedUser.socket.send(JSON.stringify(event));
         }
      })
     }
