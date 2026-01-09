@@ -46,6 +46,7 @@ export function drawControls(viewportHeight: number): void {
   const controls = [
     'W/S or Arrows - Move paddle',
     'SPACE - Start/Restart',
+    'A - Toggle AI/2P',
     'F - Toggle FPS',
     'H - Toggle Hitboxes'
   ];

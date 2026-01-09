@@ -1,7 +1,3 @@
-// CONFIG - Constantes et types des entites (shared avec frontend)
-
-// --- TYPES ---
-
 export interface Ball {
   x: number;
   y: number;
@@ -17,30 +13,26 @@ export interface Paddle {
   height: number;
 }
 
-// --- CONSTANTES ---
-
-// Ball
 export const BALL_RADIUS = 8;
 export const BALL_SPEED = 660;
 
-// Paddle
 export const PADDLE_WIDTH = 10;
 export const PADDLE_HEIGHT = 80;
 export const PADDLE_MARGIN = 20;
 export const PADDLE_SPEED = 430;
 
-// Clock
-export const TICK_RATE = 60; // ticks par seconde
-export const TICK_INTERVAL = 1000 / TICK_RATE; // ~16.666ms
+export const TICK_RATE = 60;
+export const TICK_INTERVAL = 1000 / TICK_RATE;
 
-// Game
 export const WIN_SCORE = 11;
 
-// Viewport (taille fixe cote serveur)
 export const VIEWPORT_WIDTH = 800;
 export const VIEWPORT_HEIGHT = 600;
 
-// AI
-export const AI_PERCEPTION_INTERVAL = 1000; // ms entre chaque perception
-export const AI_ERROR_RANGE = 50; // erreur aleatoire
-export const AI_DEADZONE = 5;
+export type AIDifficulty = 'easy' | 'normal' | 'hard';
+
+export const AI_SETTINGS: Record<AIDifficulty, { perceptionInterval: number; errorRange: number; deadzone: number }> = {
+  easy: { perceptionInterval: 1500, errorRange: 120, deadzone: 30 },
+  normal: { perceptionInterval: 800, errorRange: 60, deadzone: 15 },
+  hard: { perceptionInterval: 200, errorRange: 20, deadzone: 5 }
+};

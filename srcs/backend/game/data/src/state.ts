@@ -1,13 +1,9 @@
-// STATE - Etat d'une partie
-
 import {
   type Ball, type Paddle,
   BALL_RADIUS, BALL_SPEED,
   PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_MARGIN,
   VIEWPORT_WIDTH, VIEWPORT_HEIGHT
 } from './config.js';
-
-// --- TYPES ---
 
 export type GamePhase = 'waiting' | 'ready' | 'playing' | 'paused' | 'ended';
 
@@ -33,10 +29,9 @@ export interface GameState {
   paddles: [Paddle, Paddle];
   score: Score;
   lastScorer: 'left' | 'right' | null;
-  inputs: [PlayerInput, PlayerInput]; // inputs des 2 joueurs
+  inputs: [PlayerInput, PlayerInput];
+  ballFrozenUntil: number;
 }
-
-// --- HELPERS ---
 
 function velocityFromAngle(speed: number, angle: number): { vx: number; vy: number } {
   return {
@@ -46,13 +41,11 @@ function velocityFromAngle(speed: number, angle: number): { vx: number; vy: numb
 }
 
 function randomStartAngle(): number {
-  const maxAngle = Math.PI / 6; // 30 degres max
+  const maxAngle = Math.PI / 6;
   const angle = (Math.random() * 2 - 1) * maxAngle;
   const goRight = Math.random() > 0.5;
   return goRight ? angle : Math.PI + angle;
 }
-
-// --- STATE FACTORY ---
 
 export function createGameState(): GameState {
   const w = VIEWPORT_WIDTH;
@@ -88,9 +81,12 @@ export function createGameState(): GameState {
     inputs: [
       { up: false, down: false },
       { up: false, down: false }
-    ]
+    ],
+    ballFrozenUntil: 0
   };
 }
+
+const BALL_RESPAWN_DELAY = 1000;
 
 export function resetBall(state: GameState, serveToRight?: boolean): void {
   const w = state.viewport.width;
@@ -105,4 +101,5 @@ export function resetBall(state: GameState, serveToRight?: boolean): void {
   state.ball.y = h / 2;
   state.ball.vx = vx;
   state.ball.vy = vy;
+  state.ballFrozenUntil = Date.now() + BALL_RESPAWN_DELAY;
 }
