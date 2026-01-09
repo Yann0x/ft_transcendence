@@ -38,7 +38,9 @@ front:
 
 
 # <--- DEV TOOLS--->
-nodeclean: down 
+dbclean: down
+	rm srcs/backend/database/data/database.db
+nodeclean: down
 	find -type d -name data -exec sh -c 'cd "{}" && npm run fclean' \;
 
 v vi vim :
