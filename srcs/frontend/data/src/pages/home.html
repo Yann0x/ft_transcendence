@@ -11,10 +11,13 @@
           <span class="text-2xl">🎮</span>
           <h2 class="text-xl font-bold" data-i18n="home.game_title">Pong Arena</h2>
         </div>
-        <div class="flex items-center gap-3">
-          <span class="badge badge-success" data-i18n="home.status_online">En ligne</span>
+        <div id="online-status" class="flex items-center gap-3 hidden">
+          <span class="badge badge-success">En ligne</span>
           <span class="text-neutral-400">|</span>
-          <span class="text-neutral-400" data-i18n="home.players_online">42 joueurs connectés</span>
+          <span id="pvp-queue-count" class="text-neutral-400">0 en attente</span>
+        </div>
+        <div id="offline-status" class="flex items-center gap-3">
+          <span class="badge badge-neutral">Hors-ligne</span>
         </div>
       </div>
 
@@ -24,10 +27,22 @@
       <!-- Game Footer -->
       <div class="card-footer flex items-center justify-between">
         <div class="flex items-center gap-6 text-sm text-neutral-400">
-          <span data-i18n="home.controls">⌨️ W/S ou ↑/↓ - Déplacer</span>
-          <span data-i18n="home.first_to">🎯 Premier à 11 points</span>
+          <span>W/S or ↑/↓ - Move</span>
+          <span>SPACE - Start</span>
+          <span>ESC - Pause</span>
         </div>
-        <button class="btn btn-outline text-sm" data-i18n="home.settings">⚙️ Paramètres</button>
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <button id="btn-solo" class="btn btn-outline text-sm">Solo</button>
+            <div id="solo-difficulty-menu" class="absolute bottom-full left-0 mb-1 hidden bg-neutral-800 rounded-lg shadow-lg border border-neutral-700 overflow-hidden z-10">
+              <button id="btn-diff-beginner" class="block w-full px-4 py-2 text-sm text-left hover:bg-neutral-700 text-emerald-400">Easy</button>
+              <button id="btn-diff-normal" class="block w-full px-4 py-2 text-sm text-left hover:bg-neutral-700 text-amber-400">Normal</button>
+              <button id="btn-diff-hard" class="block w-full px-4 py-2 text-sm text-left hover:bg-neutral-700 text-red-400">Hard</button>
+            </div>
+          </div>
+          <button id="btn-local" class="btn btn-outline text-sm">PvP Local</button>
+          <button id="btn-pvp" class="btn btn-outline text-sm">PvP Online</button>
+        </div>
       </div>
     </div>
 

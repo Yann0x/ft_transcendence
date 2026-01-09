@@ -24,44 +24,64 @@ const state: NetworkState = {
   onDisconnected: null
 };
 
+export type AIDifficulty = 'easy' | 'normal' | 'hard';
+
 /*
  * Connecte au serveur de jeu
+ * @param mode - 'solo' pour jouer contre l'IA, 'local' pour PvP local, 'pvp' pour le matchmaking
+ * @param difficulty - difficulte de l'IA (beginner, normal, hard)
  */
-export function connect(): Promise<void> {
+export function connect(mode: 'solo' | 'local' | 'pvp' = 'solo', difficulty: AIDifficulty = 'hard'): Promise<void> {
   return new Promise((resolve, reject) => {
+    // Deconnecter d'abord si deja connecte
     if (state.socket) {
-      resolve();
-      return;
+      // Detacher les handlers AVANT de fermer pour eviter les interferences
+      state.socket.onopen = null;
+      state.socket.onclose = null;
+      state.socket.onerror = null;
+      state.socket.onmessage = null;
+      state.socket.close();
     }
 
+    // Reset state
+    state.socket = null;
+    state.connected = false;
+    state.playerId = null;
+    state.roomId = null;
+    state.side = null;
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${protocol}//${window.location.host}/api/game/ws`;
+    const url = `${protocol}//${window.location.host}/api/game/ws?mode=${mode}&difficulty=${difficulty}`;
 
-    console.log('[NETWORK] Connecting to', url);
-    state.socket = new WebSocket(url);
+    console.log('[NETWORK] Connecting to', url, 'mode:', mode);
+    const newSocket = new WebSocket(url);
 
-    state.socket.onopen = () => {
+    newSocket.onopen = () => {
       console.log('[NETWORK] Connected');
+      state.socket = newSocket;
       state.connected = true;
       resolve();
     };
 
-    state.socket.onclose = () => {
-      console.log('[NETWORK] Disconnected');
-      state.connected = false;
-      state.playerId = null;
-      state.roomId = null;
-      state.side = null;
-      state.socket = null;
-      if (state.onDisconnected) state.onDisconnected();
+    newSocket.onclose = () => {
+      // Seulement reagir si c'est le socket actif
+      if (state.socket === newSocket) {
+        console.log('[NETWORK] Disconnected');
+        state.connected = false;
+        state.playerId = null;
+        state.roomId = null;
+        state.side = null;
+        state.socket = null;
+        if (state.onDisconnected) state.onDisconnected();
+      }
     };
 
-    state.socket.onerror = (err) => {
+    newSocket.onerror = (err) => {
       console.error('[NETWORK] Error:', err);
       reject(err);
     };
 
-    state.socket.onmessage = (event) => {
+    newSocket.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
         handleMessage(message);
@@ -137,12 +157,51 @@ export function sendInput(up: boolean, down: boolean): void {
 }
 
 /*
+ * Envoie les inputs des deux joueurs (mode local)
+ */
+export function sendInputBoth(p1: { up: boolean; down: boolean }, p2: { up: boolean; down: boolean }): void {
+  if (!state.socket || !state.connected) return;
+
+  state.socket.send(JSON.stringify({
+    type: 'inputBoth',
+    data: { p1, p2 }
+  }));
+}
+
+/*
  * Demande au serveur de demarrer la partie
  */
 export function sendStart(): void {
   if (!state.socket || !state.connected) return;
 
   state.socket.send(JSON.stringify({ type: 'start' }));
+}
+
+/*
+ * Toggle AI on/off
+ */
+export function sendToggleAI(): void {
+  if (!state.socket || !state.connected) return;
+
+  state.socket.send(JSON.stringify({ type: 'toggleAI' }));
+}
+
+/*
+ * Met la partie en pause
+ */
+export function sendPause(): void {
+  if (!state.socket || !state.connected) return;
+
+  state.socket.send(JSON.stringify({ type: 'pause' }));
+}
+
+/*
+ * Reprend la partie
+ */
+export function sendResume(): void {
+  if (!state.socket || !state.connected) return;
+
+  state.socket.send(JSON.stringify({ type: 'resume' }));
 }
 
 /*
@@ -189,7 +248,11 @@ export const Network = {
   connect,
   disconnect,
   sendInput,
+  sendInputBoth,
   sendStart,
+  sendToggleAI,
+  sendPause,
+  sendResume,
   onStateUpdate,
   onConnected,
   onDisconnected,
