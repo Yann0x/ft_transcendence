@@ -8,40 +8,22 @@ import { AuthModal } from './auth-modal'
 import { Friends } from './friends'
 import { socialClient } from './social-client'
 import { User } from '../shared/types'
+import { run } from 'node:test'
 
 /**
  * Application principale
  */
 const App = {
+
   appContainer: null as HTMLElement | null,
   me: null as User | null,
 
-  /**
-   * Initialise l'application
-   */
   async init(): Promise<void> {
     console.log('🏓 ft_transcendance - App initialized');
 
     this.appContainer = document.getElementById('app');
 
-    // Check for existing user in sessionStorage
-    const savedUser = sessionStorage.getItem('currentUser');
-    const savedToken = sessionStorage.getItem('authToken');
-    if (savedUser && savedToken) {
-      try {
-        this.me = JSON.parse(savedUser);
-        // Setup social event listeners BEFORE connecting to ensure we catch all events
-        console.log('[APP] Setting up social event listeners...');
-        Friends.setupSocialEventListeners();
-        // Reconnect to social WebSocket if user was already logged in
-        console.log('[APP] User already logged in, connecting to social WebSocket...');
-        socialClient.connect(savedToken);
-      } catch (e) {
-        console.error('Failed to parse saved user:', e);
-        sessionStorage.removeItem('currentUser');
-        sessionStorage.removeItem('authToken');
-      }
-    }
+    this.wasIAlreadyLogged();
 
     // Load auth modal
     await this.loadAuthModal();
@@ -50,45 +32,41 @@ const App = {
     await this.loadIntro();
     Intro.init();
 
-    // Initialize auth modal
-    setTimeout(() => {
-      AuthModal.init();
-      // Set callback for login success
-      AuthModal.onLoginSuccess = (user: User) => this.onLogin(user);
-      this.setupAuthButtons();
-    }, 100);
+    AuthModal.init();
+    AuthModal.onLoginSuccess = (user: User) => this.onLogin(user);
+    this.setupAuthButtons();
 
-    // Initialize router
     Router.init(this);
   },
 
-  /**
-   * Charge la modal d'authentification
-   */
+  wasIAlreadyLogged(){
+    const token = sessionStorage.getItem('authToken');
+    const currentUser = sessionStorage.getItem('currentUser')
+    if (token && currentUser)
+    {
+      this.me = currentUser as User;
+    }
+    else 
+    {
+      this.me = null;
+    }
+  },
+
   async loadAuthModal(): Promise<void> {
     const authModal = await fetch('/components/auth-modal.html').then(r => r.text());
     document.body.insertAdjacentHTML('beforeend', authModal);
   },
 
-  /**
-   * Charge l'animation d'intro
-   */
   async loadIntro(): Promise<void> {
     const intro = await fetch('/pages/intro.html').then(r => r.text());
     document.body.insertAdjacentHTML('afterbegin', intro);
   },
 
-  /**
-   * Charge un composant HTML
-   */
   async loadComponent(name: string): Promise<string> {
     const response = await fetch(`/components/${name}.html`);
     return response.text();
   },
 
-  /**
-   * Charge une page
-   */
   async loadPage(name: string): Promise<void> {
     if (!this.appContainer) return;
 
@@ -101,27 +79,18 @@ const App = {
     this.appContainer.innerHTML = navbar + page + footer;
     this.appContainer.classList.add('main-content', 'flex', 'flex-col', 'flex-1');
 
-    // Re-attach auth buttons after page loads
     this.setupAuthButtons();
-
-    // Update navbar to reflect authentication state
     this.updateNavbar();
 
-    // Initialize page-specific scripts
-    this.initPageScripts(name);
+    this.runDedicatedScript(name);
   },
 
-  /**
-   * Initialize page-specific scripts
-   */
-  initPageScripts(pageName: string): void {
-    switch (pageName) {
-      case 'friends':
-        Friends.init();
-        break;
-      // Add other page initializations here as needed
-      default:
-        break;
+  runDedicatedScript(page: string) {
+    console.log(`Run script for ${page}`)
+    switch (page) {
+      case "friends":
+        Friends.display();
+        break
     }
   },
 
@@ -244,18 +213,8 @@ const App = {
     this.me = user;
     sessionStorage.setItem('currentUser', JSON.stringify(user));
     this.updateNavbar();
+    Friends.init();
 
-    // Connect to social service WebSocket
-    const token = sessionStorage.getItem('authToken');
-    if (token) {
-      // Setup social event listeners BEFORE connecting to ensure we catch all events
-      console.log('[APP] Setting up social event listeners...');
-      Friends.setupSocialEventListeners();
-      console.log('[APP] Connecting to social WebSocket...');
-      socialClient.connect(token);
-    } else {
-      console.error('[APP] No auth token found, cannot connect to social WebSocket');
-    }
   },
 
   /**
@@ -300,7 +259,6 @@ const App = {
 // Initialisation au chargement du DOM
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
-
 });
 
 export { App };

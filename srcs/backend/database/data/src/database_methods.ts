@@ -11,7 +11,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     `
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
+            name TEXT NOT NULL UNIQUE,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             avatar TEXT

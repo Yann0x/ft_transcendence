@@ -64,10 +64,7 @@ const findUserSchema = {
   schema: {
     querystring: Type.Pick(UserSchema, ['id', 'email', 'name']),
     response: {
-      200: Type.Union([
-        Type.Array(UserSchema),
-        Type.Array(UserPublicSchema)
-      ]),
+      200: Type.Array(UserSchema),
       400: ErrorResponseSchema,
       500: ErrorResponseSchema
     }
