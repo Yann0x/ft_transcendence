@@ -12,10 +12,6 @@ export function bindKeyboard(): void {
   window.addEventListener('keyup', (e) => keysDown.delete(e.key));
 }
 
-export function isKeyDown(key: string): boolean {
-  return keysDown.has(key);
-}
-
 export function getInput(): { up: boolean; down: boolean } {
   return {
     up: keysDown.has('w') || keysDown.has('W') || keysDown.has('ArrowUp'),

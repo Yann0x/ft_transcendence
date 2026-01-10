@@ -39,24 +39,6 @@ export function drawFps(): void {
   });
 }
 
-/*
- * Affiche les controles en bas a gauche
- */
-export function drawControls(viewportHeight: number): void {
-  const controls = [
-    'W/S or Arrows - Move paddle',
-    'SPACE - Start/Restart',
-    'A - Toggle AI/2P',
-    'F - Toggle FPS',
-    'H - Toggle Hitboxes'
-  ];
-  const lineHeight = 16;
-  const startY = viewportHeight - controls.length * lineHeight - 10;
-  for (let i = 0; i < controls.length; i++) {
-    drawText(controls[i], 10, startY + i * lineHeight, { font: '12px system-ui', color: '#3f3f3f', align: 'left' });
-  }
-}
-
 // --- TOGGLES ---
 
 export function toggleFPS(): void {
