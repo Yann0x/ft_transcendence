@@ -44,7 +44,8 @@ const App = {
     const currentUser = sessionStorage.getItem('currentUser')
     if (token && currentUser)
     {
-      this.me = currentUser as User;
+      console.log("[APP] Found stored user : " + JSON.stringify(currentUser));
+      this.onLogin(JSON.parse(currentUser));
     }
     else 
     {
