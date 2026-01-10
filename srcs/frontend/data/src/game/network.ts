@@ -5,22 +5,16 @@ type MessageHandler = (data: unknown) => void;
 interface NetworkState {
   socket: WebSocket | null;
   connected: boolean;
-  playerId: string | null;
-  roomId: string | null;
   side: 'left' | 'right' | null;
   onStateUpdate: MessageHandler | null;
-  onConnected: MessageHandler | null;
   onDisconnected: (() => void) | null;
 }
 
 const state: NetworkState = {
   socket: null,
   connected: false,
-  playerId: null,
-  roomId: null,
   side: null,
   onStateUpdate: null,
-  onConnected: null,
   onDisconnected: null
 };
 
@@ -46,8 +40,6 @@ export function connect(mode: 'solo' | 'local' | 'pvp' = 'solo', difficulty: AID
     // Reset state
     state.socket = null;
     state.connected = false;
-    state.playerId = null;
-    state.roomId = null;
     state.side = null;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -68,8 +60,6 @@ export function connect(mode: 'solo' | 'local' | 'pvp' = 'solo', difficulty: AID
       if (state.socket === newSocket) {
         console.log('[NETWORK] Disconnected');
         state.connected = false;
-        state.playerId = null;
-        state.roomId = null;
         state.side = null;
         state.socket = null;
         if (state.onDisconnected) state.onDisconnected();
@@ -103,16 +93,12 @@ export function disconnect(): void {
 }
 
 interface ConnectedData {
-  playerId: string;
-  roomId: string;
   side: 'left' | 'right';
 }
 
 function isConnectedData(data: unknown): data is ConnectedData {
   return (
     typeof data === 'object' && data !== null &&
-    'playerId' in data && typeof (data as ConnectedData).playerId === 'string' &&
-    'roomId' in data && typeof (data as ConnectedData).roomId === 'string' &&
     'side' in data && ((data as ConnectedData).side === 'left' || (data as ConnectedData).side === 'right')
   );
 }
@@ -124,11 +110,8 @@ function handleMessage(message: { type: string; data?: unknown; message?: string
         console.error('[NETWORK] Invalid connected data');
         return;
       }
-      state.playerId = message.data.playerId;
-      state.roomId = message.data.roomId;
       state.side = message.data.side;
-      console.log(`[NETWORK] Joined ${message.data.roomId} as ${message.data.side}`);
-      if (state.onConnected) state.onConnected(message.data);
+      console.log(`[NETWORK] Joined as ${message.data.side}`);
       break;
 
     case 'state':
@@ -178,15 +161,6 @@ export function sendStart(): void {
 }
 
 /*
- * Toggle AI on/off
- */
-export function sendToggleAI(): void {
-  if (!state.socket || !state.connected) return;
-
-  state.socket.send(JSON.stringify({ type: 'toggleAI' }));
-}
-
-/*
  * Met la partie en pause
  */
 export function sendPause(): void {
@@ -212,32 +186,14 @@ export function onStateUpdate(handler: MessageHandler): void {
 }
 
 /*
- * Enregistre un callback pour la connexion
- */
-export function onConnected(handler: MessageHandler): void {
-  state.onConnected = handler;
-}
-
-/*
  * Enregistre un callback pour la deconnexion
  */
 export function onDisconnected(handler: () => void): void {
   state.onDisconnected = handler;
 }
 
-/*
- * Getters
- */
 export function isConnected(): boolean {
   return state.connected;
-}
-
-export function getPlayerId(): string | null {
-  return state.playerId;
-}
-
-export function getRoomId(): string | null {
-  return state.roomId;
 }
 
 export function getSide(): 'left' | 'right' | null {
@@ -250,14 +206,10 @@ export const Network = {
   sendInput,
   sendInputBoth,
   sendStart,
-  sendToggleAI,
   sendPause,
   sendResume,
   onStateUpdate,
-  onConnected,
   onDisconnected,
   isConnected,
-  getPlayerId,
-  getRoomId,
   getSide
 };

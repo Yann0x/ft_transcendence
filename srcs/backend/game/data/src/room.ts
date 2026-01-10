@@ -172,19 +172,6 @@ export function applyInputBoth(room: Room, p1: PlayerInput, p2: PlayerInput): vo
   room.state.inputs[1] = p2;
 }
 
-export function toggleAI(room: Room): void {
-  if (room.players.length !== 1) return;
-
-  if (room.ai) {
-    room.ai = null;
-    room.state.inputs[1] = { up: false, down: false };
-    console.log(`[ROOM] AI disabled for ${room.id}`);
-  } else {
-    room.ai = createAIState();
-    console.log(`[ROOM] AI enabled for ${room.id}`);
-  }
-}
-
 function broadcastState(room: Room): void {
   const message = JSON.stringify({
     type: 'state',
@@ -221,10 +208,6 @@ export function findRoomByPlayer(playerId: string): Room | undefined {
     }
   }
   return undefined;
-}
-
-export function getRoom(roomId: string): Room | undefined {
-  return rooms.get(roomId);
 }
 
 export function getPvPStats(): { waitingPlayers: number; activeGames: number } {

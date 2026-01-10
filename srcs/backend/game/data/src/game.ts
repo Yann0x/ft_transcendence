@@ -10,7 +10,6 @@ import {
   applyInput,
   applyInputBoth,
   startGameLoop,
-  toggleAI,
   getPvPStats,
   pauseGame,
   resumeGame,
@@ -79,9 +78,6 @@ async function start() {
             break;
           case 'resume':
             resumeGame(room);
-            break;
-          case 'toggleAI':
-            toggleAI(room);
             break;
         }
       } catch (err) {
