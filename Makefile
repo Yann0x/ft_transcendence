@@ -2,7 +2,7 @@ docker-compose-path := srcs/docker-compose.yaml
 
 all : run
 
-run : init front build
+run : init down front build
 	docker compose -f $(docker-compose-path) up -d
 
 build : down init front 

@@ -204,89 +204,85 @@ export const Friends = {
 
     if (!resultsContainer || !resultsList || !users) return;
 
-    const filteredUsers = users.filter(user => user.id !== App.me?.id);
+    const filteredUsers = users
+      .filter(user => user.id !== App.me?.id)
+      .filter(user => !App.me?.friends?.some(friend => friend.id === user.id));
     if (filteredUsers.length === 0) {
       resultsList.innerHTML = '<p class="text-neutral-500 text-center py-4">Aucun utilisateur trouvé</p>';
       resultsContainer.classList.remove('hidden');
       return;
     }
-    resultsList.innerHTML = filteredUsers.map(user => this.createUserCard(user)).join('');
+    resultsList.innerHTML = filteredUsers.map(user => this.createSearchUserCard(user)).join('');
+    this.attachSearchActionListeners();
     resultsContainer.classList.remove('hidden');
-    this.attachActionListeners();
   },
 
-  createFriendCard(friend: UserPublic): string {
-    const avatar = friend.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name || 'User')}&background=3b82f6&color=fff`;
-
-    // Check if friend is online
-    const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
-
-  },
-
-  createUserCard(user: UserPublic): string {
+  createSearchUserCard(user: UserPublic): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
     const isOnline = this.onlineUsers.has(user.id);
-    const onlineStatus = user.onlineStatus || 'offline';
-    const statusColor = onlineStatus === 'online' ? 'bg-green-500' : 'bg-neutral-500';
-    const statusText = isOnline ? 'online' : 'offline';
-
-    const friendIndex = App.me.friends?.findIndex((f: UserPublic) => f.id === user.id);
-    if (friendIndex && friendIndex !== -1) {
-      return `
-        <div class="flex items-center justify-between p-4 bg-neutral-800 rounded-lg hover:bg-neutral-750 transition" data-user-id="${user.id}">
-          <div class="flex items-center gap-3">
-            <div class="relative">
-              <img src="${avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover">
-              <span class="status-dot absolute bottom-0 right-0 w-3 h-3 ${statusColor} border-2 border-neutral-800 rounded-full"></span>
-            </div>
-            <div>
-              <p class="font-semibold text-white">${user.name || 'Unknown'}</p>
-              <p class="status-text text-sm text-neutral-400">${statusText}</p>
-            </div>
+    const onlineStatus = isOnline ? 'online' : 'offline';
+    const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
+    const card = `
+      <div class="flex items-center justify-between p-4 bg-neutral-800 rounded-lg hover:bg-neutral-750 transition" data-user-id="${user.id}">
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <img src="${avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover">
+            <span class="status-dot absolute bottom-0 right-0 w-3 h-3 ${statusColor} border-2 border-neutral-800 rounded-full"></span>
           </div>
-          <div class="flex items-center gap-2">
-            <button class="view_profile px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition" data-user-id="${user.id}">
-              <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-              </svg>
-              Profil
-            </button>
-            <button class="remove_user px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition" data-user-id="${user.id}">
-              <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-              Retirer
-            </button>
+          <div>
+            <p class="font-semibold text-white">${user.name || 'Unknown'}</p>
+            <p class="status-text text-sm text-neutral-400">${onlineStatus}</p>
           </div>
         </div>
-      `;
-    } else {
-      return `
-        <div class="flex items-center justify-between p-4 bg-neutral-800 rounded-lg hover:bg-neutral-750 transition" data-user-id="${user.id}">
-          <div class="flex items-center gap-3">
-            <div class="relative">
-              <img src="${avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover">
-              <span class="status-dot absolute bottom-0 right-0 w-3 h-3 ${statusColor} border-2 border-neutral-800 rounded-full"></span>
-            </div>
-            <div>
-              <p class="font-semibold text-white">${user.name || 'Unknown'}</p>
-              <p class="status-text text-sm text-neutral-400">${onlineStatus}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="add_friend px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition" data-user-id="${user.id}">
-              <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-              </svg>
-              Add
-            </button>
-          </div>
+        <div class="flex items-center gap-2">
+          <button class="add_friend px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition" data-user-id="${user.id}">
+            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Add
+          </button>
         </div>
-      `;
-    }
+      </div>
+    `;
+    return card;
   },
 
-  attachActionListeners(): void {
+  createFriendUserCard(user: UserPublic): string {
+    const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
+    const isOnline = this.onlineUsers.has(user.id);
+    const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
+    const statusText = isOnline ? 'online' : 'offline';
+   const card =  `
+      <div class="flex items-center justify-between p-4 bg-neutral-800 rounded-lg hover:bg-neutral-750 transition" data-user-id="${user.id}">
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <img src="${avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover">
+            <span class="status-dot absolute bottom-0 right-0 w-3 h-3 ${statusColor} border-2 border-neutral-800 rounded-full"></span>
+          </div>
+          <div>
+            <p class="font-semibold text-white">${user.name || 'Unknown'}</p>
+            <p class="status-text text-sm text-neutral-400">${statusText}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="chat_friend px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition" data-user-id="${user.id}">
+            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.8L3 21l1.8-4A7.97 7.97 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            chat
+          </button>
+          <button class="remove_friend px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition" data-user-id="${user.id}">
+            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            </button>
+        </div>
+      </div>
+    `;
+    return card;
+  },
+
+  attachSearchActionListeners(): void {
     document.querySelectorAll('.add_friend').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const target_id = (e.currentTarget as HTMLElement).getAttribute('data-user-id');
@@ -296,13 +292,11 @@ export const Friends = {
   },
 
   attachFriendActionListeners(): void {
-    document.querySelectorAll('.view_profile').forEach(btn => {
+    document.querySelectorAll('.chat_friend').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const userId = (e.currentTarget as HTMLElement).getAttribute('data-user-id');
         if (userId) {
           console.log('[FRIENDS] View profile for user:', userId);
-          // TODO: Navigate to profile page or show modal
-          console.log(`Voir le profil de l'utilisateur ${userId}`);
         }
       });
     });
@@ -311,9 +305,7 @@ export const Friends = {
       btn.addEventListener('click', async (e) => {
         const userId = (e.currentTarget as HTMLElement).getAttribute('data-user-id');
         if (userId) {
-          if (confirm('Êtes-vous sûr de vouloir retirer cet ami ?')) {
             await this.removeFriend(userId);
-          }
         }
       });
     });
@@ -374,14 +366,12 @@ async loadFriends(): Promise<void> {
     emptyState?.classList.add('hidden');
 
     // Create friend cards
-    friendsList.innerHTML = friends.map((friend: UserPublic) => this.createUserCard(friend)).join('');
-
+    friendsList.innerHTML = friends.map((friend: UserPublic) => this.createFriendUserCard(friend)).join('');
+    this.attachFriendActionListeners();
+    
     if (friendsCount) {
       friendsCount.textContent = `${friends.length} ami${friends.length > 1 ? 's' : ''}`;
     }
-
-    // Attach action listeners for friend cards
-    this.attachFriendActionListeners();
   },
 
   async removeFriend(friendId: string): Promise<void> {
