@@ -1,18 +1,8 @@
-import { User, UserPublic } from './shared/with_front/types';
+import { User, User } from './shared/with_front/types';
 import customFetch from './shared/utils/fetch';
 
-export class UserManager {
-  private static instance: UserManager;
-  private users: Map<string, User> = new Map(); // <userId, User>
-
-  private constructor() {}
-
-  public static getInstance(): UserManager {
-    if (!UserManager.instance) {
-      UserManager.instance = new UserManager();
-    }
-    return UserManager.instance;
-  }
+export const userManager = {
+   users: new Map<string, User>(),
 
   // Load user from DB if not in memory
   async getUser(userId: string): Promise<User | null> {
@@ -33,14 +23,14 @@ export class UserManager {
       console.error(`[UserManager] Failed to load user ${userId}:`, error);
       return null;
     }
-  }
+  },
 
   // Add user to memory
   setUser(user: User): void {
     if (user.id) {
       this.users.set(user.id, user);
     }
-  }
+  },
 
   // Add friend relationship 
   async addFriend(userId: string, friendId: string): Promise<boolean> {
@@ -61,7 +51,7 @@ export class UserManager {
     friend.friends.push({ id: user.id, name: user.name, avatar: user.avatar, status: user.status });
 
     return true;
-  }
+  },
 
   // Remove friend relationship 
   async removeFriend(userId: string, friendId: string): Promise<boolean> {
@@ -79,11 +69,11 @@ export class UserManager {
     }
 
     return true;
-  }
+  },
 
   // Get user's friends
-  async getFriends(userId: string): Promise<UserPublic[]> {
+  async getFriends(userId: string): Promise<User[]> {
     const user = await this.getUser(userId);
     return user?.friends || [];
-  }
+  },
 }

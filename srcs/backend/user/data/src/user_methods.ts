@@ -1,9 +1,7 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { User, UserPublic } from "./shared/with_front/types";
 import customFetch from "./shared/utils/fetch";
-import { UserManager } from "./user_manager.js";
-
-const userManager = UserManager.getInstance();
+import { userManager } from "./user_manager.js";
 
 async function fillUser(user : User): Promise<User> {
       try {
