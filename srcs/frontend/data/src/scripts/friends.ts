@@ -4,7 +4,6 @@ import { Router } from './router';
 import { App } from './app';
 
 export const Friends = {
-  onlineUsers: new Map<string, UserPublic>(),  // userId -> UserPublic
 
   init(): void {
     const token = sessionStorage.getItem('authToken');
@@ -23,7 +22,7 @@ export const Friends = {
       console.log('[FRIENDS] Received online users list:', event.data);
       if (event.data && event.data.users && Array.isArray(event.data.users)) {
         event.data.users.forEach((user: UserPublic) => {
-          this.onlineUsers.set(user.id, user);
+          App.onlineUsers.set(user.id, user);
           this.updateUserOnlineStatusCard(user.id, 'online');
         });
         this.display();
@@ -32,7 +31,7 @@ export const Friends = {
     socialClient.on('user_online', (event: SocialEvent) => {
       console.log('[FRIENDS] User came online:', event.data);
       if (event.data && event.data.user) {
-        this.onlineUsers.set(event.data.user.id, event.data.user);
+        App.onlineUsers.set(event.data.user.id, event.data.user);
         this.updateUserOnlineStatusCard(event.data.user.id, 'online');
         this.display();
       }
@@ -40,7 +39,7 @@ export const Friends = {
     socialClient.on('user_offline', (event: SocialEvent) => {
       console.log('[FRIENDS] User went offline:', event.data);
       if (event.data && event.data.id) {
-        this.onlineUsers.delete(event.data.id);
+        App.onlineUsers.delete(event.data.id);
         this.updateUserOnlineStatusCard(event.data.id, 'offline');
         // Refresh search to remove offline user
         this.display();
@@ -128,8 +127,8 @@ export const Friends = {
           sessionStorage.setItem('currentUser', JSON.stringify(App.me));
         }
       }
-      if (this.onlineUsers.has(userId)) {
-        this.onlineUsers.set(userId, updatedUser);
+      if (App.onlineUsers.has(userId)) {
+        App.onlineUsers.set(userId, updatedUser);
       }
       this.display();
     } catch (error) {
@@ -193,7 +192,7 @@ export const Friends = {
         console.log('Error searching users');
       }
     } else {
-      users = Array.from(this.onlineUsers.values());
+      users = Array.from(App.onlineUsers.values());
     }
     this.displaySearchResults(users);
   },
@@ -219,7 +218,7 @@ export const Friends = {
 
   createSearchUserCard(user: UserPublic): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
-    const isOnline = this.onlineUsers.has(user.id);
+    const isOnline = App.onlineUsers.has(user.id);
     const onlineStatus = isOnline ? 'online' : 'offline';
     const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
     const card = `
@@ -249,7 +248,7 @@ export const Friends = {
 
   createFriendUserCard(user: UserPublic): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
-    const isOnline = this.onlineUsers.has(user.id);
+    const isOnline = App.onlineUsers.has(user.id);
     const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
     const statusText = isOnline ? 'online' : 'offline';
    const card =  `

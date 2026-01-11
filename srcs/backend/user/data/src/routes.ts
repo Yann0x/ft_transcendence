@@ -73,10 +73,7 @@ const findUserSchema = {
 
 const updateUserSchema = {
   schema: {
-    body: Type.Object(
-      Type.Pick(UserSchema, ['id', 'name', 'email', 'password', 'avatar']).properties,
-          { required: ['id'], additionalProperties: false },
-    ),
+    body: Type.Object( UserSchema.properties, { required: ['id'], additionalProperties: false }),
     response: {
       200: {
         type: 'object',

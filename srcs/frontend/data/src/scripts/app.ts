@@ -7,7 +7,7 @@ import { Router } from './router'
 import { AuthModal } from './auth-modal'
 import { Friends } from './friends'
 import { socialClient } from './social-client'
-import { User } from '../shared/types'
+import { User, UserPublic } from '../shared/types'
 import { run } from 'node:test'
 
 /**
@@ -17,6 +17,7 @@ const App = {
 
   appContainer: null as HTMLElement | null,
   me: null as User | null,
+  onlineUsers: new Map<string, UserPublic>(),  // userId -> UserPublic
 
   async init(): Promise<void> {
     console.log('🏓 ft_transcendance - App initialized');
@@ -226,11 +227,19 @@ const App = {
       console.warn('No user to logout');
       return;
     }
-
-    // Disconnect from social WebSocket
-    console.log('[APP] Disconnecting from social WebSocket...');
+    const token = sessionStorage.getItem('authToken')
+    if (token)
+    {
+      await fetch('/user/update', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(this.me)
+      });
+    }
     socialClient.disconnect();
-
     try {
       // Call backend to remove user from logged-in users
       const response = await fetch('/user/public/logout', {
@@ -247,17 +256,16 @@ const App = {
     } catch (error) {
       console.error('Failed to call logout endpoint:', error);
     } finally {
-      // Always clear local state regardless of backend response
       this.me = null;
       sessionStorage.removeItem('authToken');
       sessionStorage.removeItem('currentUser');
       this.updateNavbar();
       alert('Vous avez été déconnecté');
+      Router.navigate('home')
     }
   }
 };
 
-// Initialisation au chargement du DOM
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });

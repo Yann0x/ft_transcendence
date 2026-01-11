@@ -4,55 +4,22 @@
     
     <!-- Conversations List -->
     <div class="w-80 flex flex-col bg-neutral-900 rounded-lg border border-neutral-800">
-      
-      <!-- Tabs -->
-      <div class="flex border-b border-neutral-800">
-        <button class="flex-1 px-4 py-3 text-sm font-semibold text-center border-b-2 border-blue-500 text-white tab-btn active" data-tab="direct">
-          Direct
-        </button>
-        <button class="flex-1 px-4 py-3 text-sm font-semibold text-center border-b-2 border-transparent text-neutral-400 hover:text-white tab-btn" data-tab="tournaments">
-          Tournois
-        </button>
-      </div>
-      
+
       <!-- Header -->
       <div class="p-4 border-b border-neutral-800">
-        <input 
-          type="text" 
-          placeholder="Chercher..." 
+        <h2 class="text-lg font-semibold mb-3">Conversations</h2>
+        <input
+          type="text"
+          placeholder="Chercher..."
           class="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500"
         >
       </div>
 
-      <!-- Direct Messages Tab -->
-      <div class="flex-1 overflow-y-auto space-y-2 p-2 tab-content" id="direct-tab">
+      <!-- Conversations List -->
+      <div class="flex-1 overflow-y-auto space-y-2 p-2">
         <!-- Empty State -->
         <div class="p-8 text-center text-neutral-500 text-sm">
-          <p>Aucune conversation directe</p>
-        </div>
-      </div>
-
-      <!-- Tournaments Tab -->
-      <div class="flex-1 overflow-y-auto space-y-2 p-2 tab-content hidden" id="tournaments-tab">
-        <!-- Tournament Channels -->
-        <div class="p-3 bg-neutral-800 rounded cursor-pointer hover:bg-neutral-700 transition conversation-item" data-channel="tournament-notifications">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">🏆</span>
-            <div class="flex-1">
-              <p class="text-sm font-semibold">Notifications Tournois</p>
-              <p class="text-xs text-neutral-400">Alertes et prochains matchs</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-3 bg-neutral-800 rounded cursor-pointer hover:bg-neutral-700 transition conversation-item" data-channel="tournament-general">
-          <div class="flex items-center gap-2">
-            <span class="text-xl">💬</span>
-            <div class="flex-1">
-              <p class="text-sm font-semibold">Chat Général</p>
-              <p class="text-xs text-neutral-400">Discussions tournois</p>
-            </div>
-          </div>
+          <p>Aucune conversation</p>
         </div>
       </div>
     </div>
@@ -75,9 +42,6 @@
           </button>
           <button class="btn btn-outline text-sm" title="Inviter à jouer">
             <span>🎮</span>
-          </button>
-          <button class="btn btn-outline text-sm" title="Bloquer l'utilisateur">
-            <span>🚫</span>
           </button>
         </div>
       </div>
@@ -110,22 +74,7 @@
 </main>
 
 <script>
-  // Simple tab switching
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tabName = btn.getAttribute('data-tab');
-      
-      // Update buttons
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
-      // Update content
-      document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.add('hidden');
-      });
-      document.getElementById(tabName + '-tab').classList.remove('hidden');
-    });
-  });
+  // Chat initialization can go here
 </script>
 
 <style>
@@ -138,22 +87,5 @@
   .conversation-item.active {
     background-color: rgb(30, 41, 59);
     border-left: 3px solid rgb(59, 130, 246);
-  }
-
-  .tab-content.hidden {
-    display: none;
-  }
-
-  .tab-btn {
-    transition: all 0.2s;
-  }
-
-  .tab-btn.active {
-    border-bottom-color: rgb(59, 130, 246);
-    color: white;
-  }
-
-  .tab-btn:not(.active):hover {
-    border-bottom-color: rgb(71, 85, 105);
   }
 </style>

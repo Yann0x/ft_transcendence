@@ -2,9 +2,8 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { WebSocket } from '@fastify/websocket';
 import { SocialEvent, User } from './shared/with_front/types';
 import customFetch from './shared/utils/fetch';
-import {ConnexionManager} from './connexion_manager'
+import {connexionManager} from './connexion_manager'
 
-const manager = ConnexionManager.getInstance();
 
 export async function socialWss(socket: WebSocket, req: FastifyRequest) {
   if (!socket) return;
@@ -26,9 +25,9 @@ export async function socialWss(socket: WebSocket, req: FastifyRequest) {
     timestamp: new Date().toISOString()
   } as SocialEvent));
 
-  manager.addConnected(user, socket)
+  connexionManager.addConnected(user, socket)
 
-  const alreadyConnectedUsers = manager.getAllConnectedUsers();
+  const alreadyConnectedUsers = connexionManager.getAllConnectedUsers();
   
   if (alreadyConnectedUsers.length > 0) {
     console.log(`[SOCIAL] Sending ${alreadyConnectedUsers.length} already online users to ${user.id}`);
@@ -45,7 +44,7 @@ export async function socialWss(socket: WebSocket, req: FastifyRequest) {
     data: { user: user },
     timestamp: new Date().toISOString()
   }
-  manager.sendToAll(newConnexionEvent);
+  connexionManager.sendToAll(newConnexionEvent);
 
 
   setSocketListeners(user, socket);
@@ -76,13 +75,13 @@ function setSocketListeners(user: User, socket: WebSocket){
       data: { id: user.id },
       timestamp: new Date().toISOString()
     }
-    manager.sendToAll(disconnectEvent);
-    manager.removeConnected(user.id);
+    connexionManager.sendToAll(disconnectEvent);
+    connexionManager.removeConnected(user.id);
   });
 
   socket.on('error', (error: Error) => {
     console.error('[SOCIAL] WebSocket error:', error);
-    manager.removeConnected(user.id);
+    connexionManager.removeConnected(user.id);
   });
   
 }
@@ -111,7 +110,7 @@ export async function notifyUserUpdate(request: FastifyRequest, reply: FastifyRe
       data: { userId: updatedUserId },
       timestamp: new Date().toISOString()
     };
-    manager.sendToUser(userId, event);
+    connexionManager.sendToUser(userId, event);
   });
 
   return reply.status(200).send({ success: true });

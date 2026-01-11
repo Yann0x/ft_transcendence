@@ -90,11 +90,39 @@ export function getUser(req, reply): User[] {
 }
 
 export function updateUser(req, reply): boolean | string {
-    const request = db.prepare('UPDATE users SET name = ?, email = ?, avatar = ?, password_hash = ? WHERE id = ?');
-    const result = request.run(req.body.name, req.body.email, req.body.avatar, req.body.password, req.body.id);
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (req.body.name !== undefined) {
+        fields.push('name = ?');
+        values.push(req.body.name);
+    }
+    if (req.body.email !== undefined) {
+        fields.push('email = ?');
+        values.push(req.body.email);
+    }
+    if (req.body.avatar !== undefined) {
+        fields.push('avatar = ?');
+        values.push(req.body.avatar);
+    }
+    if (req.body.password !== undefined) {
+        fields.push('password_hash = ?');
+        values.push(req.body.password);
+    }
+
+    if (fields.length === 0) {
+        return "no fields to update";
+    }
+
+    values.push(req.body.id); // id for WHERE clause
+
+    const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+    const request = db.prepare(sql);
+    const result = request.run(...values);
+
     if (result.changes === 0)
-        return "no changes made" 
-    return true 
+        return "no changes made";
+    return true;
 }
 
 export function createUser(req, reply): string | null {
