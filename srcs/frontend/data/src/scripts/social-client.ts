@@ -17,7 +17,8 @@ export class SocialClient {
     this.token = token;
     this.authenticated = false;
 
-    const wsUrl = `wss://${window.location.host}/social/wss`;
+    const protocol = location.protocol === 'https' ?  'wss' : 'ws'
+    const wsUrl = `${protocol}://${window.location.host}/social/wss`;
 
     console.log('[SOCIAL-CLIENT] Connecting to', wsUrl);
 
@@ -88,7 +89,6 @@ export class SocialClient {
       });
     }
 
-    // Also notify wildcard handlers
     const wildcardHandlers = this.eventHandlers.get('*');
     if (wildcardHandlers) {
       wildcardHandlers.forEach(handler => {
@@ -101,9 +101,6 @@ export class SocialClient {
     }
   }
 
-  /**
-   * Register an event handler
-   */
   on(eventType: string, handler: SocialEventHandler): void {
     if (!this.eventHandlers.has(eventType)) {
       this.eventHandlers.set(eventType, new Set());
@@ -111,9 +108,6 @@ export class SocialClient {
     this.eventHandlers.get(eventType)!.add(handler);
   }
 
-  /**
-   * Unregister an event handler
-   */
   off(eventType: string, handler: SocialEventHandler): void {
     const handlers = this.eventHandlers.get(eventType);
     if (handlers) {

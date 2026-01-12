@@ -47,9 +47,9 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     hmr: {
+      protocol: 'wss',
       host: 'localhost',
       clientPort: 8080,
-      protocol: 'wss',
     },
     watch: {
       usePolling: true,
