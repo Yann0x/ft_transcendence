@@ -17,7 +17,7 @@ export class SocialClient {
     this.token = token;
     this.authenticated = false;
 
-    const protocol = location.protocol === 'https' ?  'wss' : 'ws'
+    const protocol = location.protocol === 'https:' ?  'wss' : 'ws'
     const wsUrl = `${protocol}://${window.location.host}/social/wss`;
 
     console.log('[SOCIAL-CLIENT] Connecting to', wsUrl);
