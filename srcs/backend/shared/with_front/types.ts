@@ -79,7 +79,7 @@ export const UserSchema = Type.Object({
   stats:        Type.Optional(StatsSchema),
   matches:      Type.Optional(Type.Array(MatchSchema)),
   tournaments:  Type.Optional(Type.Array(TournamentSchema)),
-  chats:        Type.Optional(Type.Array(ChannelSchema)),
+  channels:        Type.Optional(Type.Array(ChannelSchema)),
 })
 export type User = Static<typeof UserSchema>;
 
@@ -91,6 +91,7 @@ export const SocialEventTypeSchema = Type.Union([
   Type.Literal('auth_failed'),
   Type.Literal('user_online'),
   Type.Literal('user_offline'),
+  Type.Literal('message_new'),
   Type.Literal('error'),
 ]);
 export type SocialEventType = Static<typeof SocialEventTypeSchema>;

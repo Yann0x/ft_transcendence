@@ -45,10 +45,7 @@ export async function socialWss(socket: WebSocket, req: FastifyRequest) {
     timestamp: new Date().toISOString()
   }
   connexionManager.sendToAll(newConnexionEvent);
-
-
   setSocketListeners(user, socket);
-
 }
 
 function setSocketListeners(user: User, socket: WebSocket){
@@ -57,7 +54,6 @@ function setSocketListeners(user: User, socket: WebSocket){
       const message = rawMessage.toString();
       const event = JSON.parse(message) as SocialEvent;
       console.log(`[SOCIAL] Received event from user ${user.id}:`, event.type);
-
     } catch (error) {
       console.error('[SOCIAL] Error processing message:', error);
       socket.send(JSON.stringify({
