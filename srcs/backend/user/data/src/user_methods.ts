@@ -1,18 +1,12 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { User, UserPublic } from "./shared/with_front/types";
+import { User, UserPublic, Message } from "./shared/with_front/types";
 import customFetch from "./shared/utils/fetch";
 import { userManager } from "./user_manager.js";
 
 async function fillUser(user : User): Promise<User> {
-      try {
-        // TODO: Implement endpoint to get user's channels
-        // user.chats = await customFetch('http://chat:3000/chat/user-channels', 'GET', { user_id: user.id });
-        user.chats = [];
-      } catch (error) {
-        user.chats = [];
-      }
 
-      // Fetch user's tournaments
+      user.channels = await userManager.getChannels(user.id);
+
       try {
         // TODO: Implement endpoint to get user's tournaments
         // user.tournaments = await customFetch('http://game:3000/game/user-tournaments', 'GET', { user_id: user.id });
@@ -94,12 +88,11 @@ export async function registerUserHandler(
       }
     );
 
-    return {
-      success: true,
-      message: 'User registered successfully',
-      userId: userData.id,
-      access_token: token
-    };
+    // Fill user data (friends, channels, stats, etc.) for auto-login
+    await fillUser(userData);
+
+    // Return same format as login for automatic login
+    return { token, user: userData };
 
   } catch (error: any) {
     console.log("[USER] Error occurred:", error);
@@ -395,6 +388,130 @@ export async function getFriendsHandler(
     return reply.status(200).send(friends);
   } catch (error: any) {
     console.error('[USER] getFriends error:', error);
+    return reply.status(500).send([]);
+  }
+}
+
+export async function sendMessage(req: FastifyRequest, reply: FastifyReply)
+{
+  try {
+    const sender_id = req.headers['x-sender-id'] as string;
+    const message = req.body as Message;
+
+    if (!message.content || !message.channel_id)
+      return reply.status(400).send({error: 'sendMessage', message: 'Empty content or empty channel_id'});
+
+    message.sender_id = sender_id;
+    message.sent_at = new Date().toISOString();
+    message.read_at = null;
+
+    const success = await userManager.sendMessage(message);
+    if (!success)
+      return reply.status(400).send({message: 'Cannot send message' });
+
+    return reply.status(200).send({ success: true, message: 'Message sent' });
+    }
+    catch (error: any)
+    {
+      return reply.status(400).send({error: 'in sendMessage', message: `Catch error : ${error}`})
+    }
+}
+
+export async function blockUserHandler(
+  req: FastifyRequest<{ Body: { blockedUserId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const userId = req.headers['x-sender-id'] as string;
+    const { blockedUserId } = req.body;
+
+    if (!userId) {
+      return reply.status(401).send({ success: false, message: 'Unauthorized' });
+    }
+
+    if (userId === blockedUserId) {
+      return reply.status(400).send({ success: false, message: 'Cannot block yourself' });
+    }
+
+    // Add to database
+    const success = await customFetch('http://database:3000/database/blocked', 'POST', {
+      user_id: userId,
+      blocked_user_id: blockedUserId
+    });
+
+    if (!success) {
+      return reply.status(400).send({ success: false, message: 'Failed to block user' });
+    }
+
+    // Update user manager cache
+    const user = await userManager.getUser(userId);
+    if (user) {
+      if (!user.blocked_users) user.blocked_users = [];
+      if (!user.blocked_users.includes(blockedUserId)) {
+        user.blocked_users.push(blockedUserId);
+      }
+    }
+
+    return reply.status(200).send({ success: true, message: 'User blocked' });
+  } catch (error: any) {
+    console.error('[USER] blockUser error:', error);
+    return reply.status(500).send({ success: false, message: 'Internal server error' });
+  }
+}
+
+export async function unblockUserHandler(
+  req: FastifyRequest<{ Body: { blockedUserId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const userId = req.headers['x-sender-id'] as string;
+    const { blockedUserId } = req.body;
+
+    if (!userId) {
+      return reply.status(401).send({ success: false, message: 'Unauthorized' });
+    }
+
+    // Remove from database
+    const success = await customFetch('http://database:3000/database/blocked', 'DELETE', {
+      user_id: userId,
+      blocked_user_id: blockedUserId
+    });
+
+    if (!success) {
+      return reply.status(400).send({ success: false, message: 'Failed to unblock user' });
+    }
+
+    // Update user manager cache
+    const user = await userManager.getUser(userId);
+    if (user && user.blocked_users) {
+      user.blocked_users = user.blocked_users.filter((id: string) => id !== blockedUserId);
+    }
+
+    return reply.status(200).send({ success: true, message: 'User unblocked' });
+  } catch (error: any) {
+    console.error('[USER] unblockUser error:', error);
+    return reply.status(500).send({ success: false, message: 'Internal server error' });
+  }
+}
+
+export async function getBlockedUsersHandler(
+  req: FastifyRequest,
+  reply: FastifyReply
+) {
+  try {
+    const userId = req.headers['x-sender-id'] as string;
+
+    if (!userId) {
+      return reply.status(401).send([]);
+    }
+
+    const blockedIds = await customFetch('http://database:3000/database/blocked', 'GET', {
+      user_id: userId
+    }) as string[];
+
+    return reply.status(200).send(blockedIds || []);
+  } catch (error: any) {
+    console.error('[USER] getBlockedUsers error:', error);
     return reply.status(500).send([]);
   }
 }

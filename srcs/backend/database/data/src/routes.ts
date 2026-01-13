@@ -162,4 +162,24 @@ export function databaseRoutes(server: FastifyInstance) {
   server.post('/database/message', dbPostMessageSchema, db.postMessage)
 
   server.put('/database/message', dbPutMessageSchema, db.putMessage)
+
+  server.post('/database/channel/member', db.postChannelMember)
+
+  server.delete('/database/channel/member', db.deleteChannelMember)
+
+  server.get('/database/blocked', db.getBlockedUsers)
+
+  server.post('/database/blocked', db.postBlockUser)
+
+  server.delete('/database/blocked', db.deleteBlockUser)
+
+  server.get('/database/user/channels', db.getUserChannels)
+
+  server.get('/database/channel/find-dm', db.findDMChannel)
+
+  server.get('/database/friends', db.getFriends)
+
+  server.post('/database/friends', db.postFriend)
+
+  server.delete('/database/friends', db.deleteFriend)
 }
