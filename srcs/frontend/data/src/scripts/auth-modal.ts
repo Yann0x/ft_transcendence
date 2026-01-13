@@ -179,9 +179,21 @@ export const AuthModal = {
           alert(`Signup failed: ${errorData.message}`);
           return;
         }
-        
-        alert('Signup successful! Please log in.');
-        this.showLogin();
+
+        const data = await response.json();
+
+        // Auto-login after successful registration
+        if (data.token) {
+          sessionStorage.setItem('authToken', data.token);
+        }
+
+        // Store user data and notify app
+        if (this.onLoginSuccess && data.user) {
+          this.onLoginSuccess(data.user as User);
+        }
+
+        alert('Account created successfully!');
+        this.close();
       } catch (error) {
         alert('An error occurred during signup.');
       }

@@ -40,11 +40,12 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     `).run();
     db.prepare(
     `
-        CREATE TABLE IF NOT EXISTS chanel_member (
-            channel_id REFERENCES channel(id),
-            member1_id REFERENCES users(id),
-            member2_id REFERENCES users(id),
-            PRIMARY KEY (channel_id, member1_id, member2_id)
+        CREATE TABLE IF NOT EXISTS channel_member (
+            channel_id INTEGER REFERENCES channel(id) ON DELETE CASCADE,
+            user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            role TEXT CHECK(role IN ('member','moderator','owner')) DEFAULT 'member',
+            joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (channel_id, user_id)
         );
     `).run();
     db.prepare(
@@ -56,6 +57,24 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             content TEXT NOT NULL,
             sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             read_at DATETIME DEFAULT NULL
+        );
+    `).run();
+    db.prepare(
+    `
+        CREATE TABLE IF NOT EXISTS blocked_user (
+            user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            blocked_user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            blocked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, blocked_user_id)
+        );
+    `).run();
+    db.prepare(
+    `
+        CREATE TABLE IF NOT EXISTS friendship (
+            user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            friend_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, friend_id)
         );
     `).run();
     return db;
@@ -148,9 +167,9 @@ export function getUserPasswordHash( req, reply) {
     return result?.password_hash ?? null;
 }
 
-export function getChannel(req, reply): Channel | null {
+export function getChannel(req: FastifyRequest, reply: FastifyReply): Channel | null {
 
-    const query = req.query;
+    const query = req.query as Channel;
     const channel: Channel | null = db.prepare(
       `SELECT id, name, type, created_by, created_at FROM channel
        WHERE id = ?`
@@ -163,37 +182,38 @@ export function getChannel(req, reply): Channel | null {
     }
 
     channel.messages = db.prepare(
-      `SELECT id, channel_id, sender_id, content, sent_at FROM message
-       WHERE channel_id = ?`
+      `SELECT id, channel_id, sender_id, content, sent_at, read_at FROM message
+       WHERE channel_id = ?
+       ORDER BY sent_at ASC`
     ).all(
       query.id
     ) as Message[];
     const members = db.prepare(
-      `SELECT member_id FROM chanel_member 
+      `SELECT user_id FROM channel_member
        WHERE channel_id = ?`
-    ).all( query.id ) as {member_id: string}[];
-    channel.members = members.map( (m) => m.member_id );
+    ).all( query.id ) as {user_id: string}[];
+    channel.members = members.map( (m) => m.user_id );
     const moderators = db.prepare(
-      `
-      SELECT member_id FROM chanel_member 
-       WHERE channel_id = ?
+      `SELECT user_id FROM channel_member
+       WHERE channel_id = ? AND role IN ('moderator', 'owner')
      `
-    ).all( query.id ) as {member_id: string}[];
-    channel.moderators = moderators.map( (m) => m.member_id );
+    ).all( query.id ) as {user_id: string}[];
+    channel.moderators = moderators.map( (m) => m.user_id );
     return channel;
 }
 
-export function postChannel(req, reply) 
+export function postChannel(req: FastifyRequest, reply: FastifyReply) 
 {
+    const channel = req.body as Channel;
     const request = db.prepare('INSERT INTO channel (name, type, created_by, created_at) VALUES (?, ?, ?, ?)'
     )
-    const result = request.run(req.body.name, req.body.type, req.body.created_by, req.body.created_at);
+    const result = request.run(channel.name, channel.type, channel.created_by, channel.created_at);
     if (result.changes === 0)
         return ('No Change made')
     return String(result.lastInsertRowid)
 }
 
-export function putChannelName(req, reply)
+export function putChannelName(req: FastifyRequest, reply: FastifyReply)
 {
     const request = db.prepare('UPDATE channel SET name = ? WHERE id = ?')
     const result = request.run(req.body.name, req.body.id);
@@ -240,5 +260,209 @@ export function putMessage( req, reply )
     if (result.changes === 0)
         return false
     return String(result.lastInsertRowid)
+}
 
+export function postChannelMember( req: FastifyRequest, reply: FastifyReply )
+{
+    const { channel_id, user_id, role } = req.body as any;
+    const request = db.prepare(`INSERT INTO channel_member (channel_id, user_id, role) VALUES (?, ?, ?)`)
+    const result = request.run(channel_id, user_id, role || 'member')
+    if (result.changes === 0)
+        return false
+    return true
+}
+
+export function deleteChannelMember( req: FastifyRequest, reply: FastifyReply )
+{
+    const { channel_id, user_id } = req.body as any;
+    const request = db.prepare(`DELETE FROM channel_member WHERE channel_id = ? AND user_id = ?`)
+    const result = request.run(channel_id, user_id)
+    if (result.changes === 0)
+        return false
+    return true
+}
+
+export function getBlockedUsers( req: FastifyRequest, reply: FastifyReply )
+{
+    const user_id = (req.query as any).user_id;
+    const blocked = db.prepare(
+        `SELECT blocked_user_id FROM blocked_user WHERE user_id = ?`
+    ).all(user_id) as {blocked_user_id: string}[];
+    return blocked.map(b => b.blocked_user_id);
+}
+
+export function postBlockUser( req: FastifyRequest, reply: FastifyReply )
+{
+    const { user_id, blocked_user_id } = req.body as any;
+    const request = db.prepare(`INSERT OR IGNORE INTO blocked_user (user_id, blocked_user_id) VALUES (?, ?)`)
+    const result = request.run(user_id, blocked_user_id)
+    return result.changes > 0
+}
+
+export function deleteBlockUser( req: FastifyRequest, reply: FastifyReply )
+{
+    const { user_id, blocked_user_id } = req.body as any;
+    const request = db.prepare(`DELETE FROM blocked_user WHERE user_id = ? AND blocked_user_id = ?`)
+    const result = request.run(user_id, blocked_user_id)
+    return result.changes > 0
+}
+
+export function getUserChannels( req: FastifyRequest, reply: FastifyReply )
+{
+    const user_id = (req.query as any).user_id;
+
+    // Get all channel IDs where user is a member
+    const channelIds = db.prepare(
+        `SELECT channel_id FROM channel_member WHERE user_id = ?`
+    ).all(user_id) as {channel_id: number}[];
+
+    if (!channelIds || channelIds.length === 0) {
+        return [];
+    }
+
+    // For each channel, get full channel data with members and messages
+    const channels: Channel[] = [];
+    for (const {channel_id} of channelIds) {
+        const channel = db.prepare(
+            `SELECT id, name, type, created_by, created_at FROM channel WHERE id = ?`
+        ).get(channel_id) as Channel | null;
+
+        if (channel) {
+            // Get messages for this channel
+            channel.messages = db.prepare(
+                `SELECT id, channel_id, sender_id, content, sent_at, read_at FROM message
+                 WHERE channel_id = ?
+                 ORDER BY sent_at ASC
+                 LIMIT 100`
+            ).all(channel_id) as Message[];
+
+            // Get members for this channel
+            const members = db.prepare(
+                `SELECT user_id FROM channel_member WHERE channel_id = ?`
+            ).all(channel_id) as {user_id: string}[];
+            channel.members = members.map(m => m.user_id);
+
+            // Get moderators for this channel
+            const moderators = db.prepare(
+                `SELECT user_id FROM channel_member
+                 WHERE channel_id = ? AND role IN ('moderator', 'owner')`
+            ).all(channel_id) as {user_id: string}[];
+            channel.moderators = moderators.map(m => m.user_id);
+
+            channels.push(channel);
+        }
+    }
+
+    return channels;
+}
+
+export function findDMChannel( req: FastifyRequest, reply: FastifyReply )
+{
+    const { user1_id, user2_id } = req.query as any;
+
+    // Find channels where both users are members and it's a private channel with exactly 2 members
+    const result = db.prepare(
+        `SELECT c.id
+         FROM channel c
+         WHERE c.type = 'private'
+         AND (
+             SELECT COUNT(*) FROM channel_member cm WHERE cm.channel_id = c.id
+         ) = 2
+         AND EXISTS (
+             SELECT 1 FROM channel_member cm1 WHERE cm1.channel_id = c.id AND cm1.user_id = ?
+         )
+         AND EXISTS (
+             SELECT 1 FROM channel_member cm2 WHERE cm2.channel_id = c.id AND cm2.user_id = ?
+         )
+         LIMIT 1`
+    ).get(user1_id, user2_id) as {id: number} | undefined;
+
+    return result ? result.id : null;
+}
+
+export function getFriends( req: FastifyRequest, reply: FastifyReply )
+{
+    const { user_id } = req.query as any;
+
+    if (!user_id) {
+        return [];
+    }
+
+    // Get all friend IDs for the user
+    const friendIds = db.prepare(
+        `SELECT friend_id FROM friendship WHERE user_id = ?`
+    ).all(user_id) as {friend_id: string}[];
+
+    if (!friendIds || friendIds.length === 0) {
+        return [];
+    }
+
+    // Get full user info for each friend
+    const friends = friendIds.map(({friend_id}) => {
+        const friend = db.prepare(
+            `SELECT id, name, avatar FROM users WHERE id = ?`
+        ).get(friend_id) as {id: string, name: string, avatar: string | null} | undefined;
+
+        if (friend) {
+            return {
+                id: friend.id,
+                name: friend.name,
+                avatar: friend.avatar,
+                status: 'offline' // Status will be updated by social service
+            };
+        }
+        return null;
+    }).filter(f => f !== null);
+
+    return friends;
+}
+
+export function postFriend( req: FastifyRequest, reply: FastifyReply )
+{
+    const { user_id, friend_id } = req.body as any;
+
+    if (!user_id || !friend_id) {
+        return false;
+    }
+
+    if (user_id === friend_id) {
+        return false; // Can't be friends with yourself
+    }
+
+    try {
+        // Add friendship in both directions
+        const stmt1 = db.prepare(`INSERT OR IGNORE INTO friendship (user_id, friend_id) VALUES (?, ?)`);
+        const stmt2 = db.prepare(`INSERT OR IGNORE INTO friendship (user_id, friend_id) VALUES (?, ?)`);
+
+        const result1 = stmt1.run(user_id, friend_id);
+        const result2 = stmt2.run(friend_id, user_id);
+
+        return result1.changes > 0 || result2.changes > 0;
+    } catch (error) {
+        console.error('[DB] Error adding friend:', error);
+        return false;
+    }
+}
+
+export function deleteFriend( req: FastifyRequest, reply: FastifyReply )
+{
+    const { user_id, friend_id } = req.body as any;
+
+    if (!user_id || !friend_id) {
+        return false;
+    }
+
+    try {
+        // Remove friendship in both directions
+        const stmt1 = db.prepare(`DELETE FROM friendship WHERE user_id = ? AND friend_id = ?`);
+        const stmt2 = db.prepare(`DELETE FROM friendship WHERE user_id = ? AND friend_id = ?`);
+
+        const result1 = stmt1.run(user_id, friend_id);
+        const result2 = stmt2.run(friend_id, user_id);
+
+        return result1.changes > 0 || result2.changes > 0;
+    } catch (error) {
+        console.error('[DB] Error removing friend:', error);
+        return false;
+    }
 }

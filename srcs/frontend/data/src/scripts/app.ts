@@ -6,6 +6,7 @@ import { Intro } from './intro'
 import { Router } from './router'
 import { AuthModal } from './auth-modal'
 import { Friends } from './friends'
+import { Chat } from './chat'
 import { socialClient } from './social-client'
 import { User, UserPublic } from '../shared/types'
 import { run } from 'node:test'
@@ -93,6 +94,8 @@ const App = {
       case "friends":
         Friends.display();
         break
+      case "chat":
+        Chat.displayChannels();
     }
   },
 
@@ -216,7 +219,7 @@ const App = {
     sessionStorage.setItem('currentUser', JSON.stringify(user));
     this.updateNavbar();
     Friends.init();
-
+    Chat.init();
   },
 
   /**

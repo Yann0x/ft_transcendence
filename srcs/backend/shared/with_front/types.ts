@@ -43,7 +43,7 @@ export const MessageSchema = Type.Object({
   sender_id:    Type.String(),
   content:      Type.String(),
   sent_at:      Type.String({ format: 'date-time' }),
-  read_at:      Type.String({ format: 'date-time', default: null }),
+  read_at:      Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
 })
 export type Message = Static<typeof MessageSchema>;
 
@@ -76,10 +76,11 @@ export const UserSchema = Type.Object({
   status:       Type.String({default: 'offline'}),
   password:     Type.Optional(Type.String({minLength:6, maxLength: 128})),
   friends:      Type.Optional(Type.Array(UserPublicSchema)),
+  blocked_users: Type.Optional(Type.Array(Type.String())),
   stats:        Type.Optional(StatsSchema),
   matches:      Type.Optional(Type.Array(MatchSchema)),
   tournaments:  Type.Optional(Type.Array(TournamentSchema)),
-  channels:        Type.Optional(Type.Array(ChannelSchema)),
+  channels:     Type.Optional(Type.Array(ChannelSchema)),
 })
 export type User = Static<typeof UserSchema>;
 

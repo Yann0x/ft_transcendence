@@ -7,4 +7,7 @@ export function socialRoutes(server: FastifyInstance) {
 
   // REST endpoint for user update notifications
   server.post('/social/notify/user_update', handlers.notifyUserUpdate);
+
+  // REST endpoint for new message notifications
+  server.post('/social/notify/message_new', handlers.notifyMessageNew);
 }

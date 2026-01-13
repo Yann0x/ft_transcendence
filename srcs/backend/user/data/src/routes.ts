@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import * as handlers from './user_methods';
-import { ErrorResponseSchema, UserSchema, UserPublicSchema } from './shared/with_front/types';
+import { ErrorResponseSchema, UserSchema, UserPublicSchema, MessageSchema } from './shared/with_front/types';
 import { Type } from '@sinclair/typebox/type';
 import * as check from './shared/check_functions'
 
@@ -11,15 +11,10 @@ const registerUserSchema = {
       { required: ['name', 'email', 'password'], additionalProperties: false }
     ),
     response: {
-      200: {
-        type: 'object',
-        properties: {
-          success: { type: 'boolean' },
-          message: { type: 'string' },
-          user_id: { type: 'string' },
-          access_token: { type: 'string' }
-        }
-      },
+      200: Type.Object({
+        token: Type.String(),
+        user: UserSchema
+      }),
       400: ErrorResponseSchema,
       500: ErrorResponseSchema
     }
@@ -153,6 +148,24 @@ const getFriendsSchema = {
   }
 };
 
+const postMessageSchema = {
+  schema : {
+    description: 'send a message',
+    body: Type.Object({
+      channel_id: Type.Number(),
+      content: Type.String()
+    }),
+    response: {
+      200: Type.Object({
+        success: Type.Boolean(),
+        message: Type.String()
+      }),
+      400: ErrorResponseSchema,
+      500: ErrorResponseSchema
+    }
+  }
+}
+
 export function userRoutes(server: FastifyInstance) {
   // Public routes (no auth required)
   server.post('/user/public/register', registerUserSchema, handlers.registerUserHandler);
@@ -168,4 +181,12 @@ export function userRoutes(server: FastifyInstance) {
   server.post('/user/addFriend', addFriendSchema, handlers.addFriendHandler);
   server.delete('/user/rmFriend', removeFriendSchema, handlers.removeFriendHandler);
   server.get('/user/getFriends', getFriendsSchema, handlers.getFriendsHandler);
+  
+  //Chat
+  server.post('/user/message', postMessageSchema, handlers.sendMessage);
+
+  // Block management endpoints (authenticated)
+  server.post('/user/block', handlers.blockUserHandler);
+  server.delete('/user/unblock', handlers.unblockUserHandler);
+  server.get('/user/blocked', handlers.getBlockedUsersHandler);
 }
