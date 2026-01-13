@@ -4,9 +4,38 @@ import {socialClient} from  './social-client'
 
 export const Chat = {
 
-    init()
+    async init()
     {
         this.setupSocialEventListeners();
+        await this.displayChannels();
+
+        // Auto-open last conversation after channels are loaded
+        await this.openLastConversation();
+    },
+
+    async openLastConversation() {
+        // Check if user has any channels
+        if (!App.me.channels || App.me.channels.length === 0) {
+            console.log('[CHAT] No channels available to auto-open');
+            return;
+        }
+
+        // Find the channel with the most recent message
+        const sortedChannels = [...App.me.channels].sort((a: Channel, b: Channel) => {
+            const aLastMsg = a.messages[a.messages.length - 1];
+            const bLastMsg = b.messages[b.messages.length - 1];
+
+            if (!aLastMsg && !bLastMsg) return 0;
+            if (!aLastMsg) return 1;
+            if (!bLastMsg) return -1;
+
+            return new Date(bLastMsg.sent_at).getTime() - new Date(aLastMsg.sent_at).getTime();
+        });
+
+        const lastChannel = sortedChannels[0];
+        console.log('[CHAT] Auto-opening last conversation:', lastChannel.name);
+
+        await this.loadAndDisplayChannel(lastChannel.id);
     },
 
     setupSocialEventListeners(){
@@ -41,6 +70,9 @@ export const Chat = {
                 messageList.scrollTop = messageList.scrollHeight;
             }
         }
+
+        // Refresh channel list to update visual state (unread badge, colors)
+        this.displayChannels();
     },
 
     updateChannel(channel: Channel){
@@ -49,6 +81,39 @@ export const Chat = {
             App.me.channels[oldOne] = channel;
         else
             App.me.channels.push(channel);
+    },
+
+    hasUnreadMessages(channel: Channel): boolean {
+        // Check if channel has any unread messages (read_at === null)
+        // Only count messages not sent by current user
+        return channel.messages.some((msg: Message) =>
+            msg.read_at === null && msg.sender_id !== App.me.id
+        );
+    },
+
+    updateNavbarBadge() {
+        const badge = document.getElementById('chat-unread-badge');
+        if (!badge) return;
+
+        // Calculate total unread messages across all channels
+        let totalUnread = 0;
+        if (App.me && App.me.channels) {
+            App.me.channels.forEach((channel: Channel) => {
+                const unreadCount = channel.messages.filter((msg: Message) =>
+                    msg.read_at === null && msg.sender_id !== App.me.id
+                ).length;
+                totalUnread += unreadCount;
+            });
+        }
+
+        if (totalUnread > 0) {
+            badge.textContent = totalUnread > 99 ? '99+' : String(totalUnread);
+            badge.classList.remove('hidden');
+            badge.classList.add('flex');
+        } else {
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+        }
     },
 
     async displayChannels()
@@ -80,10 +145,15 @@ export const Chat = {
 
         const query = searchInput?.value.trim().toLowerCase() || '';
         let channels;
-        if (query)
-            channels = App.me.channels.filter((channel: Channel) => channel.name.toLowerCase().includes(query));
-        else
+        if (query) {
+            // Filter by display name (handles DM channels properly)
+            channels = App.me.channels.filter((channel: Channel) => {
+                const displayName = this.getChannelDisplayName(channel);
+                return displayName.toLowerCase().includes(query);
+            });
+        } else {
             channels = App.me.channels;
+        }
 
         if (channels.length === 0) {
             channelsList.innerHTML = `
@@ -96,6 +166,17 @@ export const Chat = {
             channelsList.innerHTML = channels.map((channel: Channel) => this.createChannelCard(channel)).join('');
             this.attachChannelListeners();
         }
+
+        // Attach search listener if not already attached
+        if (!searchInput.dataset.listenerAttached) {
+            searchInput.addEventListener('input', () => {
+                this.displayChannels(); // Re-render on every input change
+            });
+            searchInput.dataset.listenerAttached = 'true';
+        }
+
+        // Update navbar badge
+        this.updateNavbarBadge();
     },
 
     async attachChannelListeners(){
@@ -136,6 +217,27 @@ export const Chat = {
 
             // Display the fresh channel data
             await this.displayMessages(channel);
+
+            // Mark all messages as read
+            await fetch(`/user/channel/${channelId}/read`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
+                }
+            });
+
+            // Update the channel in local state to reflect read status
+            if (existingIndex !== -1) {
+                const now = new Date().toISOString();
+                App.me.channels[existingIndex].messages.forEach((msg: Message) => {
+                    if (msg.sender_id !== App.me.id && msg.read_at === null) {
+                        msg.read_at = now;
+                    }
+                });
+            }
+
+            // Refresh channel list to update visual state
+            await this.displayChannels();
         } catch (error) {
             console.error('[CHAT] Error loading channel:', error);
         }
@@ -156,6 +258,41 @@ export const Chat = {
     {
         const displayName = this.getChannelDisplayName(channel);
 
+        // Determine background color based on state
+        const isActive = (App as any).currentChannelId === channel.id;
+        const hasUnread = this.hasUnreadMessages(channel);
+
+        let bgColor, hoverColor;
+        if (isActive) {
+            bgColor = 'bg-blue-600'; // Opened conversation
+            hoverColor = 'hover:bg-blue-700';
+        } else if (hasUnread) {
+            bgColor = 'bg-neutral-800'; // Unread messages
+            hoverColor = 'hover:bg-neutral-750';
+        } else {
+            bgColor = 'bg-neutral-900'; // All read
+            hoverColor = 'hover:bg-neutral-800';
+        }
+
+        // Calculate unread count
+        const unreadCount = channel.messages.filter((msg: Message) =>
+            msg.read_at === null && msg.sender_id !== App.me.id
+        ).length;
+
+        // Icon background color - subtle variation based on state
+        let iconBgColor;
+        if (isActive) {
+            iconBgColor = 'bg-blue-700'; // Slightly darker blue for active
+        } else if (hasUnread) {
+            iconBgColor = 'bg-blue-600'; // Standard blue for unread
+        } else {
+            iconBgColor = 'bg-neutral-700'; // Neutral grey for read
+        }
+
+        const unreadBadge = unreadCount > 0
+            ? `<span class="flex items-center justify-center min-w-6 h-6 px-2 rounded-full bg-blue-600 text-white text-xs font-bold">${unreadCount}</span>`
+            : '';
+
         const lastMessage = channel.messages.length > 0
             ? channel.messages[channel.messages.length - 1]
             : null;
@@ -165,10 +302,11 @@ export const Chat = {
         const lastMessagePreview = lastMessageText.length > 50
             ? lastMessageText.substring(0, 50) + '...'
             : lastMessageText;
+
         const card = `
-            <div class="channel flex items-center justify-between p-4 bg-neutral-800 rounded-lg hover:bg-neutral-750 transition cursor-pointer" data-channel-id="${channel.id}">
-                <div class="flex items-center gap-3 flex-1">
-                    <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-600">
+            <div class="channel flex items-center justify-between p-4 rounded-lg transition cursor-pointer" data-channel-id="${channel.id}">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <div class="flex items-center justify-center w-12 h-12 rounded-full ${iconBgColor}">
                         <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
                         </svg>
@@ -178,6 +316,7 @@ export const Chat = {
                         <p class="text-sm text-neutral-400 truncate">${lastMessagePreview}</p>
                     </div>
                 </div>
+                ${unreadBadge}
             </div>
         `;
         return card;
@@ -224,14 +363,18 @@ export const Chat = {
         if (!messageList || !messageInput)
             return;
 
-        // Store current channel ID for sending messages and persistence
+        // Store current channel ID for sending messages
         (App as any).currentChannelId = channel.id;
-        sessionStorage.setItem('currentChannelId', String(channel.id));
 
         // Update chat header with channel/user info
         this.updateChatHeader(channel);
 
         messageList.innerHTML = channel.messages.map((message: Message) => this.createMessageCard(message)).join('');
+
+        // Scroll to bottom to show latest messages (use requestAnimationFrame for smooth scroll)
+        requestAnimationFrame(() => {
+            messageList.scrollTop = messageList.scrollHeight;
+        });
 
         // Create message input form
         messageInput.innerHTML = `

@@ -5,8 +5,7 @@
 import { Intro } from './intro'
 import { Router } from './router'
 import { AuthModal } from './auth-modal'
-import { Friends } from './friends'
-import { Chat } from './chat'
+import { Social } from './social'
 import { socialClient } from './social-client'
 import { User, UserPublic } from '../shared/types'
 import { run } from 'node:test'
@@ -91,11 +90,9 @@ const App = {
   runDedicatedScript(page: string) {
     console.log(`Run script for ${page}`)
     switch (page) {
-      case "friends":
-        Friends.display();
+      case "social_hub":
+        Social.init();
         break
-      case "chat":
-        Chat.displayChannels();
     }
   },
 
@@ -218,8 +215,7 @@ const App = {
     this.me = user;
     sessionStorage.setItem('currentUser', JSON.stringify(user));
     this.updateNavbar();
-    Friends.init();
-    Chat.init();
+    Social.init();
   },
 
   /**

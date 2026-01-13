@@ -14,8 +14,7 @@ const Router = {
   routes: [
     { path: '/play', page: 'home' },
     { path: '/stats', page: 'stats' },
-    { path: '/friends', page: 'friends' },
-    { path: '/chat', page: 'chat' },
+    { path: '/social_hub', page: 'social_hub' },
     { path: '/tournaments', page: 'tournaments' },
   ] as Route[],
 

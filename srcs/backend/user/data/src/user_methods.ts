@@ -392,6 +392,85 @@ export async function getFriendsHandler(
   }
 }
 
+export async function getChannelHandler(
+  req: FastifyRequest<{ Params: { channelId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const userId = req.headers['x-sender-id'] as string;
+    const { channelId } = req.params;
+
+    if (!userId) {
+      return reply.status(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
+    }
+
+    // Fetch the channel from user manager (which gets fresh data from database)
+    const channel = await userManager.getChannel(channelId);
+
+    if (!channel) {
+      return reply.status(404).send({ error: 'Not Found', message: 'Channel not found' });
+    }
+
+    // Check if user is a member of this channel
+    if (!channel.members.includes(userId)) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'You are not a member of this channel' });
+    }
+
+    return reply.status(200).send(channel);
+  } catch (error: any) {
+    console.error('[USER] getChannel error:', error);
+    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to fetch channel' });
+  }
+}
+
+export async function markChannelReadHandler(
+  req: FastifyRequest<{ Params: { channelId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const userId = req.headers['x-sender-id'] as string;
+    const { channelId } = req.params;
+
+    if (!userId) {
+      return reply.status(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
+    }
+
+    // Get channel from user manager
+    const channel = await userManager.getChannel(channelId);
+    if (!channel) {
+      return reply.status(404).send({ error: 'Not Found', message: 'Channel not found' });
+    }
+
+    // Check if user is member
+    if (!channel.members.includes(userId)) {
+      return reply.status(403).send({ error: 'Forbidden', message: 'You are not a member of this channel' });
+    }
+
+    // Mark all messages as read in database
+    const success = await customFetch('http://database:3000/database/channel/mark-read', 'PUT', {
+      channel_id: parseInt(channelId),
+      user_id: userId
+    });
+
+    if (!success) {
+      return reply.status(500).send({ error: 'Failed to mark as read', message: 'Database update failed' });
+    }
+
+    // Update in-memory cache
+    const now = new Date().toISOString();
+    channel.messages.forEach((msg: Message) => {
+      if (msg.sender_id !== userId && msg.read_at === null) {
+        msg.read_at = now;
+      }
+    });
+
+    return reply.status(200).send({ success: true, message: 'Marked as read' });
+  } catch (error: any) {
+    console.error('[USER] markChannelRead error:', error);
+    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to mark channel as read' });
+  }
+}
+
 export async function sendMessage(req: FastifyRequest, reply: FastifyReply)
 {
   try {
@@ -513,5 +592,122 @@ export async function getBlockedUsersHandler(
   } catch (error: any) {
     console.error('[USER] getBlockedUsers error:', error);
     return reply.status(500).send([]);
+  }
+}
+
+export async function findDMChannelHandler(
+  req: FastifyRequest<{ Querystring: { userId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const currentUserId = req.headers['x-sender-id'] as string;
+    const { userId: otherUserId } = req.query;
+
+    if (!currentUserId) {
+      return reply.status(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
+    }
+
+    if (!otherUserId) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'userId query parameter is required' });
+    }
+
+    // Find DM channel between current user and other user
+    const channelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
+      user1_id: currentUserId,
+      user2_id: otherUserId
+    }) as number | null;
+
+    if (!channelId) {
+      return reply.status(404).send({ error: 'Not Found', message: 'No DM channel exists between these users' });
+    }
+
+    // Get full channel data
+    const channel = await userManager.getChannel(String(channelId));
+    if (!channel) {
+      return reply.status(404).send({ error: 'Not Found', message: 'Channel not found' });
+    }
+
+    return reply.status(200).send(channel);
+  } catch (error: any) {
+    console.error('[USER] findDMChannel error:', error);
+    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to find DM channel' });
+  }
+}
+
+export async function createDMChannelHandler(
+  req: FastifyRequest<{ Body: { userId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const currentUserId = req.headers['x-sender-id'] as string;
+    const { userId: otherUserId } = req.body;
+
+    if (!currentUserId) {
+      return reply.status(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
+    }
+
+    if (!otherUserId) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'userId is required in request body' });
+    }
+
+    // Check if DM channel already exists
+    const existingChannelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
+      user1_id: currentUserId,
+      user2_id: otherUserId
+    }) as number | null;
+
+    if (existingChannelId) {
+      // Channel already exists, return it
+      const channel = await userManager.getChannel(String(existingChannelId));
+      return reply.status(200).send(channel);
+    }
+
+    // Get user data for channel name
+    const currentUser = await userManager.getUser(currentUserId);
+    const otherUser = await userManager.getUser(otherUserId);
+
+    if (!currentUser || !otherUser) {
+      return reply.status(404).send({ error: 'Not Found', message: 'User not found' });
+    }
+
+    // Create new DM channel
+    const channelName = `${currentUser.name}&${otherUser.name}`;
+    const channelData = {
+      name: channelName,
+      type: 'private',
+      created_by: currentUserId,
+      created_at: new Date().toISOString()
+    };
+
+    const newChannelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
+
+    if (!newChannelId) {
+      return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to create channel' });
+    }
+
+    // Add both users as members
+    await customFetch('http://database:3000/database/channel/member', 'POST', {
+      channel_id: parseInt(newChannelId),
+      user_id: currentUserId
+    });
+
+    await customFetch('http://database:3000/database/channel/member', 'POST', {
+      channel_id: parseInt(newChannelId),
+      user_id: otherUserId
+    });
+
+    // Get full channel data
+    const channel = await userManager.getChannel(newChannelId);
+
+    // Notify both users via WebSocket
+    await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
+      userIds: [currentUserId, otherUserId],
+      channel: channel
+    });
+
+    return reply.status(200).send(channel);
+  } catch (error: any) {
+    console.error('[USER] createDMChannel error:', error);
+    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to create DM channel' });
   }
 }
