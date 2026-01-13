@@ -466,3 +466,27 @@ export function deleteFriend( req: FastifyRequest, reply: FastifyReply )
         return false;
     }
 }
+
+export function markChannelRead( req: FastifyRequest, reply: FastifyReply )
+{
+    try {
+        const { channel_id, user_id } = req.body as { channel_id: number, user_id: string };
+        const now = new Date().toISOString();
+
+        // Mark all messages in channel as read (except user's own messages)
+        const stmt = db.prepare(`
+            UPDATE message
+            SET read_at = ?
+            WHERE channel_id = ?
+                AND sender_id != ?
+                AND read_at IS NULL
+        `);
+
+        stmt.run(now, channel_id, user_id);
+
+        return reply.status(200).send(true);
+    } catch (error: any) {
+        console.error('[DATABASE] markChannelRead error:', error);
+        return reply.status(500).send({ error: 'Failed to mark channel as read' });
+    }
+}

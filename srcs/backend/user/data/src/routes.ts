@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import * as handlers from './user_methods';
-import { ErrorResponseSchema, UserSchema, UserPublicSchema, MessageSchema } from './shared/with_front/types';
+import { ErrorResponseSchema, UserSchema, UserPublicSchema, MessageSchema, ChannelSchema } from './shared/with_front/types';
 import { Type } from '@sinclair/typebox/type';
 import * as check from './shared/check_functions'
 
@@ -148,6 +148,41 @@ const getFriendsSchema = {
   }
 };
 
+const getChannelSchema = {
+  schema: {
+    description: 'Get a single channel with messages',
+    params: Type.Object({
+      channelId: Type.String()
+    }),
+    response: {
+      200: ChannelSchema,
+      401: ErrorResponseSchema,
+      403: ErrorResponseSchema,
+      404: ErrorResponseSchema,
+      500: ErrorResponseSchema
+    }
+  }
+};
+
+const markChannelReadSchema = {
+  schema: {
+    description: 'Mark all messages in a channel as read',
+    params: Type.Object({
+      channelId: Type.String()
+    }),
+    response: {
+      200: Type.Object({
+        success: Type.Boolean(),
+        message: Type.String()
+      }),
+      401: ErrorResponseSchema,
+      403: ErrorResponseSchema,
+      404: ErrorResponseSchema,
+      500: ErrorResponseSchema
+    }
+  }
+};
+
 const postMessageSchema = {
   schema : {
     description: 'send a message',
@@ -181,9 +216,13 @@ export function userRoutes(server: FastifyInstance) {
   server.post('/user/addFriend', addFriendSchema, handlers.addFriendHandler);
   server.delete('/user/rmFriend', removeFriendSchema, handlers.removeFriendHandler);
   server.get('/user/getFriends', getFriendsSchema, handlers.getFriendsHandler);
-  
+
   //Chat
+  server.get('/user/channel/:channelId', getChannelSchema, handlers.getChannelHandler);
+  server.put('/user/channel/:channelId/read', markChannelReadSchema, handlers.markChannelReadHandler);
   server.post('/user/message', postMessageSchema, handlers.sendMessage);
+  server.get('/user/channel/find-dm', handlers.findDMChannelHandler);
+  server.post('/user/channel/create-dm', handlers.createDMChannelHandler);
 
   // Block management endpoints (authenticated)
   server.post('/user/block', handlers.blockUserHandler);
