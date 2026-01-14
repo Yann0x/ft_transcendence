@@ -91,7 +91,7 @@ const App = {
     console.log(`Run script for ${page}`)
     switch (page) {
       case "social_hub":
-        Social.init();
+        Social.load()
         break
     }
   },

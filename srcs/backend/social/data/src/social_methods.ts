@@ -138,3 +138,32 @@ export async function notifyMessageNew(request: FastifyRequest, reply: FastifyRe
 
   return reply.status(200).send({ success: true });
 }
+
+export async function notifyChannelUpdate(request: FastifyRequest, reply: FastifyReply) {
+  const { userIds, channel } = request.body as {
+    userIds: string[];
+    channel: any
+  };
+
+  if (!userIds || userIds.length === 0) {
+    return reply.status(400).send({ success: false, message: 'userIds required' });
+  }
+
+  if (!channel) {
+    return reply.status(400).send({ success: false, message: 'channel required' });
+  }
+
+  console.log(`[SOCIAL] Sending channel_update event to ${userIds.length} users for channel ${channel.id}`);
+
+  // Send channel_update event to each user in the channel
+  userIds.forEach(userId => {
+    const event: SocialEvent = {
+      type: 'channel_update',
+      data: channel,
+      timestamp: new Date().toISOString()
+    };
+    connexionManager.sendToUser(userId, event);
+  });
+
+  return reply.status(200).send({ success: true });
+}
