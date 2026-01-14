@@ -52,6 +52,17 @@ async function fillUser(user : User): Promise<User> {
         user.friends = [];
       }
 
+      // Fetch user's blocked users
+      try {
+        const blockedUsers = await customFetch('http://database:3000/database/blocked', 'GET', {
+          user_id: user.id
+        }) as string[];
+        user.blocked_users = blockedUsers || [];
+      } catch (error) {
+        console.error('[USER] Failed to load blocked users:', error);
+        user.blocked_users = [];
+      }
+
       // Fetch user's channels/chats
 
       return user;
@@ -313,6 +324,65 @@ export async function addFriendHandler(
       return reply.status(400).send({ success: false, message: 'Failed to add friend' });
     }
 
+    // Get or create DM channel and notify both users
+    try {
+      // Check if DM channel already exists (userManager.addFriend may have created it)
+      let channelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
+        user1_id: userId,
+        user2_id: friendId
+      }) as number | null;
+
+      // If channel doesn't exist yet, create it
+      if (!channelId) {
+        const currentUser = await userManager.getUser(userId);
+        const otherUser = await userManager.getUser(friendId);
+
+        if (currentUser && otherUser) {
+          const channelName = `${currentUser.name}&${otherUser.name}`;
+          const channelData = {
+            name: channelName,
+            type: 'private',
+            created_by: userId,
+            created_at: new Date().toISOString()
+          };
+
+          const newChannelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
+
+          if (newChannelId) {
+            channelId = parseInt(newChannelId);
+
+            // Add both users as members
+            await customFetch('http://database:3000/database/channel/member', 'POST', {
+              channel_id: channelId,
+              user_id: userId
+            });
+
+            await customFetch('http://database:3000/database/channel/member', 'POST', {
+              channel_id: channelId,
+              user_id: friendId
+            });
+
+            console.log(`[USER] Created DM channel ${channelId} for new friendship ${userId} <-> ${friendId}`);
+          }
+        }
+      }
+
+      // Always notify both users about the channel (whether new or existing)
+      if (channelId) {
+        const channel = await userManager.getChannel(String(channelId));
+        if (channel) {
+          await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
+            userIds: [userId, friendId],
+            channel: channel
+          });
+          console.log(`[USER] Sent channel_update for DM channel ${channelId} to both users`);
+        }
+      }
+    } catch (error) {
+      console.error('[USER] Failed to handle DM channel for new friendship:', error);
+      // Don't fail the whole request if channel creation fails
+    }
+
     // Notify both users that they need to refresh their own data
     try {
       await customFetch('http://social:3000/social/notify/user_update', 'POST', {
@@ -416,6 +486,20 @@ export async function getChannelHandler(
       return reply.status(403).send({ error: 'Forbidden', message: 'You are not a member of this channel' });
     }
 
+    // Check if this conversation is blocked (symmetric check)
+    if (channel.type === 'private' && channel.members && channel.members.length === 2) {
+      const otherUserId = channel.members.find((id: string) => id !== userId);
+      if (otherUserId) {
+        const currentUser = await userManager.getUser(userId);
+        const otherUser = await userManager.getUser(otherUserId);
+
+        const iBlockedThem = currentUser?.blocked_users?.includes(otherUserId) || false;
+        const theyBlockedMe = otherUser?.blocked_users?.includes(userId) || false;
+
+        (channel as any).isBlocked = iBlockedThem || theyBlockedMe;
+      }
+    }
+
     return reply.status(200).send(channel);
   } catch (error: any) {
     console.error('[USER] getChannel error:', error);
@@ -496,11 +580,11 @@ export async function sendMessage(req: FastifyRequest, reply: FastifyReply)
     message.sent_at = new Date().toISOString();
     message.read_at = null;
 
-    const success = await userManager.sendMessage(message);
-    if (!success)
-      return reply.status(400).send({message: 'Cannot send message' });
+    const response = await userManager.sendMessage(message);
+    if (!response.success)
+      return reply.status(400).send({error: 'sendMessage', message: 'Cannot send message - blocked or invalid' });
 
-    return reply.status(200).send({ success: true, message: 'Message sent' });
+    return reply.status(200).send({ success: true, message: response.message });
     }
     catch (error: any)
     {
@@ -524,7 +608,6 @@ export async function blockUserHandler(
       return reply.status(400).send({ success: false, message: 'Cannot block yourself' });
     }
 
-    // Add to database
     const success = await customFetch('http://database:3000/database/blocked', 'POST', {
       user_id: userId,
       blocked_user_id: blockedUserId
@@ -541,6 +624,60 @@ export async function blockUserHandler(
       if (!user.blocked_users.includes(blockedUserId)) {
         user.blocked_users.push(blockedUserId);
       }
+    }
+
+    // Remove friend relationship if exists (symmetric blocking)
+    try {
+      const isFriend = await userManager.isFriend(userId, blockedUserId);
+      if (isFriend) {
+        console.log(`[USER] Removing friend relationship between ${userId} and ${blockedUserId}`);
+        await userManager.removeFriend(userId, blockedUserId);
+      }
+    } catch (error) {
+      console.error('[USER] Failed to remove friend relationship:', error);
+      // Don't fail the block request if friend removal fails
+    }
+
+    // Always send user_update events after blocking (to refresh friends lists and blocked lists)
+    try {
+      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
+        notifyUserIds: [userId, blockedUserId],
+        updatedUserId: userId
+      });
+
+      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
+        notifyUserIds: [userId, blockedUserId],
+        updatedUserId: blockedUserId
+      });
+
+      console.log(`[USER] Sent user_update events to both users after blocking`);
+    } catch (error) {
+      console.error('[USER] Failed to send user_update events:', error);
+    }
+
+    // Send channel_update to both users for symmetric UI update
+    try {
+      const channelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
+        user1_id: userId,
+        user2_id: blockedUserId
+      }) as number | null;
+
+      if (channelId) {
+        const channel = await userManager.getChannel(String(channelId));
+        if (channel) {
+          // Add isBlocked flag (true after blocking)
+          (channel as any).isBlocked = true;
+          // Send channel_update to BOTH users (symmetric)
+          await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
+            userIds: [userId, blockedUserId],
+            channel: channel
+          });
+          console.log(`[USER] Sent channel_update for channel ${channelId} to both users after blocking`);
+        }
+      }
+    } catch (error) {
+      console.error('[USER] Failed to send channel_update after blocking:', error);
+      // Don't fail the request if notification fails
     }
 
     return reply.status(200).send({ success: true, message: 'User blocked' });
@@ -578,6 +715,48 @@ export async function unblockUserHandler(
       user.blocked_users = user.blocked_users.filter((id: string) => id !== blockedUserId);
     }
 
+    // Send user_update events to both users (to refresh blocked lists)
+    try {
+      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
+        notifyUserIds: [userId, blockedUserId],
+        updatedUserId: userId
+      });
+
+      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
+        notifyUserIds: [userId, blockedUserId],
+        updatedUserId: blockedUserId
+      });
+
+      console.log(`[USER] Sent user_update events to both users after unblocking`);
+    } catch (error) {
+      console.error('[USER] Failed to send user_update events:', error);
+    }
+
+    // Send channel_update to both users for symmetric UI update
+    try {
+      const channelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
+        user1_id: userId,
+        user2_id: blockedUserId
+      }) as number | null;
+
+      if (channelId) {
+        const channel = await userManager.getChannel(String(channelId));
+        if (channel) {
+          // Add isBlocked flag (false after unblocking)
+          (channel as any).isBlocked = false;
+          // Send channel_update to BOTH users (symmetric)
+          await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
+            userIds: [userId, blockedUserId],
+            channel: channel
+          });
+          console.log(`[USER] Sent channel_update for channel ${channelId} to both users after unblocking`);
+        }
+      }
+    } catch (error) {
+      console.error('[USER] Failed to send channel_update after unblocking:', error);
+      // Don't fail the request if notification fails
+    }
+
     return reply.status(200).send({ success: true, message: 'User unblocked' });
   } catch (error: any) {
     console.error('[USER] unblockUser error:', error);
@@ -603,6 +782,28 @@ export async function getBlockedUsersHandler(
     return reply.status(200).send(blockedIds || []);
   } catch (error: any) {
     console.error('[USER] getBlockedUsers error:', error);
+    return reply.status(500).send([]);
+  }
+}
+
+export async function getBlockedUsersByIdHandler(
+  req: FastifyRequest<{ Params: { userId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return reply.status(400).send([]);
+    }
+
+    const blockedIds = await customFetch('http://database:3000/database/blocked', 'GET', {
+      user_id: userId
+    }) as string[];
+
+    return reply.status(200).send(blockedIds || []);
+  } catch (error) {
+    console.error('[USER] getBlockedUsersById error:', error);
     return reply.status(500).send([]);
   }
 }

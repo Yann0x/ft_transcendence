@@ -45,16 +45,17 @@ export const Chat =
             console.log(`[CHAT] No channel found for message in channel ${message.channel_id}`);
             return ;
         }
+        let messageInChannel = channel.messages.find(m => m.id === message.id)
+        if (messageInChannel){
+            messageInChannel = message;
+            return ;
+        }
         channel.messages.push(message);
 
-        // If this is the currently displayed channel, update the UI
         const isCurrentChannel = (App as any).currentChannelId === message.channel_id;
         if (isCurrentChannel) {
-            // Mark the message as read if it's not from the current user and the channel is open
             if (message.sender_id !== App.me.id && message.read_at === null) {
-
                 message.read_at = new Date().toISOString();
-
                 fetch(`/user/channel/${message.channel_id}/read`, {
                     method: 'PUT',
                     headers: {
@@ -63,8 +64,6 @@ export const Chat =
                 }).catch(error => {
                     console.error('[CHAT] Failed to mark channel as read:', error);
                 });
-
-                // Update navbar badge
                 this.updateNavbarBadge();
             }
             const messageList = document.getElementById('channel-messages');
@@ -76,10 +75,7 @@ export const Chat =
 
                 messageList.scrollTop = messageList.scrollHeight;
             }
-
         }
-
-        // Refresh channel list to update visual state (unread badge, colors)
         this.displayChannels();
     },
 
@@ -91,23 +87,16 @@ export const Chat =
         } else {
             App.me.channels.push(channel);
         }
-
-        // If this is the currently displayed channel, refresh the messages to show updated read status
         if ((App as any).currentChannelId === channel.id) {
-            console.log('[CHAT] 📖 Channel is currently open, refreshing messages to show read status');
             this.displayMessages(channel);
         }
-
         // Refresh channel list to update unread badges and visual state
         this.displayChannels();
-
         // Update navbar badge
         this.updateNavbarBadge();
     },
 
     hasUnreadMessages(channel: Channel): boolean {
-        // Check if channel has any unread messages (read_at === null)
-        // Only count messages not sent by current user
         return channel.messages.some((msg: Message) =>
             msg.read_at === null && msg.sender_id !== App.me.id
         );
@@ -117,7 +106,14 @@ export const Chat =
         const badge = document.getElementById('chat-unread-badge');
         if (!badge) return;
 
-        // Calculate total unread messages across all channels
+        // Hide badge when on social page (user can already see unread in channel list)
+        const isOnSocialPage = window.location.pathname === '/social_hub' || window.location.pathname === '/social_hub/';
+        if (isOnSocialPage) {
+            badge.classList.add('hidden');
+            badge.classList.remove('flex');
+            return;
+        }
+
         let totalUnread = 0;
         if (App.me && App.me.channels) {
             App.me.channels.forEach((channel: Channel) => {
@@ -127,9 +123,8 @@ export const Chat =
                 totalUnread += unreadCount;
             });
         }
-
         if (totalUnread > 0) {
-            badge.textContent = totalUnread > 99 ? '99+' : String(totalUnread);
+            badge.textContent = String(totalUnread);
             badge.classList.remove('hidden');
             badge.classList.add('flex');
         } else {
@@ -152,19 +147,15 @@ export const Chat =
             console.error('[CHAT] channel-search-input element not found');
             return;
         }
-
         if (!App.me) {
             console.error('[CHAT] App.me is null');
             return;
         }
-
         if (!App.me.channels) {
             console.log('[CHAT] No channels found for user, initializing empty array');
             App.me.channels = [];
         }
-
         console.log('[CHAT] User has', App.me.channels.length, 'channels');
-
         const query = searchInput?.value.trim().toLowerCase() || '';
         let channels;
         if (query) {
@@ -176,8 +167,6 @@ export const Chat =
         } else {
             channels = App.me.channels;
         }
-
-        // Sort channels by most recent message (newest first)
         channels = [...channels].sort((a: Channel, b: Channel) => {
             const aLastMsg = a.messages[a.messages.length - 1];
             const bLastMsg = b.messages[b.messages.length - 1];
@@ -390,6 +379,165 @@ export const Chat =
 
         // Show action buttons
         headerActions.style.display = 'flex';
+
+        // Attach block button listener
+        this.attachBlockButtonListener(channel);
+    },
+
+    attachBlockButtonListener(channel: Channel) {
+        const blockBtn = document.getElementById('block-user-btn');
+        if (!blockBtn) return;
+        const otherUserId = channel.members.find((id: string) => id !== App.me.id);
+        if (!otherUserId) return;
+        const isBlocked = App.me.blocked_users?.includes(otherUserId) || false;
+        const buttonSpan = blockBtn.querySelector('span');
+        if (buttonSpan) {
+            buttonSpan.textContent = isBlocked ? '✅' : '🚫';
+        }
+        blockBtn.title = isBlocked ? 'Unblock user' : 'Block user';
+
+        // Remove old listener if exists
+        const newBlockBtn = blockBtn.cloneNode(true) as HTMLElement;
+        blockBtn.parentNode?.replaceChild(newBlockBtn, blockBtn);
+
+        // Add new listener
+        newBlockBtn.addEventListener('click', async () => {
+            // Only allow blocking in private (DM) channels
+            if (channel.type !== 'private') {
+                alert('You can only block users in direct messages');
+                return;
+            }
+
+            if (isBlocked) {
+                await this.unblockUser(otherUserId);
+            } else {
+                await this.blockUser(otherUserId);
+            }
+        });
+    },
+
+    async blockUser(userId: string) {
+        try {
+            const token = sessionStorage.getItem('authToken');
+            if (!token) {
+                alert('Not authenticated');
+                return;
+            }
+            // Confirm before blocking
+            const userName = App.onlineUsers.get(userId)?.name || 'this user';
+            const confirmed = confirm(`Are you sure you want to block ${userName}? You won't receive messages from them anymore.`);
+            if (!confirmed) return;
+
+            console.log('[CHAT] 🚫 Blocking user:', userId);
+
+            const response = await fetch('/user/block', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ blockedUserId: userId })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                console.error('[CHAT] Failed to block user:', error);
+                alert(error.message || 'Failed to block user');
+                return;
+            }
+
+            const result = await response.json();
+            console.log('[CHAT] ✅ User blocked successfully:', result);
+
+            // Update local state
+            if (!App.me.blocked_users) {
+                App.me.blocked_users = [];
+            }
+            if (!App.me.blocked_users.includes(userId)) {
+                App.me.blocked_users.push(userId);
+            }
+
+            // Update sessionStorage
+            sessionStorage.setItem('currentUser', JSON.stringify(App.me));
+
+            // Refresh the current channel display to show blocking message
+            const currentChannelId = (App as any).currentChannelId;
+            if (currentChannelId) {
+                const channel = App.me.channels.find((c: Channel) => c.id === currentChannelId);
+                if (channel) {
+                    await this.displayMessages(channel);
+                }
+            }
+
+            // Refresh channel list (user may have been removed from friends)
+            this.displayChannels();
+
+            alert('User blocked successfully');
+        } catch (error) {
+            console.error('[CHAT] Error blocking user:', error);
+            alert('Error blocking user. Please try again.');
+        }
+    },
+
+    async unblockUser(userId: string) {
+        try {
+            const token = sessionStorage.getItem('authToken');
+            if (!token) {
+                alert('Not authenticated');
+                return;
+            }
+
+            // Confirm before unblocking
+            const userName = App.onlineUsers.get(userId)?.name || 'this user';
+            const confirmed = confirm(`Are you sure you want to unblock ${userName}?`);
+            if (!confirmed) return;
+
+            console.log('[CHAT] ✅ Unblocking user:', userId);
+
+            const response = await fetch('/user/unblock', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ blockedUserId: userId })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                console.error('[CHAT] Failed to unblock user:', error);
+                alert(error.message || 'Failed to unblock user');
+                return;
+            }
+
+            const result = await response.json();
+            console.log('[CHAT] ✅ User unblocked successfully:', result);
+
+            // Update local state
+            if (App.me.blocked_users) {
+                App.me.blocked_users = App.me.blocked_users.filter((id: string) => id !== userId);
+            }
+
+            // Update sessionStorage
+            sessionStorage.setItem('currentUser', JSON.stringify(App.me));
+
+            // Refresh the current channel display to remove blocking message
+            const currentChannelId = (App as any).currentChannelId;
+            if (currentChannelId) {
+                const channel = App.me.channels.find((c: Channel) => c.id === currentChannelId);
+                if (channel) {
+                    await this.displayMessages(channel);
+                }
+            }
+
+            // Refresh channel list
+            this.displayChannels();
+
+            alert('User unblocked successfully');
+        } catch (error) {
+            console.error('[CHAT] Error unblocking user:', error);
+            alert('Error unblocking user. Please try again.');
+        }
     },
 
     async displayMessages(channel: Channel)
@@ -399,41 +547,67 @@ export const Chat =
         if (!messageList || !messageInput)
             return;
 
-        // Store current channel ID for sending messages
         (App as any).currentChannelId = channel.id;
 
-        // Update chat header with channel/user info
         this.updateChatHeader(channel);
 
-        messageList.innerHTML = channel.messages.map((message: Message) => this.createMessageCard(message)).join('');
+        // Display all messages
+        let messagesHTML = channel.messages.map((message: Message) => this.createMessageCard(message)).join('');
 
-        // Scroll to bottom to show latest messages (use requestAnimationFrame for smooth scroll)
+        // Check if conversation is blocked (backend provides this)
+        const isBlocked = (channel as any).isBlocked || false;
+
+        messageList.innerHTML = messagesHTML;
+
         requestAnimationFrame(() => {
             messageList.scrollTop = messageList.scrollHeight;
         });
 
-        // Create message input form
-        messageInput.innerHTML = `
-            <form id="message-form" class="flex gap-2 p-4 bg-neutral-800 border-t border-neutral-700">
-                <input
-                    type="text"
-                    id="message-content-input"
-                    placeholder="Type a message..."
-                    class="flex-1 px-4 py-2 bg-neutral-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
-                    autocomplete="off"
-                />
-                <button
-                    type="submit"
-                    class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                    Send
-                </button>
-            </form>
-        `;
+        // Disable input if conversation is blocked
+        if (isBlocked) {
+            messageInput.innerHTML = `
+                <div class="flex gap-2 p-4 bg-neutral-800 border-t border-neutral-700">
+                    <input
+                        type="text"
+                        placeholder="This conversation has been blocked"
+                        class="flex-1 px-4 py-2 bg-neutral-900 text-neutral-500 rounded-lg cursor-not-allowed"
+                        disabled
+                    />
+                    <button
+                        type="button"
+                        class="px-6 py-2 bg-neutral-700 text-neutral-500 rounded-lg cursor-not-allowed"
+                        disabled
+                    >
+                        Send
+                    </button>
+                </div>
+            `;
+        } else {
+            messageInput.innerHTML = `
+                <form id="message-form" class="flex gap-2 p-4 bg-neutral-800 border-t border-neutral-700">
+                    <input
+                        type="text"
+                        id="message-content-input"
+                        placeholder="Type a message..."
+                        class="flex-1 px-4 py-2 bg-neutral-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                        autocomplete="off"
+                    />
+                    <button
+                        type="submit"
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    >
+                        Send
+                    </button>
+                </form>
+            `;
 
-        // Attach form submit handler
-        const form = document.getElementById('message-form');
-        form?.addEventListener('submit', (e) => this.handleSendMessage(e));
+            const form = document.getElementById('message-form');
+            form?.addEventListener('submit', (e) => this.handleSendMessage(e));
+
+            // Focus on message input
+            const input = document.getElementById('message-content-input') as HTMLInputElement;
+            input?.focus();
+        }
     },
 
     async handleSendMessage(e: Event)
@@ -442,26 +616,30 @@ export const Chat =
         const input = document.getElementById('message-content-input') as HTMLInputElement;
         const content = input?.value.trim();
 
-        if (!content || !(App as any).currentChannelId) return;
+        const message = {
+                    channel_id: (App as any).currentChannelId,
+                    content: content
+                }
+        if (!message.channel_id || !message.content) return;
 
         try {
-            const response = await fetch('/user/message', {
+            const status = await fetch('/user/message', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
                 },
-                body: JSON.stringify({
-                    channel_id: (App as any).currentChannelId,
-                    content: content
-                })
+                body: JSON.stringify(message)
             });
-
-            if (response.ok) {
-                input.value = ''; // Clear input
-            } else {
-                console.error('[CHAT] Failed to send message:', await response.text());
+            if  (!status.ok) {
+                console.log('fetch /user/message return status not ok')
+                return;
             }
+            const reply = await status.json();
+
+            console.log(`add ${reply.message}  to chanel`)
+            this.addMessageToChannel(reply.message)
+            input.value = '';
         } catch (error) {
             console.error('[CHAT] Error sending message:', error);
         }

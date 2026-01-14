@@ -29,6 +29,17 @@ export const userManager = {
         user.friends = [];
       }
 
+      // Load blocked users from database
+      try {
+        const blockedUsers = await customFetch('http://database:3000/database/blocked', 'GET', {
+          user_id: userId
+        }) as string[];
+        user.blocked_users = blockedUsers || [];
+      } catch (error) {
+        console.error(`[UserManager] Failed to load blocked users for user ${userId}:`, error);
+        user.blocked_users = [];
+      }
+
       this.users.set(userId, user);
       return user;
     } catch (error) {
@@ -237,12 +248,12 @@ export const userManager = {
     return true;
   },
 
-  async sendMessage(message: Message): Promise<boolean>
+  async sendMessage(message: Message): Promise<{success: boolean, message: Message | undefined}>
   {
     const senderUser = await this.getUser(message.sender_id);
     if (!senderUser) {
       console.error('[UserManager] Sender not found');
-      return false;
+      return {success: false, message: undefined};
     }
 
     // Initialize blocked_users if not present
@@ -252,25 +263,33 @@ export const userManager = {
     const channelMembers = await this.getUsersFromChannel(message.channel_id);
     if (!channelMembers || channelMembers.length === 0) {
       console.error('[UserManager] No members in channel');
-      return false;
+      return {success: false, message: undefined};
     }
 
-    // Check if any channel member has blocked the sender
+    // Check symmetric blocking - reject if ANY blocking exists in either direction
     for (const memberId of channelMembers) {
       if (memberId === message.sender_id) continue; // Skip sender
+
       const member = await this.getUser(memberId);
+
+      // Check if member has blocked sender OR sender has blocked member (symmetric)
       if (member?.blocked_users?.includes(message.sender_id)) {
-        console.log(`[UserManager] User ${memberId} has blocked ${message.sender_id}`);
-        return false; // Blocked users cannot send messages
+        console.log(`[UserManager] User ${memberId} has blocked sender ${message.sender_id} - message rejected`);
+        return {success: false, message: undefined};
+      }
+
+      if (senderUser.blocked_users?.includes(memberId)) {
+        console.log(`[UserManager] Sender ${message.sender_id} has blocked user ${memberId} - message rejected`);
+        return {success: false, message: undefined};
       }
     }
 
-    // Save message to database
+    // No blocking detected - save and deliver message normally
     try {
       const messageId = await customFetch('http://database:3000/database/message', 'POST', message) as string;
       if (!messageId) {
         console.error('[UserManager] Failed to save message to database');
-        return false;
+        return {success: false, message: undefined};
       }
 
       // Add the message ID to the message object
@@ -284,16 +303,16 @@ export const userManager = {
         console.log(`[UserManager] Added message ${message.id} to channel ${channel.id} in-memory cache`);
       }
 
-      // Notify all channel members via Social service
+      // Notify all channel members
       await customFetch('http://social:3000/social/notify/message_new', 'POST', {
         userIds: channelMembers,
         message: message
       });
 
-      return true;
+      return {success: true, message: message};
     } catch (error) {
       console.error('[UserManager] Failed to send message:', error);
-      return false;
+      return {success: false};
     }
   }
 }

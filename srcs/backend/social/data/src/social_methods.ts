@@ -44,7 +44,7 @@ export async function socialWss(socket: WebSocket, req: FastifyRequest) {
     data: { user: user },
     timestamp: new Date().toISOString()
   }
-  connexionManager.sendToAll(newConnexionEvent);
+  await connexionManager.sendToAll(newConnexionEvent, user.id);
   setSocketListeners(user, socket);
 }
 
@@ -71,7 +71,7 @@ function setSocketListeners(user: User, socket: WebSocket){
       data: { id: user.id },
       timestamp: new Date().toISOString()
     }
-    connexionManager.sendToAll(disconnectEvent);
+    await connexionManager.sendToAll(disconnectEvent, user.id);
     connexionManager.removeConnected(user.id);
   });
 
