@@ -260,7 +260,7 @@ export const Friends = {
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button class="add_friend px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition" data-user-id="${user.id}">
+          <button class="add_friend px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition" data-user-id="${user.id}">
             <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -290,17 +290,12 @@ export const Friends = {
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button class="chat_friend px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition" data-user-id="${user.id}">
-            <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.8L3 21l1.8-4A7.97 7.97 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-            </svg>
-            chat
-          </button>
-          <button class="remove_friend px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition" data-user-id="${user.id}">
+          <button class="remove_friend px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition" data-user-id="${user.id}">
             <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
-            </button>
+            Remove
+          </button>
         </div>
       </div>
     `;
@@ -317,15 +312,6 @@ export const Friends = {
   },
 
   attachFriendActionListeners(): void {
-    document.querySelectorAll('.chat_friend').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const userId = (e.currentTarget as HTMLElement).getAttribute('data-user-id');
-        if (userId) {
-          console.log('[FRIENDS] View profile for user:', userId);
-        }
-      });
-    });
-
     document.querySelectorAll('.remove_friend').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const userId = (e.currentTarget as HTMLElement).getAttribute('data-user-id');

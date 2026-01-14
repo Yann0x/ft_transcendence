@@ -193,7 +193,7 @@ const postMessageSchema = {
     response: {
       200: Type.Object({
         success: Type.Boolean(),
-        message: Type.String()
+        message: MessageSchema
       }),
       400: ErrorResponseSchema,
       500: ErrorResponseSchema
@@ -228,4 +228,5 @@ export function userRoutes(server: FastifyInstance) {
   server.post('/user/block', handlers.blockUserHandler);
   server.delete('/user/unblock', handlers.unblockUserHandler);
   server.get('/user/blocked', handlers.getBlockedUsersHandler);
+  server.get('/user/:userId/blocked-users', handlers.getBlockedUsersByIdHandler);
 }

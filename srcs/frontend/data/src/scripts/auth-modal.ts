@@ -83,6 +83,11 @@ export const AuthModal = {
     this.signupTab?.classList.add('border-transparent', 'text-neutral-400');
     this.loginForm?.classList.remove('hidden');
     this.signupForm?.classList.add('hidden');
+    // Focus on email input
+    setTimeout(() => {
+      const emailInput = this.loginForm?.querySelector('input[name="email"]') as HTMLInputElement;
+      emailInput?.focus();
+    }, 100);
   },
 
   /**
@@ -95,6 +100,11 @@ export const AuthModal = {
     this.loginTab?.classList.add('border-transparent', 'text-neutral-400');
     this.signupForm?.classList.remove('hidden');
     this.loginForm?.classList.add('hidden');
+    // Focus on email input
+    setTimeout(() => {
+      const emailInput = this.signupForm?.querySelector('input[name="email"]') as HTMLInputElement;
+      emailInput?.focus();
+    }, 100);
   },
 
   /**

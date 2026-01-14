@@ -56,6 +56,7 @@ export const ChannelSchema = Type.Object({
   messages:     Type.Array(MessageSchema),
   created_by:   Type.String(),
   created_at:   Type.String({ format: 'date-time' }),
+  isBlocked:    Type.Optional(Type.Boolean()),  // True if conversation is blocked (either direction)
 })
 export type Channel = Static<typeof ChannelSchema>;
 
