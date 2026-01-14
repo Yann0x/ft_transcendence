@@ -5,7 +5,7 @@ all : run
 run : init down front build
 	docker compose -f $(docker-compose-path) up -d
 
-build : down init front 
+build : down init front
 	docker compose -f $(docker-compose-path) build
 
 down :

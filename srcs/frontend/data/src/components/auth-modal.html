@@ -11,10 +11,10 @@
 
     <!-- Tabs -->
     <div class="flex gap-4 mb-6 border-b border-neutral-800">
-      <button id="auth-login-tab" class="py-3 px-2 border-b-2 border-blue-500 font-semibold text-white transition" type="button">
+      <button id="auth-login-tab" class="py-3 px-2 border-b-2 border-blue-500 font-semibold text-white transition" type="button" data-i18n="auth.login">
         Connexion
       </button>
-      <button id="auth-signup-tab" class="py-3 px-2 border-b-2 border-transparent text-neutral-400 hover:text-white transition" type="button">
+      <button id="auth-signup-tab" class="py-3 px-2 border-b-2 border-transparent text-neutral-400 hover:text-white transition" type="button" data-i18n="auth.signup">
         Inscription
       </button>
     </div>
@@ -22,57 +22,59 @@
     <!-- Login Form -->
     <form id="auth-login-form" class="space-y-4 mb-5">
       <div>
-        <label class="block text-sm font-medium text-neutral-300 mb-2">Email</label>
-        <input type="email" name="email" placeholder="votre@email.com" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.email">Email</label>
+        <input type="email" name="email" placeholder="votre@email.com" data-i18n-placeholder="auth.email_placeholder" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-neutral-300 mb-2">Mot de passe</label>
-        <input type="password" name="password" placeholder="••••••••" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.password">Mot de passe</label>
+        <input type="password" name="password" placeholder="••••••••" data-i18n-placeholder="auth.password_placeholder" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
       </div>
 
       <div class="flex items-center gap-2">
         <input type="checkbox" id="auth-remember" class="w-4 h-4 accent-blue-500 cursor-pointer">
-        <label for="auth-remember" class="text-sm text-neutral-400 cursor-pointer">Se souvenir de moi</label>
+        <label for="auth-remember" class="text-sm text-neutral-400 cursor-pointer" data-i18n="auth.remember">Se souvenir de moi</label>
       </div>
 
-      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="auth.login_submit">
         Se connecter
       </button>
 
       <div class="text-center text-sm text-neutral-400">
-        Pas encore inscrit ? <span id="auth-switch-signup" class="text-blue-500 hover:text-blue-400 cursor-pointer transition">Créer un compte</span>
+        <span data-i18n="auth.no_account">Pas encore inscrit ?</span>
+        <span id="auth-switch-signup" class="text-blue-500 hover:text-blue-400 cursor-pointer transition" data-i18n="auth.create_account">Créer un compte</span>
       </div>
     </form>
 
     <!-- Signup Form -->
     <form id="auth-signup-form" class="space-y-4 mb-5 hidden">
       <div>
-        <label class="block text-sm font-medium text-neutral-300 mb-2">Email</label>
-        <input type="email" name="email" placeholder="votre@email.com" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.email">Email</label>
+        <input type="email" name="email" placeholder="votre@email.com" data-i18n-placeholder="auth.email_placeholder" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-neutral-300 mb-2">Nom d'utilisateur</label>
-        <input type="text" name="name" placeholder="votre_username" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.username">Nom d'utilisateur</label>
+        <input type="text" name="name" placeholder="votre_username" data-i18n-placeholder="auth.username_placeholder" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-neutral-300 mb-2">Mot de passe</label>
-        <input type="password" name="password" placeholder="••••••••" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.password">Mot de passe</label>
+        <input type="password" name="password" placeholder="••••••••" data-i18n-placeholder="auth.password_placeholder" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
       </div>
 
       <div class="flex items-center gap-2">
         <input type="checkbox" id="auth-terms" class="w-4 h-4 accent-blue-500 cursor-pointer">
-        <label for="auth-terms" class="text-sm text-neutral-400 cursor-pointer">J'accepte les conditions d'utilisation</label>
+        <label for="auth-terms" class="text-sm text-neutral-400 cursor-pointer" data-i18n="auth.terms">J'accepte les conditions d'utilisation</label>
       </div>
 
-      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="auth.signup_submit">
         S'inscrire
       </button>
 
       <div class="text-center text-sm text-neutral-400">
-        Vous avez un compte ? <span id="auth-switch-login" class="text-blue-500 hover:text-blue-400 cursor-pointer transition">Se connecter</span>
+        <span data-i18n="auth.have_account">Vous avez un compte ?</span>
+        <span id="auth-switch-login" class="text-blue-500 hover:text-blue-400 cursor-pointer transition" data-i18n="auth.login_link">Se connecter</span>
       </div>
     </form>
 
@@ -82,7 +84,7 @@
         <div class="w-full border-t border-neutral-700"></div>
       </div>
       <div class="relative flex justify-center text-sm">
-        <span class="px-2 bg-neutral-900 text-neutral-400">ou continuer avec</span>
+        <span class="px-2 bg-neutral-900 text-neutral-400" data-i18n="auth.or_continue">ou continuer avec</span>
       </div>
     </div>
 
@@ -91,7 +93,7 @@
       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.012 12.012 0 0024 12c0-6.63-5.37-12-12-12z"/>
       </svg>
-      <span>Se connecter avec 42</span>
+      <span data-i18n="auth.oauth_42">Se connecter avec 42</span>
     </button>
   </div>
 </div>

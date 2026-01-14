@@ -5,18 +5,18 @@
     <!-- Logo -->
     <a href="/play" class="flex items-center gap-3">
       <span class="text-3xl">🏓</span>
-      <span class="text-xl font-bold text-white">ft_transcendence</span>
+      <span class="text-xl font-bold text-white" data-i18n="app.title">ft_transcendence</span>
     </a>
     
     <!-- Navigation Links -->
     <div class="flex items-center gap-2">
       <a href="/play" class="nav-link active">
         <span>🎮</span>
-        <span>Jouer</span>
+        <span data-i18n="nav.play">Jouer</span>
       </a>
       <a href="/tournaments" class="nav-link">
         <span>🏆</span>
-        <span>Tournois</span>
+        <span data-i18n="nav.tournaments">Tournois</span>
       </a>
       <a href="/social_hub" class="nav-link relative">
         <span>💬</span>
@@ -28,18 +28,12 @@
       </a>
       <a href="/stats" class="nav-link">
         <span>📊</span>
-        <span>Stats</span>
+        <span data-i18n="nav.stats">Stats</span>
       </a>
     </div>
     
     <!-- User Actions -->
     <div class="flex items-center gap-4">
-      <!-- Not authenticated buttons -->
-      <div id="auth-buttons" class="flex items-center gap-4">
-        <button class="btn btn-outline" type="button">Connexion</button>
-        <button class="btn btn-secondary" type="button">Inscription</button>
-      </div>
-
       <!-- Authenticated user button -->
       <div id="user-account-section" class="relative hidden">
         <button id="user-account-button" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-neutral-800 transition" type="button">
@@ -58,16 +52,28 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
               </svg>
-              <span>Paramètres</span>
+              <span data-i18n="nav.settings">Paramètres</span>
             </a>
             <button id="user-logout" class="w-full flex items-center gap-2 px-4 py-2 text-red-400 hover:bg-neutral-700 hover:text-red-300 transition" type="button">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
               </svg>
-              <span>Déconnexion</span>
+              <span data-i18n="nav.logout">Déconnexion</span>
             </button>
           </div>
         </div>
+      </div>
+
+      <!-- Language, contrast and auth buttons -->
+      <div id="auth-buttons" class="flex items-center gap-3">
+        <label class="text-xs text-neutral-400" for="lang-select" data-i18n="nav.language">Langue</label>
+        <select id="lang-select" class="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm text-white">
+          <option value="fr">FR</option>
+          <option value="en">EN</option>
+        </select>
+        <button id="contrast-toggle" class="btn btn-outline text-sm" type="button" aria-pressed="false" data-i18n="nav.contrast">Contraste élevé</button>
+        <button class="btn btn-outline" type="button" data-auth="login" data-i18n="nav.login">Connexion</button>
+        <button class="btn btn-secondary" type="button" data-auth="signup" data-i18n="nav.signup">Inscription</button>
       </div>
     </div>
   </div>
