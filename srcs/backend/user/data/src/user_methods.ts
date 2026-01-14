@@ -464,6 +464,18 @@ export async function markChannelReadHandler(
       }
     });
 
+    // Notify all channel members about the updated channel (with read status)
+    try {
+      await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
+        userIds: channel.members,
+        channel: channel
+      });
+      console.log(`[USER] Sent channel_update event for channel ${channelId} after marking as read`);
+    } catch (error) {
+      console.error('[USER] Failed to notify social service about channel update:', error);
+      // Don't fail the request if notification fails
+    }
+
     return reply.status(200).send({ success: true, message: 'Marked as read' });
   } catch (error: any) {
     console.error('[USER] markChannelRead error:', error);

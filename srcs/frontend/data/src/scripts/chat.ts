@@ -2,17 +2,8 @@ import {App} from './app.ts'
 import {Message, Channel, SocialEvent} from '../shared/types'
 import {socialClient} from  './social-client'
 
-export const Chat = {
-
-    async init()
-    {
-        this.setupSocialEventListeners();
-        await this.displayChannels();
-
-        // Auto-open last conversation after channels are loaded
-        await this.openLastConversation();
-    },
-
+export const Chat = 
+{    
     async openLastConversation() {
         // Check if user has any channels
         if (!App.me.channels || App.me.channels.length === 0) {
@@ -33,17 +24,16 @@ export const Chat = {
         });
 
         const lastChannel = sortedChannels[0];
-        console.log('[CHAT] Auto-opening last conversation:', lastChannel.name);
+        console.log('[CHAT] opening last conversation:', lastChannel.name);
 
         await this.loadAndDisplayChannel(lastChannel.id);
     },
 
     setupSocialEventListeners(){
-        socialClient.on('channel_update', (event:SocialEvent) => {
+        socialClient.on('channel_update', (event: SocialEvent) => {
             this.updateChannel(event.data);
         });
-
-        socialClient.on('message_new', (event:SocialEvent) => {
+        socialClient.on('message_new', (event: SocialEvent) => {
             this.addMessageToChannel(event.data);
         });
     },
@@ -58,7 +48,25 @@ export const Chat = {
         channel.messages.push(message);
 
         // If this is the currently displayed channel, update the UI
-        if ((App as any).currentChannelId === message.channel_id) {
+        const isCurrentChannel = (App as any).currentChannelId === message.channel_id;
+        if (isCurrentChannel) {
+            // Mark the message as read if it's not from the current user and the channel is open
+            if (message.sender_id !== App.me.id && message.read_at === null) {
+
+                message.read_at = new Date().toISOString();
+
+                fetch(`/user/channel/${message.channel_id}/read`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
+                    }
+                }).catch(error => {
+                    console.error('[CHAT] Failed to mark channel as read:', error);
+                });
+
+                // Update navbar badge
+                this.updateNavbarBadge();
+            }
             const messageList = document.getElementById('channel-messages');
             if (messageList) {
                 const messageCard = this.createMessageCard(message);
@@ -66,9 +74,9 @@ export const Chat = {
                 tempDiv.innerHTML = messageCard;
                 messageList.appendChild(tempDiv.firstElementChild!);
 
-                // Scroll to bottom to show new message
                 messageList.scrollTop = messageList.scrollHeight;
             }
+
         }
 
         // Refresh channel list to update visual state (unread badge, colors)
@@ -76,11 +84,25 @@ export const Chat = {
     },
 
     updateChannel(channel: Channel){
+        console.log('[CHAT] Updating channel:', channel.id);
         const oldOne = App.me.channels.findIndex((c: Channel) => c.id === channel.id);
-        if (oldOne !== -1)
+        if (oldOne !== -1) {
             App.me.channels[oldOne] = channel;
-        else
+        } else {
             App.me.channels.push(channel);
+        }
+
+        // If this is the currently displayed channel, refresh the messages to show updated read status
+        if ((App as any).currentChannelId === channel.id) {
+            console.log('[CHAT] 📖 Channel is currently open, refreshing messages to show read status');
+            this.displayMessages(channel);
+        }
+
+        // Refresh channel list to update unread badges and visual state
+        this.displayChannels();
+
+        // Update navbar badge
+        this.updateNavbarBadge();
     },
 
     hasUnreadMessages(channel: Channel): boolean {
@@ -155,6 +177,22 @@ export const Chat = {
             channels = App.me.channels;
         }
 
+        // Sort channels by most recent message (newest first)
+        channels = [...channels].sort((a: Channel, b: Channel) => {
+            const aLastMsg = a.messages[a.messages.length - 1];
+            const bLastMsg = b.messages[b.messages.length - 1];
+
+            // Channels without messages go to the bottom
+            if (!aLastMsg && !bLastMsg) return 0;
+            if (!aLastMsg) return 1;
+            if (!bLastMsg) return -1;
+
+            // Sort by timestamp - most recent first
+            return new Date(bLastMsg.sent_at).getTime() - new Date(aLastMsg.sent_at).getTime();
+        });
+
+        console.log('[CHAT] 📊 Channels sorted by most recent message');
+
         if (channels.length === 0) {
             channelsList.innerHTML = `
                 <div class="p-8 text-center text-neutral-500 text-sm">
@@ -193,7 +231,6 @@ export const Chat = {
 
     async loadAndDisplayChannel(channelId: number) {
         try {
-            // Fetch fresh channel data from backend
             const response = await fetch(`/user/channel/${channelId}`, {
                 headers: {
                     'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
@@ -204,7 +241,6 @@ export const Chat = {
                 console.error('[CHAT] Failed to fetch channel:', await response.text());
                 return;
             }
-
             const channel = await response.json() as Channel;
 
             // Update local channel in App.me.channels

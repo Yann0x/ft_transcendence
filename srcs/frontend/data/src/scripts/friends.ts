@@ -12,9 +12,11 @@ export const Friends = {
       Router.navigate('home')
       return;
     }
+    // When used standalone (not via Social wrapper)
     this.setupSearchListeners();
     this.setupSocialEventListeners();
     socialClient.connect(token);
+    this.display();
   },
 
   setupSocialEventListeners(): void {
@@ -46,15 +48,25 @@ export const Friends = {
       }
     });
     socialClient.on('user_update', async (event: SocialEvent) => {
-      console.log('[FRIENDS] User update event:', event.data);
-      if (!event.data || !event.data.userId) 
+      console.log('[FRIENDS] User update event received:', event.data);
+      if (!event.data || !event.data.userId) {
+        console.warn('[FRIENDS] Invalid user_update event data');
         return;
+      }
       const updatedUserId = event.data.userId;
-      if (App.me && updatedUserId === App.me.id)
+      console.log('[FRIENDS] Updated user ID:', updatedUserId, 'Current user ID:', App.me?.id);
+
+      if (App.me && updatedUserId === App.me.id) {
+        console.log('[FRIENDS] Refreshing current user data...');
         await this.refreshCurrentUserData();
-      else
+      } else {
+        console.log('[FRIENDS] Handling other user update...');
         await this.handleOtherUserUpdate(updatedUserId);
+      }
+
+      console.log('[FRIENDS] Calling display() to refresh UI...');
       this.display();
+      console.log('[FRIENDS] User update handling complete');
       return;
     });
   },
@@ -62,7 +74,7 @@ export const Friends = {
   display(): void {
     const token = sessionStorage.getItem('authToken');
     if (!App.me || !token) {
-      console.log('Vous devez être connecté pour accéder à cette page');
+      alert('Vous devez être connecté pour accéder à cette page');
       Router.navigate('home')
       return;
     }
@@ -79,24 +91,38 @@ export const Friends = {
   async refreshCurrentUserData(): Promise<void> {
     try {
       const token = sessionStorage.getItem('authToken');
-      if (!token || !App.me?.id) return;
-      console.log('[FRIENDS] Refreshing current user data...');
+      if (!token || !App.me?.id) {
+        console.warn('[FRIENDS] Cannot refresh: missing token or user ID');
+        return;
+      }
+      console.log('[FRIENDS] Refreshing current user data for ID:', App.me.id);
+
       const response = await fetch(`/user/find?id=${App.me.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+
       if (!response.ok) {
-        console.error('[FRIENDS] Failed to refresh user data');
+        console.error('[FRIENDS] Failed to refresh user data, status:', response.status);
         return;
       }
+
       const users = await response.json();
+      console.log('[FRIENDS] Received user data:', users);
+
       if (users && users.length > 0) {
         const updatedUser = users[0];
+        console.log('[FRIENDS] Updated user friends:', updatedUser.friends);
+        console.log('[FRIENDS] Previous friends count:', App.me.friends?.length || 0);
+        console.log('[FRIENDS] New friends count:', updatedUser.friends?.length || 0);
+
         App.me = updatedUser;
         sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
         App.updateNavbar();
         this.display();
+      } else {
+        console.warn('[FRIENDS] No user data received from API');
       }
     } catch (error) {
       console.error('[FRIENDS] Error refreshing user data:', error);
@@ -319,6 +345,7 @@ export const Friends = {
         return;
       }
 
+      console.log('[FRIENDS] Adding friend:', targetId);
       const response = await fetch('/user/addFriend', {
         method: 'POST',
         headers: {
@@ -328,32 +355,41 @@ export const Friends = {
         body: JSON.stringify({ friendId: targetId })
       });
 
+      console.log('[FRIENDS] Add friend response status:', response.status);
+
       if (!response.ok) {
         const result = await response.json();
-        console.log(result.message || 'Failed to add friend');
+        console.error('[FRIENDS] Failed to add friend:', result);
+        alert(result.message || 'Failed to add friend');
         return;
       }
 
       const result = await response.json();
       console.log('[FRIENDS] Friend added successfully:', result);
-      // The user_update WebSocket event will trigger refreshUserData
     } catch (error) {
       console.error('[FRIENDS] Error adding friend:', error);
-      console.log('Error adding friend');
+      alert('Error adding friend');
     }
   },
 
 async loadFriends(): Promise<void> {
+    console.log('[FRIENDS] 📋 loadFriends() called');
     const friendsList = document.getElementById('friends-list');
     const friendsCount = document.getElementById('friends-count');
     const emptyState = document.getElementById('friends-empty-state');
 
-    if (!friendsList || !App.me) return;
+    if (!friendsList || !App.me) {
+      console.warn('[FRIENDS] Missing friendsList element or App.me');
+      return;
+    }
 
     // Get friends from App.me
     const friends = App.me.friends || [];
+    console.log('[FRIENDS] App.me.friends:', friends);
+    console.log('[FRIENDS] Friends count:', friends.length);
 
     if (friends.length === 0) {
+      console.log('[FRIENDS] 📭 No friends to display');
       emptyState?.classList.remove('hidden');
       friendsList.innerHTML = '';
       if (friendsCount) {
@@ -362,12 +398,13 @@ async loadFriends(): Promise<void> {
       return;
     }
 
+    console.log('[FRIENDS] Rendering', friends.length, 'friends');
     emptyState?.classList.add('hidden');
 
     // Create friend cards
     friendsList.innerHTML = friends.map((friend: UserPublic) => this.createFriendUserCard(friend)).join('');
     this.attachFriendActionListeners();
-    
+
     if (friendsCount) {
       friendsCount.textContent = `${friends.length} ami${friends.length > 1 ? 's' : ''}`;
     }
