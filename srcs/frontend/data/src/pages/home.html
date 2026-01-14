@@ -1,57 +1,70 @@
 <!-- Home Page -->
 <main class="flex-1 flex items-center justify-center p-8">
   <div class="w-full max-w-5xl">
-    
+
     <!-- Game Container -->
     <div class="card shadow-2xl">
-      
+
       <!-- Game Header -->
       <div class="card-header flex items-center justify-between">
         <div class="flex items-center gap-4">
           <span class="text-2xl">🎮</span>
-          <h2 class="text-xl font-bold">Pong Arena</h2>
+          <h2 class="text-xl font-bold" data-i18n="home.game_title">Pong Arena</h2>
         </div>
-        <div class="flex items-center gap-3">
+        <div id="online-status" class="flex items-center gap-3 hidden">
           <span class="badge badge-success">En ligne</span>
           <span class="text-neutral-400">|</span>
-          <span class="text-neutral-400">42 joueurs connectés</span>
+          <span id="pvp-queue-count" class="text-neutral-400">0 en attente</span>
+        </div>
+        <div id="offline-status" class="flex items-center gap-3">
+          <span class="badge badge-neutral">Hors-ligne</span>
         </div>
       </div>
-      
+
       <!-- Game Area -->
-      <div class="relative bg-neutral-950 aspect-video flex items-center justify-center">
-        <p class="text-neutral-500 text-lg">Zone de jeu - À implémenter</p>
-      </div>
-      
+      <div id="game-container" class="relative bg-neutral-950 aspect-video"></div>
+
       <!-- Game Footer -->
       <div class="card-footer flex items-center justify-between">
         <div class="flex items-center gap-6 text-sm text-neutral-400">
-          <span>⌨️ W/S ou ↑/↓ - Déplacer</span>
-          <span>🎯 Premier à 11 points</span>
+          <span>W/S or ↑/↓ - Move</span>
+          <span>SPACE - Start</span>
+          <span>ESC - Pause</span>
         </div>
-        <button class="btn btn-outline text-sm">⚙️ Paramètres</button>
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <button id="btn-solo" class="btn btn-outline text-sm">Solo</button>
+            <div id="solo-difficulty-menu" class="absolute bottom-full left-0 mb-1 hidden bg-neutral-800 rounded-lg shadow-lg border border-neutral-700 overflow-hidden z-10">
+              <button id="btn-diff-beginner" class="block w-full px-4 py-2 text-sm text-left hover:bg-neutral-700 text-emerald-400">Easy</button>
+              <button id="btn-diff-normal" class="block w-full px-4 py-2 text-sm text-left hover:bg-neutral-700 text-amber-400">Normal</button>
+              <button id="btn-diff-hard" class="block w-full px-4 py-2 text-sm text-left hover:bg-neutral-700 text-red-400">Hard</button>
+            </div>
+          </div>
+          <button id="btn-local" class="btn btn-outline text-sm">PvP Local</button>
+          <button id="btn-pvp" class="btn btn-outline text-sm">PvP Online</button>
+        </div>
       </div>
     </div>
-    
+
     <!-- Quick Stats -->
     <div class="grid grid-cols-4 gap-4 mt-6">
       <div class="stat-card">
         <div class="stat-value text-blue-400">-</div>
-        <div class="stat-label">Parties jouées</div>
+        <div class="stat-label" data-i18n="home.stat_games">Parties jouées</div>
       </div>
       <div class="stat-card">
         <div class="stat-value text-emerald-400">-</div>
-        <div class="stat-label">Victoires</div>
+        <div class="stat-label" data-i18n="home.stat_wins">Victoires</div>
       </div>
       <div class="stat-card">
         <div class="stat-value text-amber-400">-</div>
-        <div class="stat-label">Classement</div>
+        <div class="stat-label" data-i18n="home.stat_rank">Classement</div>
       </div>
       <div class="stat-card">
         <div class="stat-value text-purple-400">-</div>
-        <div class="stat-label">Tournois gagnés</div>
+        <div class="stat-label" data-i18n="home.stat_tournaments">Tournois gagnés</div>
       </div>
     </div>
-    
+
   </div>
 </main>

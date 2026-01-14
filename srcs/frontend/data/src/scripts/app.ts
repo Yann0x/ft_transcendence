@@ -8,7 +8,9 @@ import { AuthModal } from './auth-modal'
 import { Social } from './social'
 import { socialClient } from './social-client'
 import { User, UserPublic } from '../shared/types'
-import { run } from 'node:test'
+import { I18n } from './i18n'
+import { Contrast } from './contrast'
+import { PongGame } from '../game'
 
 /**
  * Application principale
@@ -28,6 +30,9 @@ const App = {
 
     // Load auth modal
     await this.loadAuthModal();
+    I18n.init();
+    Contrast.init();
+    I18n.refresh();
 
     // Load intro animation
     await this.loadIntro();
@@ -36,6 +41,7 @@ const App = {
     AuthModal.init();
     AuthModal.onLoginSuccess = (user: User) => this.onLogin(user);
     this.setupAuthButtons();
+    I18n.refresh();
 
     Router.init(this);
   },
@@ -85,6 +91,8 @@ const App = {
     this.updateNavbar();
 
     this.runDedicatedScript(name);
+    I18n.refresh();
+    Contrast.bindControls();
   },
 
   runDedicatedScript(page: string) {
@@ -93,22 +101,25 @@ const App = {
       case "social_hub":
         Social.load()
         break
+      case "home":
+        PongGame.init();
+        break
     }
   },
 
   setupAuthButtons(): void {
-    const authButtons = document.querySelectorAll('.btn-outline, .btn-secondary');
-    authButtons.forEach(btn => {
-      const text = btn.textContent?.trim();
-      if (text === 'Connexion') {
-        btn.addEventListener('click', () => {
-          AuthModal.open();
-        });
-      } else if (text === 'Inscription') {
-        btn.addEventListener('click', () => {
-          AuthModal.openSignup();
-        });
-      }
+    const loginButtons = document.querySelectorAll('[data-auth="login"]');
+    loginButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        AuthModal.open();
+      });
+    });
+
+    const signupButtons = document.querySelectorAll('[data-auth="signup"]');
+    signupButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        AuthModal.openSignup();
+      });
     });
   },
 
