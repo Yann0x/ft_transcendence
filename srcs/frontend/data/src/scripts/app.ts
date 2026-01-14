@@ -96,9 +96,6 @@ const App = {
     }
   },
 
-  /**
-   * Setup auth modal buttons
-   */
   setupAuthButtons(): void {
     const authButtons = document.querySelectorAll('.btn-outline, .btn-secondary');
     authButtons.forEach(btn => {
@@ -115,9 +112,6 @@ const App = {
     });
   },
 
-  /**
-   * Update navbar UI based on authentication state
-   */
   updateNavbar(): void {
     const authButtons = document.getElementById('auth-buttons');
     const userSection = document.getElementById('user-account-section');
