@@ -628,10 +628,9 @@ export async function blockUserHandler(
 
     // Remove friend relationship if exists (symmetric blocking)
     try {
-      const isFriend = await userManager.isFriend(userId, blockedUserId);
-      if (isFriend) {
-        console.log(`[USER] Removing friend relationship between ${userId} and ${blockedUserId}`);
-        await userManager.removeFriend(userId, blockedUserId);
+      const removed = await userManager.removeFriend(userId, blockedUserId);
+      if (removed) {
+        console.log(`[USER] Removed friend relationship between ${userId} and ${blockedUserId}`);
       }
     } catch (error) {
       console.error('[USER] Failed to remove friend relationship:', error);
