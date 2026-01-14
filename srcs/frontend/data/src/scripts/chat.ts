@@ -458,6 +458,9 @@ export const Chat =
 
             // Update sessionStorage
             sessionStorage.setItem('currentUser', JSON.stringify(App.me));
+            
+            // Refresh channel list (user may have been removed from friends)
+            this.displayChannels();
 
             // Refresh the current channel display to show blocking message
             const currentChannelId = (App as any).currentChannelId;
@@ -467,9 +470,6 @@ export const Chat =
                     await this.displayMessages(channel);
                 }
             }
-
-            // Refresh channel list (user may have been removed from friends)
-            this.displayChannels();
 
             alert('User blocked successfully');
         } catch (error) {
@@ -519,7 +519,9 @@ export const Chat =
 
             // Update sessionStorage
             sessionStorage.setItem('currentUser', JSON.stringify(App.me));
-
+        
+            // Refresh channel list
+            this.displayChannels();
             // Refresh the current channel display to remove blocking message
             const currentChannelId = (App as any).currentChannelId;
             if (currentChannelId) {
@@ -529,8 +531,7 @@ export const Chat =
                 }
             }
 
-            // Refresh channel list
-            this.displayChannels();
+      
 
             alert('User unblocked successfully');
         } catch (error) {
