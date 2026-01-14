@@ -5,14 +5,12 @@ import {socialClient} from  './social-client'
 export const Chat = 
 {    
     async openLastConversation() {
-        // Check if user has any channels
         if (!App.me.channels || App.me.channels.length === 0) {
             console.log('[CHAT] No channels available to auto-open');
             return;
         }
 
-        // Find the channel with the most recent message
-        const sortedChannels = [...App.me.channels].sort((a: Channel, b: Channel) => {
+      const sortedChannels = [...App.me.channels].sort((a: Channel, b: Channel) => {
             const aLastMsg = a.messages[a.messages.length - 1];
             const bLastMsg = b.messages[b.messages.length - 1];
 
@@ -53,7 +51,8 @@ export const Chat =
         channel.messages.push(message);
 
         const isCurrentChannel = (App as any).currentChannelId === message.channel_id;
-        if (isCurrentChannel) {
+        const isOnSocialPage = window.location.pathname === '/social_hub' || window.location.pathname === '/social_hub/';
+        if (isCurrentChannel && isOnSocialPage) {
             if (message.sender_id !== App.me.id && message.read_at === null) {
                 message.read_at = new Date().toISOString();
                 fetch(`/user/channel/${message.channel_id}/read`, {
