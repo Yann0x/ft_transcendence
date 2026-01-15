@@ -1,9 +1,81 @@
 import {App} from './app.ts'
-import {Message, Channel, SocialEvent} from '../shared/types'
+import {Message, Channel, SocialEvent, UserPublic} from '../shared/types'
 import {socialClient} from  './social-client'
 
-export const Chat = 
-{    
+// Cache for user data fetched from API
+const userCache = new Map<string, UserPublic>();
+
+export const Chat =
+{
+    // Get user by ID - checks onlineUsers, cache, friends, then fetches from API
+    async getUserById(userId: string): Promise<UserPublic | null> {
+        // Check App.onlineUsers first - these are actively online and have full data
+        const onlineUser = App.onlineUsers.get(userId);
+        if (onlineUser?.avatar) return onlineUser;
+
+        // Check local cache - this was fetched from API with full data
+        const cached = userCache.get(userId);
+        if (cached?.avatar) return cached;
+
+        // Check App.me.friends - may have avatar if loaded properly
+        const friend = App.me?.friends?.find((f: { id?: string }) => f.id === userId) as UserPublic | undefined;
+        if (friend?.avatar) {
+            userCache.set(userId, friend); // Cache it for future use
+            return friend;
+        }
+
+        // Fetch from API to get full user data including avatar
+        try {
+            const token = sessionStorage.getItem('authToken');
+            if (!token) return friend || onlineUser || cached || null;
+
+            const response = await fetch(`/user/find?id=${userId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const users = await response.json();
+                if (users && users.length > 0) {
+                    const user = users[0] as UserPublic;
+                    userCache.set(userId, user);
+                    return user;
+                }
+            }
+        } catch (error) {
+            console.error('[CHAT] Failed to fetch user:', error);
+        }
+
+        // Return whatever we have as fallback
+        return friend || onlineUser || cached || null;
+    },
+
+    // Sync version for immediate rendering (returns cached/available data only)
+    // Priority: onlineUsers (most up-to-date) > userCache (fetched with avatar) > friends (may be incomplete)
+    getUserByIdSync(userId: string): UserPublic | null {
+        // Check App.onlineUsers first - these are actively online and have full data
+        const onlineUser = App.onlineUsers.get(userId);
+        if (onlineUser?.avatar) return onlineUser;
+
+        // Check local cache - this was fetched from API with full data including avatar
+        const cached = userCache.get(userId);
+        if (cached?.avatar) return cached;
+
+        // Check App.me.friends as fallback - may not have avatar
+        const friend = App.me?.friends?.find((f: { id?: string }) => f.id === userId);
+        if (friend) return friend as UserPublic;
+
+        // Return onlineUser or cached even without avatar as last resort
+        if (onlineUser) return onlineUser;
+        if (cached) return cached;
+
+        return null;
+    },
+
+    // Update the user cache (called when user data is updated)
+    updateUserCache(userId: string, user: UserPublic): void {
+        userCache.set(userId, user);
+    },
+
     async openLastConversation() {
         if (!App.me.channels || App.me.channels.length === 0) {
             console.log('[CHAT] No channels available to auto-open');
@@ -155,6 +227,24 @@ export const Chat =
             App.me.channels = [];
         }
         console.log('[CHAT] User has', App.me.channels.length, 'channels');
+
+        // Pre-fetch user data for private channels (for avatars and display names)
+        const userIdsToFetch = new Set<string>();
+        App.me.channels.forEach((channel: Channel) => {
+            if (channel.type === 'private') {
+                const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
+                if (otherUserId && !this.getUserByIdSync(otherUserId)) {
+                    userIdsToFetch.add(otherUserId);
+                }
+            }
+        });
+
+        // Fetch missing users in parallel
+        if (userIdsToFetch.size > 0) {
+            console.log('[CHAT] Fetching user data for:', Array.from(userIdsToFetch));
+            await Promise.all(Array.from(userIdsToFetch).map(id => this.getUserById(id)));
+        }
+
         const query = searchInput?.value.trim().toLowerCase() || '';
         let channels;
         if (query) {
@@ -268,14 +358,19 @@ export const Chat =
     },
 
     getChannelDisplayName(channel: Channel): string {
-        // For DM channels, display only the other person's name
-        let displayName = channel.name;
-        if (channel.type === 'private' && channel.name.includes('&')) {
-            const names = channel.name.split('&');
-            // Show the name that isn't the current user's name
-            displayName = names[0] === App.me.name ? names[1] : names[0];
+        // For DM channels, display the other person's name based on user ID
+        if (channel.type === 'private') {
+            const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
+            if (otherUserId) {
+                const otherUser = this.getUserByIdSync(otherUserId);
+                if (otherUser?.name) {
+                    return otherUser.name;
+                }
+            }
+            // Fallback to channel name if user not found
+            return channel.name || 'Private Chat';
         }
-        return displayName;
+        return channel.name || 'Unknown Channel';
     },
 
     createChannelCard(channel: Channel)
@@ -331,7 +426,7 @@ export const Chat =
         let avatarHtml: string;
         if (channel.type === 'private') {
             const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
-            const otherUser = otherUserId ? (App.onlineUsers.get(String(otherUserId)) || App.me?.friends?.find(f => String(f.id) === String(otherUserId))) : null;
+            const otherUser = otherUserId ? this.getUserByIdSync(otherUserId) : null;
             const avatarUrl = otherUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3b82f6&color=fff`;
             avatarHtml = `<img src="${avatarUrl}" alt="${displayName}" class="w-12 h-12 rounded-full object-cover">`;
         } else {
@@ -389,7 +484,7 @@ export const Chat =
         // Update avatar
         if (channel.type === 'private') {
             const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
-            const otherUser = otherUserId ? (App.onlineUsers.get(String(otherUserId)) || App.me?.friends?.find(f => String(f.id) === String(otherUserId))) : null;
+            const otherUser = otherUserId ? this.getUserByIdSync(otherUserId) : null;
             const avatarUrl = otherUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3b82f6&color=fff`;
             headerAvatar.innerHTML = `<img src="${avatarUrl}" alt="${displayName}" class="w-10 h-10 rounded-full object-cover">`;
         } else {

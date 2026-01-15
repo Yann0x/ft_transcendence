@@ -79,6 +79,21 @@
       </button>
     </form>
 
+    <!-- Blocked Users Section -->
+    <div class="mt-8 pt-6 border-t border-neutral-800">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-medium text-neutral-300" data-i18n="settings.blocked_users">Utilisateurs bloqués</h3>
+        <span id="settings-blocked-count" class="text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded-full">0</span>
+      </div>
+      <div id="settings-blocked-list" class="space-y-2 max-h-48 overflow-y-auto">
+        <!-- Empty state -->
+        <div id="settings-blocked-empty" class="text-center py-4 text-neutral-500 text-sm">
+          <p data-i18n="settings.no_blocked_users">Aucun utilisateur bloqué</p>
+        </div>
+        <!-- Blocked users will be inserted here -->
+      </div>
+    </div>
+
     <!-- Danger Zone -->
     <div class="mt-8 pt-6 border-t border-red-900/50">
       <h3 class="text-sm font-medium text-red-400 mb-4" data-i18n="settings.danger_zone">Zone de danger</h3>

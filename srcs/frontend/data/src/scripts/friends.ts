@@ -2,6 +2,7 @@ import { UserPublic, SocialEvent } from '../shared/types';
 import { socialClient } from './social-client';
 import { Router } from './router';
 import { App } from './app';
+import { Chat } from './chat';
 
 export const Friends = {
 
@@ -91,7 +92,6 @@ export const Friends = {
     }
     this.loadSearch();
     this.loadFriends();
-    this.loadBlockedUsers();
   },
 
   async refreshCurrentUserData(): Promise<void> {
@@ -125,6 +125,14 @@ export const Friends = {
 
         App.me = updatedUser;
         sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        // Update Chat's user cache with friend data that has avatars
+        if (updatedUser.friends) {
+          updatedUser.friends.forEach((friend: UserPublic) => {
+            if (friend.id && friend.avatar) {
+              Chat.updateUserCache(friend.id, friend);
+            }
+          });
+        }
         App.updateNavbar();
         this.display();
       } else {
@@ -162,6 +170,8 @@ export const Friends = {
       if (App.onlineUsers.has(userId)) {
         App.onlineUsers.set(userId, updatedUser);
       }
+      // Update Chat's user cache with the fresh user data
+      Chat.updateUserCache(userId, updatedUser);
       this.display();
     } catch (error) {
       console.error(`[FRIENDS] Error handling user update for ${userId}:`, error);
@@ -309,26 +319,6 @@ export const Friends = {
     return card;
   },
 
-  createBlockedUserCard(user: UserPublic): string {
-    const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=ef4444&color=fff`;
-    return `
-      <div class="flex items-center justify-between p-3 bg-neutral-800 rounded-lg hover:bg-neutral-750 transition" data-user-id="${user.id}">
-        <div class="flex items-center gap-3">
-          <div class="relative">
-            <img src="${avatar}" alt="${user.name}" class="w-10 h-10 rounded-full object-cover opacity-50">
-          </div>
-          <div>
-            <p class="font-medium text-neutral-400">${user.name || 'Unknown'}</p>
-            <p class="text-xs text-red-400">blocked</p>
-          </div>
-        </div>
-        <button class="unblock_user px-3 py-1 bg-neutral-700 hover:bg-neutral-600 text-white rounded transition text-sm" data-user-id="${user.id}">
-          Unblock
-        </button>
-      </div>
-    `;
-  },
-
   attachSearchActionListeners(): void {
     document.querySelectorAll('.add_friend').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -455,82 +445,4 @@ async loadFriends(): Promise<void> {
     }
   },
 
-  async loadBlockedUsers(): Promise<void> {
-    const blockedList = document.getElementById('blocked-list');
-    const blockedCount = document.getElementById('blocked-count');
-    const emptyState = document.getElementById('blocked-empty-state');
-
-    if (!blockedList || !App.me) return;
-
-    const blockedUserIds = App.me.blocked_users || [];
-
-    if (blockedUserIds.length === 0) {
-      if (emptyState) emptyState.style.display = 'block';
-      if (blockedCount) blockedCount.textContent = '0';
-      blockedList.querySelectorAll('.user-card, [data-user-id]').forEach(el => el.remove());
-      return;
-    }
-
-    if (emptyState) emptyState.style.display = 'none';
-    if (blockedCount) blockedCount.textContent = String(blockedUserIds.length);
-
-    // Fetch user data for each blocked user
-    const blockedUsers: UserPublic[] = [];
-    const token = sessionStorage.getItem('authToken');
-    for (const userId of blockedUserIds) {
-      try {
-        const response = await fetch(`/user/find?id=${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const users = await response.json();
-        if (users && users.length > 0) blockedUsers.push(users[0]);
-      } catch (error) {
-        console.error(`[FRIENDS] Failed to fetch blocked user ${userId}:`, error);
-      }
-    }
-
-    // Clear existing cards (except empty state)
-    blockedList.querySelectorAll('[data-user-id]').forEach(el => el.remove());
-
-    // Render blocked user cards
-    blockedUsers.forEach(user => {
-      const card = this.createBlockedUserCard(user);
-      blockedList.insertAdjacentHTML('beforeend', card);
-    });
-
-    this.attachUnblockListeners();
-  },
-
-  attachUnblockListeners(): void {
-    document.querySelectorAll('#blocked-list .unblock_user').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const userId = (e.currentTarget as HTMLElement).dataset.userId;
-        if (!userId) return;
-
-        try {
-          const response = await fetch('/user/unblock', {
-            method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
-            },
-            body: JSON.stringify({ blockedUserId: userId })
-          });
-
-          if (response.ok) {
-            // Update local state
-            if (App.me?.blocked_users) {
-              App.me.blocked_users = App.me.blocked_users.filter((id: string) => id !== userId);
-              sessionStorage.setItem('currentUser', JSON.stringify(App.me));
-            }
-            // Refresh full display (search, friends, blocked)
-            this.display();
-          }
-        } catch (error) {
-          console.error('[FRIENDS] Failed to unblock user:', error);
-        }
-      });
-    });
-  },
 };
