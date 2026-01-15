@@ -6,6 +6,7 @@ import { Intro } from './intro'
 import { Router } from './router'
 import { AuthModal } from './auth-modal'
 import { SettingsModal, setAppInstance } from './settings-modal'
+import { ProfileModal } from './profile-modal'
 import { Social } from './social'
 import { socialClient } from './social-client'
 import { User, UserPublic } from '../shared/types'
@@ -32,6 +33,7 @@ const App = {
     // Load auth modal
     await this.loadAuthModal();
     await this.loadSettingsModal();
+    await this.loadProfileModal();
     I18n.init();
     Contrast.init();
     I18n.refresh();
@@ -72,6 +74,12 @@ const App = {
     document.body.insertAdjacentHTML('beforeend', settingsModal);
     setAppInstance(() => this);
     SettingsModal.init();
+  },
+
+  async loadProfileModal(): Promise<void> {
+    const profileModal = await fetch('/components/profile-modal.html').then(r => r.text());
+    document.body.insertAdjacentHTML('beforeend', profileModal);
+    ProfileModal.init();
   },
 
   async loadIntro(): Promise<void> {

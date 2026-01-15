@@ -3,6 +3,7 @@ import { socialClient } from './social-client';
 import { Router } from './router';
 import { App } from './app';
 import { Chat } from './chat';
+import { ProfileModal } from './profile-modal';
 
 export const Friends = {
 
@@ -267,8 +268,8 @@ export const Friends = {
     const card = `
       <div class="flex items-center justify-between p-4 bg-neutral-800 rounded-lg hover:bg-neutral-750 transition" data-user-id="${user.id}">
         <div class="flex items-center gap-3">
-          <div class="relative">
-            <img src="${avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover">
+          <div class="relative avatar-clickable cursor-pointer" data-user-id="${user.id}">
+            <img src="${avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover hover:ring-2 hover:ring-blue-500 transition">
             <span class="status-dot absolute bottom-0 right-0 w-3 h-3 ${statusColor} border-2 border-neutral-800 rounded-full"></span>
           </div>
           <div>
@@ -297,8 +298,8 @@ export const Friends = {
    const card =  `
       <div class="flex items-center justify-between p-4 bg-neutral-800 rounded-lg hover:bg-neutral-750 transition" data-user-id="${user.id}">
         <div class="flex items-center gap-3">
-          <div class="relative">
-            <img src="${avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover">
+          <div class="relative avatar-clickable cursor-pointer" data-user-id="${user.id}">
+            <img src="${avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover hover:ring-2 hover:ring-blue-500 transition">
             <span class="status-dot absolute bottom-0 right-0 w-3 h-3 ${statusColor} border-2 border-neutral-800 rounded-full"></span>
           </div>
           <div>
@@ -326,6 +327,7 @@ export const Friends = {
         if (target_id) await this.addFriend(target_id);
       });
     });
+    this.attachAvatarClickListeners();
   },
 
   attachFriendActionListeners(): void {
@@ -334,6 +336,19 @@ export const Friends = {
         const userId = (e.currentTarget as HTMLElement).getAttribute('data-user-id');
         if (userId) {
             await this.removeFriend(userId);
+        }
+      });
+    });
+    this.attachAvatarClickListeners();
+  },
+
+  attachAvatarClickListeners(): void {
+    document.querySelectorAll('.avatar-clickable').forEach(avatar => {
+      avatar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const userId = (e.currentTarget as HTMLElement).dataset.userId;
+        if (userId) {
+          ProfileModal.open(userId);
         }
       });
     });
