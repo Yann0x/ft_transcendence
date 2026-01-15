@@ -157,7 +157,7 @@ export const ProfileModal = {
     actionsContainer.classList.remove('hidden');
 
     // Check if user is a friend
-    const isFriend = App.me?.friends?.some(f => f.id === user.id) || false;
+    const isFriend = user.id ? App.isFriend(user.id) : false;
 
     // Show appropriate friend button
     if (addFriendBtn && removeFriendBtn) {
@@ -279,13 +279,13 @@ export const ProfileModal = {
       const token = sessionStorage.getItem('authToken');
 
       // Create or get DM channel
-      const response = await fetch('/user/dm', {
+      const response = await fetch('/user/channel/create-dm', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ otherUserId: user.id })
+        body: JSON.stringify({ userId: user.id })
       });
 
       if (response.ok) {
@@ -333,14 +333,8 @@ export const ProfileModal = {
       });
 
       if (response.ok) {
-        // Update local state
-        if (App.me && !App.me.blocked_users) {
-          App.me.blocked_users = [];
-        }
-        if (App.me && !App.me.blocked_users?.includes(user.id)) {
-          App.me.blocked_users?.push(user.id);
-          sessionStorage.setItem('currentUser', JSON.stringify(App.me));
-        }
+        // Update App maps
+        App.addBlockedUserToMaps(user);
 
         // Close the modal after blocking
         this.close();

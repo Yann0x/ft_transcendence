@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import * as handlers from './user_methods';
-import { ErrorResponseSchema, UserSchema, UserPublicSchema, MessageSchema, ChannelSchema } from './shared/with_front/types';
+import { ErrorResponseSchema, UserSchema, UserPublicSchema, MessageSchema, ChannelSchema, LoginResponseSchema } from './shared/with_front/types';
 import { Type } from '@sinclair/typebox/type';
 import * as check from './shared/check_functions'
 
@@ -11,10 +11,7 @@ const registerUserSchema = {
       { required: ['name', 'email', 'password'], additionalProperties: false }
     ),
     response: {
-      200: Type.Object({
-        token: Type.String(),
-        user: UserSchema
-      }),
+      200: LoginResponseSchema,
       400: ErrorResponseSchema,
       500: ErrorResponseSchema
     }
@@ -28,10 +25,7 @@ const loginUserSchema = {
       { required: ['email', 'password'], additionalProperties: false }
     ),
     response: {
-      200: Type.Object({
-        token: Type.String(),
-        user: UserSchema
-      }),
+      200: LoginResponseSchema,
       400: ErrorResponseSchema,
       500: ErrorResponseSchema
     }

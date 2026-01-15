@@ -2,7 +2,7 @@
    AUTH MODAL - Authentication Modal Management
    ============================================ */
 
-import { User } from '../shared/types';
+import { User, LoginResponse } from '../shared/types';
 
 export const AuthModal = {
   modal: null as HTMLElement | null,
@@ -10,7 +10,7 @@ export const AuthModal = {
   signupTab: null as HTMLElement | null,
   loginForm: null as HTMLElement | null,
   signupForm: null as HTMLElement | null,
-  onLoginSuccess: null as ((user: User) => void) | null,
+  onLoginSuccess: null as ((loginResponse: LoginResponse) => void) | null,
 
   /**
    * Initialize the auth modal
@@ -153,14 +153,14 @@ export const AuthModal = {
           return;
         }
 
-        const data = await response.json();
-        if (data.token) {
-          sessionStorage.setItem('authToken', data.token);
+        const loginResponse: LoginResponse = await response.json();
+        if (loginResponse.token) {
+          sessionStorage.setItem('authToken', loginResponse.token);
         }
 
-        // Store user data and notify app
-        if (this.onLoginSuccess && data.user) {
-          this.onLoginSuccess(data.user as User);
+        // Pass LoginResponse to app for handling
+        if (this.onLoginSuccess) {
+          this.onLoginSuccess(loginResponse);
         }
 
         alert('Login successful!');
@@ -190,16 +190,16 @@ export const AuthModal = {
           return;
         }
 
-        const data = await response.json();
+        const loginResponse: LoginResponse = await response.json();
 
         // Auto-login after successful registration
-        if (data.token) {
-          sessionStorage.setItem('authToken', data.token);
+        if (loginResponse.token) {
+          sessionStorage.setItem('authToken', loginResponse.token);
         }
 
-        // Store user data and notify app
-        if (this.onLoginSuccess && data.user) {
-          this.onLoginSuccess(data.user as User);
+        // Pass LoginResponse to app for handling
+        if (this.onLoginSuccess) {
+          this.onLoginSuccess(loginResponse);
         }
 
         alert('Account created successfully!');

@@ -396,9 +396,10 @@ export const SettingsModal = {
 
     if (!blockedList || !app?.me) return;
 
-    const blockedUserIds = app.me.blocked_users || [];
+    // Get blocked users from blockedUsersMap
+    const blockedUsers = Array.from(app.blockedUsersMap.values());
 
-    if (blockedUserIds.length === 0) {
+    if (blockedUsers.length === 0) {
       if (emptyState) emptyState.style.display = 'block';
       if (blockedCount) blockedCount.textContent = '0';
       blockedList.querySelectorAll('[data-user-id]').forEach(el => el.remove());
@@ -406,22 +407,7 @@ export const SettingsModal = {
     }
 
     if (emptyState) emptyState.style.display = 'none';
-    if (blockedCount) blockedCount.textContent = String(blockedUserIds.length);
-
-    // Fetch user data for each blocked user
-    const blockedUsers: UserPublic[] = [];
-    const token = sessionStorage.getItem('authToken');
-    for (const userId of blockedUserIds) {
-      try {
-        const response = await fetch(`/user/find?id=${userId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const users = await response.json();
-        if (users && users.length > 0) blockedUsers.push(users[0]);
-      } catch (error) {
-        console.error(`[SETTINGS] Failed to fetch blocked user ${userId}:`, error);
-      }
-    }
+    if (blockedCount) blockedCount.textContent = String(blockedUsers.length);
 
     // Clear existing cards (except empty state)
     blockedList.querySelectorAll('[data-user-id]').forEach(el => el.remove());
@@ -475,10 +461,9 @@ export const SettingsModal = {
 
           if (response.ok) {
             const app = getAppInstance?.();
-            // Update local state
-            if (app?.me?.blocked_users) {
-              app.me.blocked_users = app.me.blocked_users.filter((id: string) => id !== userId);
-              sessionStorage.setItem('currentUser', JSON.stringify(app.me));
+            // Update App maps
+            if (app) {
+              app.removeBlockedUserFromMaps(userId);
             }
             // Refresh blocked users list
             this.loadBlockedUsers();

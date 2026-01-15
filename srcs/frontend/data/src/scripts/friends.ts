@@ -27,7 +27,7 @@ export const Friends = {
       if (event.data && event.data.users && Array.isArray(event.data.users)) {
         event.data.users.forEach((user: UserPublic) => {
           // Filter out blocked users from online list
-          if (!App.me?.blocked_users?.includes(user.id)) {
+          if (user.id && !App.isUserBlocked(user.id)) {
             App.onlineUsers.set(user.id, user);
             this.updateUserOnlineStatusCard(user.id, 'online');
           }
@@ -38,18 +38,26 @@ export const Friends = {
     socialClient.on('user_online', (event: SocialEvent) => {
       console.log('[FRIENDS] User came online:', event.data);
       if (event.data && event.data.user) {
+        const user = event.data.user as UserPublic;
         // Don't show blocked users as online
-        if (App.me?.blocked_users?.includes(event.data.user.id)) return;
-        App.onlineUsers.set(event.data.user.id, event.data.user);
-        this.updateUserOnlineStatusCard(event.data.user.id, 'online');
+        if (user.id && App.isUserBlocked(user.id)) return;
+        App.onlineUsers.set(user.id, user);
+        // Update in cache if already present
+        if (user.id) {
+          App.updateCachedUser(user.id, { status: 'online' });
+        }
+        this.updateUserOnlineStatusCard(user.id, 'online');
         this.display();
       }
     });
     socialClient.on('user_offline', (event: SocialEvent) => {
       console.log('[FRIENDS] User went offline:', event.data);
       if (event.data && event.data.id) {
-        App.onlineUsers.delete(event.data.id);
-        this.updateUserOnlineStatusCard(event.data.id, 'offline');
+        const userId = event.data.id as string;
+        App.onlineUsers.delete(userId);
+        // Update in cache if already present
+        App.updateCachedUser(userId, { status: 'offline' });
+        this.updateUserOnlineStatusCard(userId, 'offline');
         // Refresh search to remove offline user
         this.display();
       }
@@ -65,7 +73,11 @@ export const Friends = {
 
       if (App.me && updatedUserId === App.me.id) {
         console.log('[FRIENDS] Refreshing current user data...');
-        await this.refreshCurrentUserData();
+        // Reload friends and blocked users from API
+        await Promise.all([
+          App.loadFriends(),
+          App.loadBlockedUsers()
+        ]);
       } else {
         console.log('[FRIENDS] Handling other user update...');
         await this.handleOtherUserUpdate(updatedUserId);
@@ -248,8 +260,8 @@ export const Friends = {
 
     const filteredUsers = users
       .filter(user => user.id !== App.me?.id)
-      .filter(user => !App.me?.friends?.some(friend => friend.id === user.id))
-      .filter(user => !App.me?.blocked_users?.includes(user.id));
+      .filter(user => !user.id || !App.isFriend(user.id))
+      .filter(user => !user.id || !App.isUserBlocked(user.id));
     if (filteredUsers.length === 0) {
       resultsList.innerHTML = '<p class="text-neutral-500 text-center py-4">Aucun utilisateur trouvé</p>';
       resultsContainer.classList.remove('hidden');
@@ -384,6 +396,12 @@ export const Friends = {
 
       const result = await response.json();
       console.log('[FRIENDS] Friend added successfully:', result);
+
+      // Update App maps if friend data is returned
+      if (result && result.id) {
+        App.addFriendToMaps(result as UserPublic);
+        this.display();
+      }
     } catch (error) {
       console.error('[FRIENDS] Error adding friend:', error);
       alert('Error adding friend');
@@ -401,9 +419,9 @@ async loadFriends(): Promise<void> {
       return;
     }
 
-    // Get friends from App.me
-    const friends = App.me.friends || [];
-    console.log('[FRIENDS] App.me.friends:', friends);
+    // Get friends from friendsMap
+    const friends = Array.from(App.friendsMap.values());
+    console.log('[FRIENDS] App.friendsMap:', friends);
     console.log('[FRIENDS] Friends count:', friends.length);
 
     if (friends.length === 0) {
@@ -453,7 +471,10 @@ async loadFriends(): Promise<void> {
 
       const result = await response.json();
       console.log('[FRIENDS] Friend removed successfully:', result);
-      // The user_update WebSocket event will trigger refreshCurrentUserData
+
+      // Update App maps
+      App.removeFriendFromMaps(friendId);
+      this.display();
     } catch (error) {
       console.error('[FRIENDS] Error removing friend:', error);
       console.log('Error removing friend');
