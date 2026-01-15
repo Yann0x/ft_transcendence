@@ -39,7 +39,7 @@ front:
 
 # <--- DEV TOOLS--->
 dbclean: down
-	rm srcs/backend/database/data/database.db
+	rm -rf srcs/backend/database/data/database.db
 nodeclean: down
 	find -type d -name data -exec sh -c 'cd "{}" && npm run fclean' \;
 

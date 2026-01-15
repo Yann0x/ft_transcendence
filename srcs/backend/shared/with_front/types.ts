@@ -39,7 +39,7 @@ export type Stats = Static<typeof StatsSchema>;
 
 export const MessageSchema = Type.Object({
   id:           Type.Number(),
-  channel_id:   Type.Number(),
+  channel_id:   Type.String(),
   sender_id:    Type.String(),
   content:      Type.String(),
   sent_at:      Type.String({ format: 'date-time' }),
@@ -48,7 +48,7 @@ export const MessageSchema = Type.Object({
 export type Message = Static<typeof MessageSchema>;
 
 export const ChannelSchema = Type.Object({
-  id:           Type.Number(),
+  id:           Type.String(),
   name:         Type.String(),
   type:         Type.String(),
   members:      Type.Array(Type.String()),

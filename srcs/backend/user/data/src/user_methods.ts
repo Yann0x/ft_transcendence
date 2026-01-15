@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from "fastify";
+import { randomUUID } from "crypto";
 import { User, UserPublic, Message } from "./shared/with_front/types";
 import customFetch from "./shared/utils/fetch";
 import { userManager } from "./user_manager.js";
@@ -76,6 +77,11 @@ export async function registerUserHandler(
   try {
     // Request body is already validated by schema at this point
     const userData: User = req.body;
+
+    // Generate UUID for the new user
+    userData.id = randomUUID();
+    console.log("[USER] Generated UUID for new user:", userData.id);
+
     // TODO: Hash password before sending to database
 
     console.log("[USER] Calling database service at http://database:3000/database/user");
@@ -86,7 +92,6 @@ export async function registerUserHandler(
       userData
     );
     console.log("[USER] Database returned:", result);
-    userData.id = result as string;
 
     // Get JWT from internal authenticate service for immediate login
     const token = await customFetch(
@@ -251,13 +256,35 @@ export async function updateUserHandler(
   reply: FastifyReply
 ) {
   try {
-    const updateData = req.body;
+    const updateData = req.body as User;
 
     const result = await customFetch(
       'http://database:3000/database/user',
       'PUT',
       updateData
     );
+
+    // Notify friends about the profile update
+    const userId = updateData.id;
+    if (userId) {
+      try {
+        const friends = await customFetch(
+          `http://database:3000/database/friends?user_id=${userId}`,
+          'GET'
+        ) as Array<{ id: string }>;
+
+        if (friends && friends.length > 0) {
+          const friendIds = friends.map(f => f.id);
+          await customFetch('http://social:3000/social/notify/user_update', 'POST', {
+            notifyUserIds: friendIds,
+            updatedUserId: userId
+          });
+        }
+      } catch (notifyError) {
+        // Don't fail the update if notification fails
+        console.error('Failed to notify friends about profile update:', notifyError);
+      }
+    }
 
     return {
       success: true,
@@ -340,17 +367,16 @@ export async function addFriendHandler(
         if (currentUser && otherUser) {
           const channelName = `${currentUser.name}&${otherUser.name}`;
           const channelData = {
+            id : randomUUID(),
             name: channelName,
             type: 'private',
             created_by: userId,
             created_at: new Date().toISOString()
           };
 
-          const newChannelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
+          const channelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
 
-          if (newChannelId) {
-            channelId = parseInt(newChannelId);
-
+          if (channelId) {
             // Add both users as members
             await customFetch('http://database:3000/database/channel/member', 'POST', {
               channel_id: channelId,
@@ -532,7 +558,7 @@ export async function markChannelReadHandler(
 
     // Mark all messages as read in database
     const success = await customFetch('http://database:3000/database/channel/mark-read', 'PUT', {
-      channel_id: parseInt(channelId),
+      channel_id: channelId,
       user_id: userId
     });
 
@@ -899,12 +925,12 @@ export async function createDMChannelHandler(
 
     // Add both users as members
     await customFetch('http://database:3000/database/channel/member', 'POST', {
-      channel_id: parseInt(newChannelId),
+      channel_id: newChannelId,
       user_id: currentUserId
     });
 
     await customFetch('http://database:3000/database/channel/member', 'POST', {
-      channel_id: parseInt(newChannelId),
+      channel_id: newChannelId,
       user_id: otherUserId
     });
 
