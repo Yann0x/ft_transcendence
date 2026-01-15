@@ -28,7 +28,15 @@ export const Social = {
     async load() {
         Friends.display();
         await Chat.displayChannels();
-        await Chat.openLastConversation();
+
+        // Check for pending channel from profile modal message action
+        const pendingChannelId = sessionStorage.getItem('pendingChannelId');
+        if (pendingChannelId) {
+            sessionStorage.removeItem('pendingChannelId');
+            await Chat.loadAndDisplayChannel(pendingChannelId);
+        } else {
+            await Chat.openLastConversation();
+        }
     },
 
     cleanup() {

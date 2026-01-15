@@ -1,6 +1,7 @@
 import {App} from './app.ts'
 import {Message, Channel, SocialEvent, UserPublic} from '../shared/types'
 import {socialClient} from  './social-client'
+import {ProfileModal} from './profile-modal'
 
 // Cache for user data fetched from API
 const userCache = new Map<string, UserPublic>();
@@ -305,6 +306,16 @@ export const Chat =
             }
         })
        })
+       // Attach avatar click handlers for profile modal
+       document.querySelectorAll('.channel-avatar').forEach(avatar => {
+        avatar.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent channel selection
+            const userId = (e.currentTarget as HTMLElement).dataset.userId;
+            if (userId) {
+                ProfileModal.open(userId);
+            }
+        });
+       });
     },
 
     async loadAndDisplayChannel(channelId: string) {
@@ -428,7 +439,7 @@ export const Chat =
             const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
             const otherUser = otherUserId ? this.getUserByIdSync(otherUserId) : null;
             const avatarUrl = otherUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3b82f6&color=fff`;
-            avatarHtml = `<img src="${avatarUrl}" alt="${displayName}" class="w-12 h-12 rounded-full object-cover">`;
+            avatarHtml = `<div class="channel-avatar cursor-pointer" data-user-id="${otherUserId}"><img src="${avatarUrl}" alt="${displayName}" class="w-12 h-12 rounded-full object-cover hover:ring-2 hover:ring-blue-500 transition"></div>`;
         } else {
             avatarHtml = `
                 <div class="flex items-center justify-center w-12 h-12 rounded-full ${iconBgColor}">
@@ -486,17 +497,45 @@ export const Chat =
             const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
             const otherUser = otherUserId ? this.getUserByIdSync(otherUserId) : null;
             const avatarUrl = otherUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3b82f6&color=fff`;
-            headerAvatar.innerHTML = `<img src="${avatarUrl}" alt="${displayName}" class="w-10 h-10 rounded-full object-cover">`;
+            headerAvatar.innerHTML = `<img src="${avatarUrl}" alt="${displayName}" class="w-10 h-10 rounded-full object-cover hover:ring-2 hover:ring-blue-500 transition cursor-pointer">`;
+            headerAvatar.className = 'cursor-pointer';
+            headerAvatar.onclick = () => {
+                if (otherUserId) ProfileModal.open(otherUserId);
+            };
         } else {
             headerAvatar.innerHTML = '';
             headerAvatar.textContent = displayName.charAt(0).toUpperCase();
+            headerAvatar.className = '';
+            headerAvatar.onclick = null;
         }
 
         // Show action buttons
         headerActions.style.display = 'flex';
 
-        // Attach block button listener
+        // Attach profile and block button listeners
+        this.attachProfileButtonListener(channel);
         this.attachBlockButtonListener(channel);
+    },
+
+    attachProfileButtonListener(channel: Channel) {
+        const profileBtn = document.querySelector('#chat-header-actions button[title="View profile"]');
+        if (!profileBtn) return;
+
+        const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
+        if (!otherUserId || channel.type !== 'private') {
+            (profileBtn as HTMLElement).style.display = 'none';
+            return;
+        }
+
+        (profileBtn as HTMLElement).style.display = 'flex';
+
+        // Clone and replace to remove old listener
+        const newBtn = profileBtn.cloneNode(true) as HTMLElement;
+        profileBtn.parentNode?.replaceChild(newBtn, profileBtn);
+
+        newBtn.addEventListener('click', () => {
+            ProfileModal.open(otherUserId);
+        });
     },
 
     attachBlockButtonListener(channel: Channel) {
