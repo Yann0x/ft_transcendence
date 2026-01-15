@@ -101,12 +101,6 @@ export const Chat =
     },
 
     setupSocialEventListeners(){
-        socialClient.on('channel_update', (event: SocialEvent) => {
-            this.updateChannel(event.data);
-        });
-        socialClient.on('message_new', (event: SocialEvent) => {
-            this.addMessageToChannel(event.data);
-        });
     },
 
     addMessageToChannel(message: Message) {

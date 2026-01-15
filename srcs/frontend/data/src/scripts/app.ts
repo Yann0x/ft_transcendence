@@ -9,7 +9,7 @@ import { SettingsModal, setAppInstance } from './settings-modal'
 import { ProfileModal } from './profile-modal'
 import { Social } from './social'
 import { socialClient } from './social-client'
-import { User, UserPublic, LoginResponse } from '../shared/types'
+import { User, UserPublic, LoginResponse, Channel } from '../shared/types'
 import { I18n } from './i18n'
 import { Contrast } from './contrast'
 import { PongGame } from '../game'
@@ -24,12 +24,17 @@ const App = {
   cachedUsers: new Map<string, UserPublic>(),      // Central cache of all users
   friendsMap: new Map<string, UserPublic>(),        // Key: friend ID
   blockedUsersMap: new Map<string, UserPublic>(),   // Key: blocked user ID
-  onlineUsers: new Map<string, UserPublic>(),
+  onlineUsersMap: new Map<string, UserPublic>(),
+  channelsMap: new Map <string, Channel>(),
 
   // Add or update user in central cache
   cacheUser(user: UserPublic): void {
     if (!user.id) return;
-    this.cachedUsers.set(user.id, user);
+    const existing = this.cachedUsers.get(user.id);
+    if (existing)
+      Object.assign(existing, user);
+    else
+      this.cachedUsers.set(user.id, user);
   },
 
   // Add multiple users to cache
@@ -37,22 +42,6 @@ const App = {
     users.forEach(user => this.cacheUser(user));
   },
 
-  // Get user from cache
-  getCachedUser(userId: string): UserPublic | undefined {
-    return this.cachedUsers.get(userId);
-  },
-
-  // Update user in cache (selective update from WebSocket events)
-  updateCachedUser(userId: string, updates: Partial<UserPublic>): void {
-    const cached = this.cachedUsers.get(userId);
-    if (cached) {
-      // Only update if user is already cached
-      Object.assign(cached, updates);
-      this.cachedUsers.set(userId, cached);
-    }
-  },
-
-  // Load friends from API and populate maps
   async loadFriends(): Promise<void> {
     if (!this.me?.id) return;
 
@@ -70,10 +59,8 @@ const App = {
 
       const friends: UserPublic[] = await response.json();
 
-      // Cache all friend data
       this.cacheUsers(friends);
 
-      // Populate friendsMap with references to cached users
       this.friendsMap.clear();
       friends.forEach(friend => {
         if (friend.id) {
@@ -90,7 +77,6 @@ const App = {
     }
   },
 
-  // Load blocked users from API and populate maps
   async loadBlockedUsers(): Promise<void> {
     if (!this.me?.id) return;
 
@@ -106,35 +92,25 @@ const App = {
         return;
       }
 
-      const blockedIds: string[] = await response.json();
+      const blocked: UserPublic[] = await response.json();
 
-      // Fetch full UserPublic data for each blocked user
-      for (const blockedId of blockedIds) {
-        try {
-          const userResponse = await fetch(`/user/${blockedId}`, {
-            headers: {
-              'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
-            }
-          });
+      this.cacheUsers(blocked);
 
-          if (userResponse.ok) {
-            const user: UserPublic = await userResponse.json();
-            this.cacheUser(user);
-
-            const cachedUser = this.cachedUsers.get(blockedId);
-            if (cachedUser) {
-              this.blockedUsersMap.set(blockedId, cachedUser);
-            }
+      this.blockedUsersMap.clear();
+      blocked.forEach(enemy => {
+        if (enemy.id) {
+          const cachedBlocked = this.cachedUsers.get(enemy.id);
+          if (cachedBlocked) {
+            this.blockedUsersMap.set(enemy.id, cachedBlocked);
           }
-        } catch (error) {
-          console.error(`[App] Failed to load blocked user ${blockedId}:`, error);
         }
-      }
+      });
 
-      console.log(`[App] Loaded ${blockedIds.length} blocked users`);
+      console.log(`[App] Loaded ${blocked.length} blocked users`);
     } catch (error) {
-      console.error('[App] Failed to load blocked users:', error);
+      console.error('[App] Failed to load blockeds:', error);
     }
+
   },
 
   // Helper methods for common checks
@@ -146,8 +122,7 @@ const App = {
     return this.blockedUsersMap.has(userId);
   },
 
-  // Add friend to maps (after API call succeeds)
-  addFriendToMaps(friend: UserPublic): void {
+  addToFriendsMap(friend: UserPublic): void {
     if (!friend.id) return;
     this.cacheUser(friend);
     const cachedFriend = this.cachedUsers.get(friend.id);
@@ -156,28 +131,70 @@ const App = {
     }
   },
 
-  // Remove friend from maps
-  removeFriendFromMaps(friendId: string): void {
+  removeFromFriendsMap(friendId: string): void {
     this.friendsMap.delete(friendId);
-    // Note: Keep in cachedUsers for other potential references
   },
 
-  // Add blocked user to maps
-  addBlockedUserToMaps(user: UserPublic): void {
+  addToBlockedUsersMap(user: UserPublic): void {
     if (!user.id) return;
     this.cacheUser(user);
     const cachedUser = this.cachedUsers.get(user.id);
     if (cachedUser) {
       this.blockedUsersMap.set(user.id, cachedUser);
     }
-    // Remove from friends if present
     this.friendsMap.delete(user.id);
   },
 
-  // Remove blocked user from maps
-  removeBlockedUserFromMaps(userId: string): void {
+  removeFromBlockedUsersMap(userId: string): void {
     this.blockedUsersMap.delete(userId);
-    // Note: Keep in cachedUsers for other potential references
+  },
+
+  addToOnlineUsersMap(user: UserPublic): void {
+    if (!user.id) return;
+    this.cacheUser(user);
+    const cachedUser = this.onlineUsersMap.get(user.id);
+    if (cachedUser) {
+      this.onlineUsersMap.set(user.id, cachedUser);
+    }
+  },
+
+  removeFromOnlineUsersMap(userId: string): void {
+    this.onlineUsersMap.delete(userId);
+  },
+
+
+  async refreshUserData(userId: User.id): Promise<void> {
+      try {
+      const token = sessionStorage.getItem('authToken');
+      if (!token || !userId) {
+          console.warn('[APP] Cannot refresh: missing token or user ID');
+          return;
+      }
+      console.log('[APP] Refreshing current user data for ID:', userId);
+      const response = await fetch(`/user/find?id=${userId}`, {
+          headers: {
+          'Authorization': `Bearer ${token}`
+          }
+      });
+      if (!response.ok) {
+          console.error('[APP] Failed to refresh user data, status:', response.status);
+          return;
+      }
+      const users = await response.json();
+      console.log('[APP] Received user data:', users);
+
+      if (users && users.length > 0) {
+          const updatedUser = users[0];
+          if (this.me?.id === userId)
+            Object.assign(this.me, updatedUser);
+          else
+            this.cacheUser(updatedUser);
+      } else {
+          console.warn('[APP] No user data received from API');
+      }
+      } catch (error) {
+        console.error('[APP] Error refreshing user data:', error);
+      }
   },
 
   async init(): Promise<void> {
