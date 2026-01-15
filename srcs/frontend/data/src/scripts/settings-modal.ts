@@ -2,7 +2,7 @@
    SETTINGS MODAL - Account Settings Management
    ============================================ */
 
-import { User } from '../shared/types';
+import { User, UserPublic } from '../shared/types';
 
 // Forward declaration - will be set by App
 let getAppInstance: () => { me: User | null; logout: () => Promise<void>; updateNavbar: () => void; onLogin: (user: User) => void } | null;
@@ -352,6 +352,7 @@ export const SettingsModal = {
     }
 
     this.populateForm(app.me);
+    this.loadBlockedUsers();
     this.modal?.classList.remove('hidden');
   },
 
@@ -382,6 +383,111 @@ export const SettingsModal = {
     const passwordConfirmInput = document.getElementById('settings-password-confirm') as HTMLInputElement;
     if (passwordInput) passwordInput.value = '';
     if (passwordConfirmInput) passwordConfirmInput.value = '';
+  },
+
+  /**
+   * Load and display blocked users
+   */
+  async loadBlockedUsers(): Promise<void> {
+    const app = getAppInstance?.();
+    const blockedList = document.getElementById('settings-blocked-list');
+    const blockedCount = document.getElementById('settings-blocked-count');
+    const emptyState = document.getElementById('settings-blocked-empty');
+
+    if (!blockedList || !app?.me) return;
+
+    const blockedUserIds = app.me.blocked_users || [];
+
+    if (blockedUserIds.length === 0) {
+      if (emptyState) emptyState.style.display = 'block';
+      if (blockedCount) blockedCount.textContent = '0';
+      blockedList.querySelectorAll('[data-user-id]').forEach(el => el.remove());
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+    if (blockedCount) blockedCount.textContent = String(blockedUserIds.length);
+
+    // Fetch user data for each blocked user
+    const blockedUsers: UserPublic[] = [];
+    const token = sessionStorage.getItem('authToken');
+    for (const userId of blockedUserIds) {
+      try {
+        const response = await fetch(`/user/find?id=${userId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const users = await response.json();
+        if (users && users.length > 0) blockedUsers.push(users[0]);
+      } catch (error) {
+        console.error(`[SETTINGS] Failed to fetch blocked user ${userId}:`, error);
+      }
+    }
+
+    // Clear existing cards (except empty state)
+    blockedList.querySelectorAll('[data-user-id]').forEach(el => el.remove());
+
+    // Render blocked user cards
+    blockedUsers.forEach(user => {
+      const card = this.createBlockedUserCard(user);
+      blockedList.insertAdjacentHTML('beforeend', card);
+    });
+
+    this.attachUnblockListeners();
+  },
+
+  /**
+   * Create HTML for a blocked user card
+   */
+  createBlockedUserCard(user: UserPublic): string {
+    const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=ef4444&color=fff`;
+    return `
+      <div class="flex items-center justify-between p-3 bg-neutral-800 rounded-lg" data-user-id="${user.id}">
+        <div class="flex items-center gap-3">
+          <img src="${avatar}" alt="${user.name}" class="w-8 h-8 rounded-full object-cover opacity-50">
+          <span class="text-sm text-neutral-400">${user.name || 'Unknown'}</span>
+        </div>
+        <button class="settings-unblock-btn px-2 py-1 bg-neutral-700 hover:bg-neutral-600 text-white rounded transition text-xs" data-user-id="${user.id}">
+          Débloquer
+        </button>
+      </div>
+    `;
+  },
+
+  /**
+   * Attach click listeners to unblock buttons
+   */
+  attachUnblockListeners(): void {
+    document.querySelectorAll('#settings-blocked-list .settings-unblock-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const userId = (e.currentTarget as HTMLElement).dataset.userId;
+        if (!userId) return;
+
+        try {
+          const response = await fetch('/user/unblock', {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify({ blockedUserId: userId })
+          });
+
+          if (response.ok) {
+            const app = getAppInstance?.();
+            // Update local state
+            if (app?.me?.blocked_users) {
+              app.me.blocked_users = app.me.blocked_users.filter((id: string) => id !== userId);
+              sessionStorage.setItem('currentUser', JSON.stringify(app.me));
+            }
+            // Refresh blocked users list
+            this.loadBlockedUsers();
+          }
+        } catch (error) {
+          console.error('[SETTINGS] Failed to unblock user:', error);
+        }
+      });
+    });
   },
 
   /**

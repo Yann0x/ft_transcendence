@@ -49,7 +49,7 @@ export type Message = Static<typeof MessageSchema>;
 
 export const ChannelSchema = Type.Object({
   id:           Type.String(),
-  name:         Type.String(),
+  name:         Type.Optional(Type.String()),
   type:         Type.String(),
   members:      Type.Array(Type.String()),
   moderators:   Type.Array(Type.String()),

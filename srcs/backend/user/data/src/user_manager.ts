@@ -103,13 +103,10 @@ export const userManager = {
         console.log(`[UserManager] DM channel ${existingChannelId} already exists between ${userId} and ${friendId}`);
         // Channel already exists, no need to create a new one
       } else {
-        // Create new DM channel
-        // Store both names separated by & so we can display the right one per user
-        const channelName = `${user.name}&${friend.name}`;
+        // Create new DM channel (name left undefined for private channels)
         const channelId = randomUUID();
         const channelData = {
           id: channelId,
-          name: channelName,
           type: 'private',
           created_by: userId,
           created_at: new Date().toISOString()

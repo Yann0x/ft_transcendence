@@ -361,35 +361,29 @@ export async function addFriendHandler(
 
       // If channel doesn't exist yet, create it
       if (!channelId) {
-        const currentUser = await userManager.getUser(userId);
-        const otherUser = await userManager.getUser(friendId);
+        const channelData = {
+          id : randomUUID(),
+          type: 'private',
+          created_by: userId,
+          created_at: new Date().toISOString()
+        };
 
-        if (currentUser && otherUser) {
-          const channelName = `${currentUser.name}&${otherUser.name}`;
-          const channelData = {
-            id : randomUUID(),
-            name: channelName,
-            type: 'private',
-            created_by: userId,
-            created_at: new Date().toISOString()
-          };
+        const newChannelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
 
-          const channelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
+        if (newChannelId) {
+          channelId = newChannelId as unknown as number;
+          // Add both users as members
+          await customFetch('http://database:3000/database/channel/member', 'POST', {
+            channel_id: newChannelId,
+            user_id: userId
+          });
 
-          if (channelId) {
-            // Add both users as members
-            await customFetch('http://database:3000/database/channel/member', 'POST', {
-              channel_id: channelId,
-              user_id: userId
-            });
+          await customFetch('http://database:3000/database/channel/member', 'POST', {
+            channel_id: newChannelId,
+            user_id: friendId
+          });
 
-            await customFetch('http://database:3000/database/channel/member', 'POST', {
-              channel_id: channelId,
-              user_id: friendId
-            });
-
-            console.log(`[USER] Created DM channel ${channelId} for new friendship ${userId} <-> ${friendId}`);
-          }
+          console.log(`[USER] Created DM channel ${newChannelId} for new friendship ${userId} <-> ${friendId}`);
         }
       }
 
@@ -900,18 +894,8 @@ export async function createDMChannelHandler(
       return reply.status(200).send(channel);
     }
 
-    // Get user data for channel name
-    const currentUser = await userManager.getUser(currentUserId);
-    const otherUser = await userManager.getUser(otherUserId);
-
-    if (!currentUser || !otherUser) {
-      return reply.status(404).send({ error: 'Not Found', message: 'User not found' });
-    }
-
-    // Create new DM channel
-    const channelName = `${currentUser.name}&${otherUser.name}`;
+    // Create new DM channel (name left undefined for private channels)
     const channelData = {
-      name: channelName,
       type: 'private',
       created_by: currentUserId,
       created_at: new Date().toISOString()
