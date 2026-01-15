@@ -16,79 +16,10 @@ export const Friends = {
     }
     // When used standalone (not via Social wrapper)
     this.setupSearchListeners();
-    this.setupSocialEventListeners();
     socialClient.connect(token);
     this.display();
   },
 
-  setupSocialEventListeners(): void {
-    socialClient.on('users_online', (event: SocialEvent) => {
-      console.log('[FRIENDS] Received online users list:', event.data);
-      if (event.data && event.data.users && Array.isArray(event.data.users)) {
-        event.data.users.forEach((user: UserPublic) => {
-          // Filter out blocked users from online list
-          if (user.id && !App.isUserBlocked(user.id)) {
-            App.onlineUsers.set(user.id, user);
-            this.updateUserOnlineStatusCard(user.id, 'online');
-          }
-        });
-        this.display();
-      }
-    });
-    socialClient.on('user_online', (event: SocialEvent) => {
-      console.log('[FRIENDS] User came online:', event.data);
-      if (event.data && event.data.user) {
-        const user = event.data.user as UserPublic;
-        // Don't show blocked users as online
-        if (user.id && App.isUserBlocked(user.id)) return;
-        App.onlineUsers.set(user.id, user);
-        // Update in cache if already present
-        if (user.id) {
-          App.updateCachedUser(user.id, { status: 'online' });
-        }
-        this.updateUserOnlineStatusCard(user.id, 'online');
-        this.display();
-      }
-    });
-    socialClient.on('user_offline', (event: SocialEvent) => {
-      console.log('[FRIENDS] User went offline:', event.data);
-      if (event.data && event.data.id) {
-        const userId = event.data.id as string;
-        App.onlineUsers.delete(userId);
-        // Update in cache if already present
-        App.updateCachedUser(userId, { status: 'offline' });
-        this.updateUserOnlineStatusCard(userId, 'offline');
-        // Refresh search to remove offline user
-        this.display();
-      }
-    });
-    socialClient.on('user_update', async (event: SocialEvent) => {
-      console.log('[FRIENDS] User update event received:', event.data);
-      if (!event.data || !event.data.userId) {
-        console.warn('[FRIENDS] Invalid user_update event data');
-        return;
-      }
-      const updatedUserId = event.data.userId;
-      console.log('[FRIENDS] Updated user ID:', updatedUserId, 'Current user ID:', App.me?.id);
-
-      if (App.me && updatedUserId === App.me.id) {
-        console.log('[FRIENDS] Refreshing current user data...');
-        // Reload friends and blocked users from API
-        await Promise.all([
-          App.loadFriends(),
-          App.loadBlockedUsers()
-        ]);
-      } else {
-        console.log('[FRIENDS] Handling other user update...');
-        await this.handleOtherUserUpdate(updatedUserId);
-      }
-
-      console.log('[FRIENDS] Calling display() to refresh UI...');
-      this.display();
-      console.log('[FRIENDS] User update handling complete');
-      return;
-    });
-  },
 
   display(): void {
     const token = sessionStorage.getItem('authToken');
@@ -104,109 +35,9 @@ export const Friends = {
       return;
     }
     this.loadSearch();
-    this.loadFriends();
+    this.displayFriends();
   },
 
-  async refreshCurrentUserData(): Promise<void> {
-    try {
-      const token = sessionStorage.getItem('authToken');
-      if (!token || !App.me?.id) {
-        console.warn('[FRIENDS] Cannot refresh: missing token or user ID');
-        return;
-      }
-      console.log('[FRIENDS] Refreshing current user data for ID:', App.me.id);
-
-      const response = await fetch(`/user/find?id=${App.me.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        console.error('[FRIENDS] Failed to refresh user data, status:', response.status);
-        return;
-      }
-
-      const users = await response.json();
-      console.log('[FRIENDS] Received user data:', users);
-
-      if (users && users.length > 0) {
-        const updatedUser = users[0];
-        console.log('[FRIENDS] Updated user friends:', updatedUser.friends);
-        console.log('[FRIENDS] Previous friends count:', App.me.friends?.length || 0);
-        console.log('[FRIENDS] New friends count:', updatedUser.friends?.length || 0);
-
-        App.me = updatedUser;
-        sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
-        // Update Chat's user cache with friend data that has avatars
-        if (updatedUser.friends) {
-          updatedUser.friends.forEach((friend: UserPublic) => {
-            if (friend.id && friend.avatar) {
-              Chat.updateUserCache(friend.id, friend);
-            }
-          });
-        }
-        App.updateNavbar();
-        this.display();
-      } else {
-        console.warn('[FRIENDS] No user data received from API');
-      }
-    } catch (error) {
-      console.error('[FRIENDS] Error refreshing user data:', error);
-    }
-  },
-
-  async handleOtherUserUpdate(userId: string): Promise<void> {
-    try {
-      const token = sessionStorage.getItem('authToken');
-      if (!token) return;
-      console.log(`[FRIENDS] Handling update for user ${userId}`);
-      const response = await fetch(`/user/find?id=${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) {
-        console.error(`[FRIENDS] Failed to fetch updated data for user ${userId}`);
-        return;
-      }
-      const users = await response.json();
-      if (!users || users.length === 0) return;
-      const updatedUser = users[0] as UserPublic;
-      if (App.me?.friends) {
-        const friendIndex = App.me.friends.findIndex((f: UserPublic) => f.id === userId);
-        if (friendIndex !== -1) {
-          App.me.friends[friendIndex] = updatedUser;
-          sessionStorage.setItem('currentUser', JSON.stringify(App.me));
-        }
-      }
-      if (App.onlineUsers.has(userId)) {
-        App.onlineUsers.set(userId, updatedUser);
-      }
-      // Update Chat's user cache with the fresh user data
-      Chat.updateUserCache(userId, updatedUser);
-      this.display();
-    } catch (error) {
-      console.error(`[FRIENDS] Error handling user update for ${userId}:`, error);
-    }
-  },
-
-  updateUserOnlineStatusCard(userId: string, status: 'online' | 'offline'): void {
-    const statusDots = document.querySelectorAll(`[data-user-id="${userId}"] .status-dot`);
-    statusDots.forEach(dot => {
-      if (status === 'online') {
-        dot.classList.remove('bg-neutral-500');
-        dot.classList.add('bg-green-500');
-      } else {
-        dot.classList.remove('bg-green-500');
-        dot.classList.add('bg-neutral-500');
-      }
-    });
-    const statusTexts = document.querySelectorAll(`[data-user-id="${userId}"] .status-text`);
-    statusTexts.forEach(text => {
-      text.textContent = status;
-    });
-  },
 
   setupSearchListeners(): void {
     const searchInput = document.getElementById('user-search-input') as HTMLInputElement;
@@ -219,6 +50,35 @@ export const Friends = {
         this.loadSearch();
       }
     });
+  },
+
+async displayFriends(): Promise<void> {
+    const friendsList = document.getElementById('friends-list');
+    const friendsCount = document.getElementById('friends-count');
+    const emptyState = document.getElementById('friends-empty-state');
+
+    if (!friendsList || !App.me) {
+      return;
+    }
+
+    const friends = Array.from(App.friendsMap.values());
+    if (friends.length === 0) {
+      console.log('[FRIENDS] No friends to display');
+      emptyState?.classList.remove('hidden');
+      friendsList.innerHTML = '';
+      if (friendsCount) {
+        friendsCount.textContent = '0 amis';
+      }
+      return;
+    }
+    console.log('[FRIENDS] Rendering', friends.length, 'friends');
+    emptyState?.classList.add('hidden');
+
+    friendsList.innerHTML = friends.map((friend: UserPublic) => this.createFriendUserCard(friend)).join('');
+    this.attachFriendActionListeners();
+    if (friendsCount) {
+      friendsCount.textContent = `${friends.length} ami${friends.length > 1 ? 's' : ''}`;
+    }
   },
 
   async loadSearch(): Promise<void> {
@@ -247,7 +107,7 @@ export const Friends = {
         console.log('Error searching users');
       }
     } else {
-      users = Array.from(App.onlineUsers.values());
+      users = Array.from(App.onlineUsersMap.values());
     }
     this.displaySearchResults(users);
   },
@@ -271,10 +131,27 @@ export const Friends = {
     this.attachSearchActionListeners();
     resultsContainer.classList.remove('hidden');
   },
+  
+  updateUserOnlineStatusCard(userId: string, status: 'online' | 'offline'): void {
+    const statusDots = document.querySelectorAll(`[data-user-id="${userId}"] .status-dot`);
+    statusDots.forEach(dot => {
+      if (status === 'online') {
+        dot.classList.remove('bg-neutral-500');
+        dot.classList.add('bg-green-500');
+      } else {
+        dot.classList.remove('bg-green-500');
+        dot.classList.add('bg-neutral-500');
+      }
+    });
+    const statusTexts = document.querySelectorAll(`[data-user-id="${userId}"] .status-text`);
+    statusTexts.forEach(text => {
+      text.textContent = status;
+    });
+  },
 
   createSearchUserCard(user: UserPublic): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
-    const isOnline = App.onlineUsers.has(user.id);
+    const isOnline = App.onlineUsersMap.has(user.id);
     const onlineStatus = isOnline ? 'online' : 'offline';
     const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
     const card = `
@@ -304,7 +181,7 @@ export const Friends = {
 
   createFriendUserCard(user: UserPublic): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
-    const isOnline = App.onlineUsers.has(user.id);
+    const isOnline = App.onlineUsersMap.has(user.id);
     const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
     const statusText = isOnline ? 'online' : 'offline';
    const card =  `
@@ -405,44 +282,6 @@ export const Friends = {
     } catch (error) {
       console.error('[FRIENDS] Error adding friend:', error);
       alert('Error adding friend');
-    }
-  },
-
-async loadFriends(): Promise<void> {
-    console.log('[FRIENDS] 📋 loadFriends() called');
-    const friendsList = document.getElementById('friends-list');
-    const friendsCount = document.getElementById('friends-count');
-    const emptyState = document.getElementById('friends-empty-state');
-
-    if (!friendsList || !App.me) {
-      console.warn('[FRIENDS] Missing friendsList element or App.me');
-      return;
-    }
-
-    // Get friends from friendsMap
-    const friends = Array.from(App.friendsMap.values());
-    console.log('[FRIENDS] App.friendsMap:', friends);
-    console.log('[FRIENDS] Friends count:', friends.length);
-
-    if (friends.length === 0) {
-      console.log('[FRIENDS] 📭 No friends to display');
-      emptyState?.classList.remove('hidden');
-      friendsList.innerHTML = '';
-      if (friendsCount) {
-        friendsCount.textContent = '0 amis';
-      }
-      return;
-    }
-
-    console.log('[FRIENDS] Rendering', friends.length, 'friends');
-    emptyState?.classList.add('hidden');
-
-    // Create friend cards
-    friendsList.innerHTML = friends.map((friend: UserPublic) => this.createFriendUserCard(friend)).join('');
-    this.attachFriendActionListeners();
-
-    if (friendsCount) {
-      friendsCount.textContent = `${friends.length} ami${friends.length > 1 ? 's' : ''}`;
     }
   },
 

@@ -128,12 +128,6 @@ export const userManager = {
     }
   },
 
-  setUser(user: User): void {
-    if (user.id) {
-      this.users.set(user.id, user);
-    }
-  },
-
   async addFriend(userId: string, friendId: string): Promise<boolean> {
     const user = await this.getUser(userId);
     const friend = await this.getUser(friendId);
