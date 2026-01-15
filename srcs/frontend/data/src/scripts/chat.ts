@@ -18,8 +18,8 @@ export const Chat =
         const cached = userCache.get(userId);
         if (cached?.avatar) return cached;
 
-        // Check App.me.friends - may have avatar if loaded properly
-        const friend = App.me?.friends?.find((f: { id?: string }) => f.id === userId) as UserPublic | undefined;
+        // Check App.friendsMap - may have avatar if loaded properly
+        const friend = App.friendsMap.get(userId);
         if (friend?.avatar) {
             userCache.set(userId, friend); // Cache it for future use
             return friend;
@@ -61,9 +61,9 @@ export const Chat =
         const cached = userCache.get(userId);
         if (cached?.avatar) return cached;
 
-        // Check App.me.friends as fallback - may not have avatar
-        const friend = App.me?.friends?.find((f: { id?: string }) => f.id === userId);
-        if (friend) return friend as UserPublic;
+        // Check App.friendsMap as fallback - may not have avatar
+        const friend = App.friendsMap.get(userId);
+        if (friend) return friend;
 
         // Return onlineUser or cached even without avatar as last resort
         if (onlineUser) return onlineUser;
@@ -603,17 +603,12 @@ export const Chat =
             const result = await response.json();
             console.log('[CHAT] ✅ User blocked successfully:', result);
 
-            // Update local state
-            if (!App.me.blocked_users) {
-                App.me.blocked_users = [];
-            }
-            if (!App.me.blocked_users.includes(userId)) {
-                App.me.blocked_users.push(userId);
+            // Update App maps
+            const user = App.getCachedUser(userId);
+            if (user) {
+                App.addBlockedUserToMaps(user);
             }
 
-            // Update sessionStorage
-            sessionStorage.setItem('currentUser', JSON.stringify(App.me));
-            
             // Refresh channel list (user may have been removed from friends)
             this.displayChannels();
 
@@ -667,14 +662,9 @@ export const Chat =
             const result = await response.json();
             console.log('[CHAT] ✅ User unblocked successfully:', result);
 
-            // Update local state
-            if (App.me.blocked_users) {
-                App.me.blocked_users = App.me.blocked_users.filter((id: string) => id !== userId);
-            }
+            // Update App maps
+            App.removeBlockedUserFromMaps(userId);
 
-            // Update sessionStorage
-            sessionStorage.setItem('currentUser', JSON.stringify(App.me));
-        
             // Refresh channel list
             this.displayChannels();
             // Refresh the current channel display to remove blocking message

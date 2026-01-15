@@ -67,6 +67,7 @@ export const UserPublicSchema = Type.Object({
   status:       Type.Optional(Type.String({default: 'offline'})),
 })
 export type UserPublic = Static<typeof UserPublicSchema>;
+  
 
 export const UserSchema = Type.Object({
   role:         Type.Optional(Type.String({default: 'user'})),
@@ -76,14 +77,44 @@ export const UserSchema = Type.Object({
   avatar:       Type.Optional(Type.String()),
   status:       Type.String({default: 'offline'}),
   password:     Type.Optional(Type.String({minLength:6, maxLength: 128})),
-  friends:      Type.Optional(Type.Array(UserPublicSchema)),
-  blocked_users: Type.Optional(Type.Array(Type.String())),
   stats:        Type.Optional(StatsSchema),
   matches:      Type.Optional(Type.Array(MatchSchema)),
   tournaments:  Type.Optional(Type.Array(TournamentSchema)),
   channels:     Type.Optional(Type.Array(ChannelSchema)),
 })
 export type User = Static<typeof UserSchema>;
+
+export const FriendshipSchema = Type.Object({
+  id:           Type.Optional(Type.Number()),
+  user1:       UserSchema,
+  user2:       UserSchema,
+  status:      Type.Union([Type.Literal('pending'), Type.Literal('accepted'), Type.Literal('rejected')]),
+  createdAt:    Type.String({ format: 'date-time' }), 
+})
+export type Friendship = Static<typeof FriendshipSchema>;
+
+export const BlockedUserSchema = Type.Object({
+  id:           Type.Optional(Type.Number()),
+  blockerId:   UserSchema,
+  blockedId:   UserSchema,
+  createdAt:    Type.String({ format: 'date-time' }),
+})
+export type BlockedUser = Static<typeof BlockedUserSchema>;
+
+// Helper function to generate sorted composite keys for friendships and blocked users
+export function generateFriendshipKey(userId1: string, userId2: string): string {
+  return [userId1, userId2].sort().join('-');
+}
+
+// Login response with all necessary data for frontend
+export const LoginResponseSchema = Type.Object({
+  user: UserSchema,                                  // Current user data
+  cachedUsers: Type.Array(UserPublicSchema),         // All users to cache (friends + blocked + online)
+  friendIds: Type.Array(Type.String()),              // Friend IDs for building friendsMap
+  blockedIds: Type.Array(Type.String()),             // Blocked user IDs for building blockedUsersMap
+  token: Type.Optional(Type.String()),               // Auth token (if login returns it)
+});
+export type LoginResponse = Static<typeof LoginResponseSchema>;
 
 // WebSocket Social Event Types
 export const SocialEventTypeSchema = Type.Union([

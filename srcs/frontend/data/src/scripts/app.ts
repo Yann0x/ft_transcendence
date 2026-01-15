@@ -9,7 +9,7 @@ import { SettingsModal, setAppInstance } from './settings-modal'
 import { ProfileModal } from './profile-modal'
 import { Social } from './social'
 import { socialClient } from './social-client'
-import { User, UserPublic } from '../shared/types'
+import { User, UserPublic, LoginResponse } from '../shared/types'
 import { I18n } from './i18n'
 import { Contrast } from './contrast'
 import { PongGame } from '../game'
@@ -21,14 +21,171 @@ const App = {
 
   appContainer: null as HTMLElement | null,
   me: null as User | null,
-  onlineUsers: new Map<string, UserPublic>(),  // userId -> UserPublic
+  cachedUsers: new Map<string, UserPublic>(),      // Central cache of all users
+  friendsMap: new Map<string, UserPublic>(),        // Key: friend ID
+  blockedUsersMap: new Map<string, UserPublic>(),   // Key: blocked user ID
+  onlineUsers: new Map<string, UserPublic>(),
+
+  // Add or update user in central cache
+  cacheUser(user: UserPublic): void {
+    if (!user.id) return;
+    this.cachedUsers.set(user.id, user);
+  },
+
+  // Add multiple users to cache
+  cacheUsers(users: UserPublic[]): void {
+    users.forEach(user => this.cacheUser(user));
+  },
+
+  // Get user from cache
+  getCachedUser(userId: string): UserPublic | undefined {
+    return this.cachedUsers.get(userId);
+  },
+
+  // Update user in cache (selective update from WebSocket events)
+  updateCachedUser(userId: string, updates: Partial<UserPublic>): void {
+    const cached = this.cachedUsers.get(userId);
+    if (cached) {
+      // Only update if user is already cached
+      Object.assign(cached, updates);
+      this.cachedUsers.set(userId, cached);
+    }
+  },
+
+  // Load friends from API and populate maps
+  async loadFriends(): Promise<void> {
+    if (!this.me?.id) return;
+
+    try {
+      const response = await fetch('/user/getFriends', {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error('[App] Failed to load friends');
+        return;
+      }
+
+      const friends: UserPublic[] = await response.json();
+
+      // Cache all friend data
+      this.cacheUsers(friends);
+
+      // Populate friendsMap with references to cached users
+      this.friendsMap.clear();
+      friends.forEach(friend => {
+        if (friend.id) {
+          const cachedFriend = this.cachedUsers.get(friend.id);
+          if (cachedFriend) {
+            this.friendsMap.set(friend.id, cachedFriend);
+          }
+        }
+      });
+
+      console.log(`[App] Loaded ${friends.length} friends`);
+    } catch (error) {
+      console.error('[App] Failed to load friends:', error);
+    }
+  },
+
+  // Load blocked users from API and populate maps
+  async loadBlockedUsers(): Promise<void> {
+    if (!this.me?.id) return;
+
+    try {
+      const response = await fetch('/user/blocked', {
+        headers: {
+          'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
+        }
+      });
+
+      if (!response.ok) {
+        console.error('[App] Failed to load blocked users');
+        return;
+      }
+
+      const blockedIds: string[] = await response.json();
+
+      // Fetch full UserPublic data for each blocked user
+      for (const blockedId of blockedIds) {
+        try {
+          const userResponse = await fetch(`/user/${blockedId}`, {
+            headers: {
+              'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
+            }
+          });
+
+          if (userResponse.ok) {
+            const user: UserPublic = await userResponse.json();
+            this.cacheUser(user);
+
+            const cachedUser = this.cachedUsers.get(blockedId);
+            if (cachedUser) {
+              this.blockedUsersMap.set(blockedId, cachedUser);
+            }
+          }
+        } catch (error) {
+          console.error(`[App] Failed to load blocked user ${blockedId}:`, error);
+        }
+      }
+
+      console.log(`[App] Loaded ${blockedIds.length} blocked users`);
+    } catch (error) {
+      console.error('[App] Failed to load blocked users:', error);
+    }
+  },
+
+  // Helper methods for common checks
+  isFriend(userId: string): boolean {
+    return this.friendsMap.has(userId);
+  },
+
+  isUserBlocked(userId: string): boolean {
+    return this.blockedUsersMap.has(userId);
+  },
+
+  // Add friend to maps (after API call succeeds)
+  addFriendToMaps(friend: UserPublic): void {
+    if (!friend.id) return;
+    this.cacheUser(friend);
+    const cachedFriend = this.cachedUsers.get(friend.id);
+    if (cachedFriend) {
+      this.friendsMap.set(friend.id, cachedFriend);
+    }
+  },
+
+  // Remove friend from maps
+  removeFriendFromMaps(friendId: string): void {
+    this.friendsMap.delete(friendId);
+    // Note: Keep in cachedUsers for other potential references
+  },
+
+  // Add blocked user to maps
+  addBlockedUserToMaps(user: UserPublic): void {
+    if (!user.id) return;
+    this.cacheUser(user);
+    const cachedUser = this.cachedUsers.get(user.id);
+    if (cachedUser) {
+      this.blockedUsersMap.set(user.id, cachedUser);
+    }
+    // Remove from friends if present
+    this.friendsMap.delete(user.id);
+  },
+
+  // Remove blocked user from maps
+  removeBlockedUserFromMaps(userId: string): void {
+    this.blockedUsersMap.delete(userId);
+    // Note: Keep in cachedUsers for other potential references
+  },
 
   async init(): Promise<void> {
     console.log('🏓 ft_transcendance - App initialized');
 
     this.appContainer = document.getElementById('app');
 
-    this.wasIAlreadyLogged();
+    await this.wasIAlreadyLogged();
 
     // Load auth modal
     await this.loadAuthModal();
@@ -43,22 +200,28 @@ const App = {
     Intro.init();
 
     AuthModal.init();
-    AuthModal.onLoginSuccess = (user: User) => this.onLogin(user);
+    AuthModal.onLoginSuccess = async (loginResponse: LoginResponse) => await this.onLogin(loginResponse);
     this.setupAuthButtons();
     I18n.refresh();
 
     Router.init(this);
   },
 
-  wasIAlreadyLogged(){
+  async wasIAlreadyLogged(): Promise<void> {
     const token = sessionStorage.getItem('authToken');
     const currentUser = sessionStorage.getItem('currentUser')
     if (token && currentUser)
     {
       console.log("[APP] Found stored user : " + JSON.stringify(currentUser));
-      this.onLogin(JSON.parse(currentUser));
+      // For returning users, we need to load friends and blocked users from API
+      // since we don't have the full LoginResponse stored
+      this.me = JSON.parse(currentUser);
+      await Promise.all([
+        this.loadFriends(),
+        this.loadBlockedUsers()
+      ]);
     }
-    else 
+    else
     {
       this.me = null;
     }
@@ -233,11 +396,43 @@ const App = {
   /**
    * Handle user login
    */
-  onLogin(user: User): void {
-    this.me = user;
-    sessionStorage.setItem('currentUser', JSON.stringify(user));
+  async onLogin(loginResponse: LoginResponse): Promise<void> {
+    this.me = loginResponse.user;
+    sessionStorage.setItem('currentUser', JSON.stringify(loginResponse.user));
+
+    // Build maps from LoginResponse data (no additional API calls needed)
+    this.buildMapsFromLoginResponse(loginResponse);
+
     this.updateNavbar();
     Social.init();
+  },
+
+  /**
+   * Build cachedUsers, friendsMap, and blockedUsersMap from LoginResponse
+   */
+  buildMapsFromLoginResponse(loginResponse: LoginResponse): void {
+    // Cache all users from the response
+    this.cacheUsers(loginResponse.cachedUsers);
+
+    // Build friendsMap using friendIds and references from cachedUsers
+    this.friendsMap.clear();
+    loginResponse.friendIds.forEach((friendId: string) => {
+      const cachedFriend = this.cachedUsers.get(friendId);
+      if (cachedFriend) {
+        this.friendsMap.set(friendId, cachedFriend);
+      }
+    });
+
+    // Build blockedUsersMap using blockedIds and references from cachedUsers
+    this.blockedUsersMap.clear();
+    loginResponse.blockedIds.forEach((blockedId: string) => {
+      const cachedUser = this.cachedUsers.get(blockedId);
+      if (cachedUser) {
+        this.blockedUsersMap.set(blockedId, cachedUser);
+      }
+    });
+
+    console.log(`[App] Built maps: ${this.friendsMap.size} friends, ${this.blockedUsersMap.size} blocked users`);
   },
 
   /**

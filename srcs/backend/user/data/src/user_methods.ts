@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { randomUUID } from "crypto";
-import { User, UserPublic, Message } from "./shared/with_front/types";
+import { User, UserPublic, Message, LoginResponse } from "./shared/with_front/types";
 import customFetch from "./shared/utils/fetch";
 import { userManager } from "./user_manager.js";
 
@@ -46,27 +46,35 @@ async function fillUser(user : User): Promise<User> {
         };
       }
 
-      // Fetch user's friends from UserManager
-      try {
-        user.friends = await userManager.getFriends(user.id!);
-      } catch (error) {
-        user.friends = [];
-      }
-
-      // Fetch user's blocked users
-      try {
-        const blockedUsers = await customFetch('http://database:3000/database/blocked', 'GET', {
-          user_id: user.id
-        }) as string[];
-        user.blocked_users = blockedUsers || [];
-      } catch (error) {
-        console.error('[USER] Failed to load blocked users:', error);
-        user.blocked_users = [];
-      }
-
-      // Fetch user's channels/chats
-
       return user;
+}
+
+async function buildLoginResponse(user: User, token: string): Promise<LoginResponse> {
+  // Get friends with full UserPublic data
+  const friends = await userManager.getFriends(user.id!);
+
+  // Get blocked users with full UserPublic data
+  const blockedUsers = await userManager.getBlockedUsers(user.id!);
+
+  // Build arrays of IDs
+  const friendIds = friends.map(friend => friend.id!);
+  const blockedIds = blockedUsers.map(blocked => blocked.id!);
+
+  // Combine all users for caching (friends + blocked)
+  const cachedUsers: UserPublic[] = [...friends, ...blockedUsers];
+
+  // Remove duplicates based on user ID (in case a user appears in both)
+  const uniqueCachedUsers = cachedUsers.filter((user, index, self) =>
+    index === self.findIndex(u => u.id === user.id)
+  );
+
+  return {
+    user,
+    cachedUsers: uniqueCachedUsers,
+    friendIds,
+    blockedIds,
+    token
+  };
 }
 
 export async function registerUserHandler(
@@ -107,8 +115,9 @@ export async function registerUserHandler(
     // Fill user data (friends, channels, stats, etc.) for auto-login
     await fillUser(userData);
 
-    // Return same format as login for automatic login
-    return { token, user: userData };
+    // Return same format as login for automatic login (with LoginResponse)
+    const loginResponse = await buildLoginResponse(userData, token as string);
+    return loginResponse;
 
   } catch (error: any) {
     console.log("[USER] Error occurred:", error);
@@ -180,9 +189,12 @@ export async function loginUserHandler(
       }
     );
 
+    // Fill user data
     await fillUser(user);
 
-    return { token, user };
+    // Build and return LoginResponse with all necessary data
+    const loginResponse = await buildLoginResponse(user, token as string);
+    return loginResponse;
   } catch (error: any) {
     console.log("[USER] Login error:", error);
     const statusCode = error.statusCode || 500;
