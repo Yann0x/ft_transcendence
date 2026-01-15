@@ -25,6 +25,7 @@ export interface PlayerInput {
 export interface GameState {
   viewport: Viewport;
   phase: GamePhase;
+  endReason?: 'forfeit' | 'score';
   ball: Ball;
   paddles: [Paddle, Paddle];
   score: Score;
@@ -55,6 +56,7 @@ export function createGameState(): GameState {
   return {
     viewport: { width: w, height: h },
     phase: 'waiting',
+    endReason: undefined,
     ball: {
       x: w / 2,
       y: h / 2,

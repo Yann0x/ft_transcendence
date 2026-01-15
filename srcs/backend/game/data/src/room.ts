@@ -101,6 +101,7 @@ export function removePlayer(room: Room, playerId: string): void {
       }
 
       room.state.phase = 'ended';
+      room.state.endReason = 'forfeit';
       broadcastState(room);
       console.log(`[ROOM] ${room.id} ended - ${winningSide} wins by forfeit`);
     } else if (room.state.phase === 'ready') {
@@ -179,6 +180,7 @@ export function restartGame(room: Room): void {
   room.state.inputs = [{ up: false, down: false }, { up: false, down: false }];
   room.state.lastScorer = null;
   room.state.ballFrozenUntil = 0;
+  room.state.endReason = undefined;
 
   startGameLoop(room);
   console.log(`[ROOM] Restarted ${room.id}`);
@@ -203,6 +205,7 @@ function broadcastState(room: Room): void {
     type: 'state',
     data: {
       phase: room.state.phase,
+      endReason: room.state.endReason,
       ball: room.state.ball,
       paddles: room.state.paddles,
       score: room.state.score

@@ -109,6 +109,7 @@ export function checkGoal(state: GameState): void {
     state.lastScorer = 'right';
     if (score.right >= WIN_SCORE) {
       state.phase = 'ended';
+      state.endReason = 'score';
     } else {
       resetBall(state, false);
     }
@@ -120,6 +121,7 @@ export function checkGoal(state: GameState): void {
     state.lastScorer = 'left';
     if (score.left >= WIN_SCORE) {
       state.phase = 'ended';
+      state.endReason = 'score';
     } else {
       resetBall(state, true);
     }

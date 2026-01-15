@@ -7,6 +7,7 @@ export type GamePhase = 'waiting' | 'ready' | 'playing' | 'paused' | 'ended';
 export interface GameState {
   viewport: { width: number; height: number };
   phase: GamePhase;
+  endReason?: 'forfeit' | 'score';
   ball: { x: number; y: number; radius: number; vx: number; vy: number };
   paddles: [
     { x: number; y: number; width: number; height: number },
@@ -25,6 +26,7 @@ export function init(): void {
   state = {
     viewport: { width: w, height: h },
     phase: 'waiting',
+    endReason: undefined,
     ball: { x: w / 2, y: h / 2, radius: 8, vx: 0, vy: 0 },
     paddles: [
       { x: 20, y: h / 2 - 40, width: 10, height: 80 },
