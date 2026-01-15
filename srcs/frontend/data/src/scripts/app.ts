@@ -5,6 +5,7 @@
 import { Intro } from './intro'
 import { Router } from './router'
 import { AuthModal } from './auth-modal'
+import { SettingsModal, setAppInstance } from './settings-modal'
 import { Social } from './social'
 import { socialClient } from './social-client'
 import { User, UserPublic } from '../shared/types'
@@ -30,6 +31,7 @@ const App = {
 
     // Load auth modal
     await this.loadAuthModal();
+    await this.loadSettingsModal();
     I18n.init();
     Contrast.init();
     I18n.refresh();
@@ -63,6 +65,13 @@ const App = {
   async loadAuthModal(): Promise<void> {
     const authModal = await fetch('/components/auth-modal.html').then(r => r.text());
     document.body.insertAdjacentHTML('beforeend', authModal);
+  },
+
+  async loadSettingsModal(): Promise<void> {
+    const settingsModal = await fetch('/components/settings-modal.html').then(r => r.text());
+    document.body.insertAdjacentHTML('beforeend', settingsModal);
+    setAppInstance(() => this);
+    SettingsModal.init();
   },
 
   async loadIntro(): Promise<void> {
@@ -190,10 +199,10 @@ const App = {
       const newSettingsButton = settingsButton.cloneNode(true) as HTMLElement;
       settingsButton.parentNode?.replaceChild(newSettingsButton, settingsButton);
 
-      // Settings functionality (placeholder)
+      // Settings functionality
       newSettingsButton.addEventListener('click', (e) => {
         e.preventDefault();
-        alert('Paramètres utilisateur - À implémenter');
+        SettingsModal.open();
         dropdown?.classList.add('hidden');
       });
     }

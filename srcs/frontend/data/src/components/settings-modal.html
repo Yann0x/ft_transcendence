@@ -1,0 +1,92 @@
+<!-- Settings Modal -->
+<div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-neutral-900 rounded-2xl border border-neutral-800 w-full max-w-md p-8 relative max-h-[90vh] overflow-y-auto">
+
+    <!-- Close Button -->
+    <button id="settings-modal-close" class="absolute top-4 right-4 text-neutral-400 hover:text-white transition" type="button">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </button>
+
+    <!-- Title -->
+    <h2 class="text-xl font-bold text-white mb-6" data-i18n="settings.title">Paramètres du compte</h2>
+
+    <!-- Settings Form -->
+    <form id="settings-form" class="space-y-6">
+
+      <!-- Avatar Section -->
+      <div class="flex flex-col items-center gap-4">
+        <div class="relative">
+          <img id="settings-avatar-preview"
+               src="https://ui-avatars.com/api/?name=User&background=3b82f6&color=fff"
+               alt="Avatar"
+               class="w-24 h-24 rounded-full object-cover border-2 border-neutral-700">
+          <button type="button" id="settings-avatar-btn"
+                  class="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </button>
+        </div>
+        <input type="file" id="settings-avatar-input" accept="image/*" class="hidden">
+        <p class="text-sm text-neutral-400" data-i18n="settings.avatar_hint">Cliquez pour changer votre avatar</p>
+      </div>
+
+      <!-- Name Field -->
+      <div>
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="settings.name">Nom d'utilisateur</label>
+        <input type="text" name="name" id="settings-name"
+               class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition"
+               maxlength="50" required>
+      </div>
+
+      <!-- Email Field -->
+      <div>
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="settings.email">Email</label>
+        <input type="email" name="email" id="settings-email"
+               class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition"
+               required>
+      </div>
+
+      <!-- Password Section -->
+      <div class="border-t border-neutral-800 pt-6">
+        <h3 class="text-sm font-medium text-neutral-300 mb-4" data-i18n="settings.change_password">Changer le mot de passe</h3>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-neutral-400 mb-2" data-i18n="settings.new_password">Nouveau mot de passe</label>
+            <input type="password" name="password" id="settings-password"
+                   class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition"
+                   placeholder="••••••••" minlength="6">
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-neutral-400 mb-2" data-i18n="settings.confirm_password">Confirmer le mot de passe</label>
+            <input type="password" name="password_confirm" id="settings-password-confirm"
+                   class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition"
+                   placeholder="••••••••" minlength="6">
+          </div>
+        </div>
+        <p class="text-xs text-neutral-500 mt-2" data-i18n="settings.password_hint">Laissez vide pour garder le mot de passe actuel</p>
+      </div>
+
+      <!-- Save Button -->
+      <button type="submit" id="settings-save-btn"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="settings.save">
+        Enregistrer les modifications
+      </button>
+    </form>
+
+    <!-- Danger Zone -->
+    <div class="mt-8 pt-6 border-t border-red-900/50">
+      <h3 class="text-sm font-medium text-red-400 mb-4" data-i18n="settings.danger_zone">Zone de danger</h3>
+      <button type="button" id="settings-delete-btn"
+              class="w-full bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 font-semibold py-2 rounded-lg border border-red-600/50 transition" data-i18n="settings.delete_account">
+        Supprimer mon compte
+      </button>
+      <p class="text-xs text-neutral-500 mt-2" data-i18n="settings.delete_warning">Cette action est irréversible. Toutes vos données seront supprimées.</p>
+    </div>
+  </div>
+</div>

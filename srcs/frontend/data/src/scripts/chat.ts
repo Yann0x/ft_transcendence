@@ -211,13 +211,13 @@ export const Chat =
             const channel_id = (e.currentTarget as HTMLElement).getAttribute('data-channel-id');
             if  (channel_id)
             {
-                await this.loadAndDisplayChannel(parseInt(channel_id));
+                await this.loadAndDisplayChannel(channel_id);
             }
         })
        })
     },
 
-    async loadAndDisplayChannel(channelId: number) {
+    async loadAndDisplayChannel(channelId: string) {
         try {
             const response = await fetch(`/user/channel/${channelId}`, {
                 headers: {
@@ -327,14 +327,27 @@ export const Chat =
             ? lastMessageText.substring(0, 50) + '...'
             : lastMessageText;
 
+        // Generate avatar HTML - use user avatar for DMs, icon for group channels
+        let avatarHtml: string;
+        if (channel.type === 'private') {
+            const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
+            const otherUser = otherUserId ? (App.onlineUsers.get(String(otherUserId)) || App.me?.friends?.find(f => String(f.id) === String(otherUserId))) : null;
+            const avatarUrl = otherUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3b82f6&color=fff`;
+            avatarHtml = `<img src="${avatarUrl}" alt="${displayName}" class="w-12 h-12 rounded-full object-cover">`;
+        } else {
+            avatarHtml = `
+                <div class="flex items-center justify-center w-12 h-12 rounded-full ${iconBgColor}">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                    </svg>
+                </div>
+            `;
+        }
+
         const card = `
             <div class="channel flex items-center justify-between p-4 rounded-lg transition cursor-pointer" data-channel-id="${channel.id}">
                 <div class="flex items-center gap-3 flex-1 min-w-0">
-                    <div class="flex items-center justify-center w-12 h-12 rounded-full ${iconBgColor}">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                        </svg>
-                    </div>
+                    ${avatarHtml}
                     <div class="flex-1 min-w-0">
                         <p class="font-semibold text-white truncate">${displayName}</p>
                         <p class="text-sm text-neutral-400 truncate">${lastMessagePreview}</p>
@@ -362,8 +375,8 @@ export const Chat =
         // Update header status (for DM, show online status if available)
         if (channel.type === 'private') {
             // Find the other user in the channel to check online status
-            const otherUserId = channel.members.find((id: string) => id !== App.me.id);
-            const isOnline = otherUserId && App.onlineUsers.has(otherUserId);
+            const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
+            const isOnline = otherUserId && App.onlineUsers.has(String(otherUserId));
             headerStatus.textContent = isOnline ? 'En ligne' : 'Hors ligne';
             headerStatus.className = isOnline
                 ? 'text-xs text-green-400'
@@ -373,8 +386,16 @@ export const Chat =
             headerStatus.className = 'text-xs text-neutral-400';
         }
 
-        // Update avatar (first letter of name)
-        headerAvatar.textContent = displayName.charAt(0).toUpperCase();
+        // Update avatar
+        if (channel.type === 'private') {
+            const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
+            const otherUser = otherUserId ? (App.onlineUsers.get(String(otherUserId)) || App.me?.friends?.find(f => String(f.id) === String(otherUserId))) : null;
+            const avatarUrl = otherUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=3b82f6&color=fff`;
+            headerAvatar.innerHTML = `<img src="${avatarUrl}" alt="${displayName}" class="w-10 h-10 rounded-full object-cover">`;
+        } else {
+            headerAvatar.innerHTML = '';
+            headerAvatar.textContent = displayName.charAt(0).toUpperCase();
+        }
 
         // Show action buttons
         headerActions.style.display = 'flex';
@@ -386,9 +407,9 @@ export const Chat =
     attachBlockButtonListener(channel: Channel) {
         const blockBtn = document.getElementById('block-user-btn');
         if (!blockBtn) return;
-        const otherUserId = channel.members.find((id: string) => id !== App.me.id);
+        const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
         if (!otherUserId) return;
-        const isBlocked = App.me.blocked_users?.includes(otherUserId) || false;
+        const isBlocked = App.me?.blocked_users?.some(id => String(id) === String(otherUserId)) || false;
         const buttonSpan = blockBtn.querySelector('span');
         if (buttonSpan) {
             buttonSpan.textContent = isBlocked ? '✅' : '🚫';

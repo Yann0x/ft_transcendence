@@ -1,4 +1,5 @@
 import { User, UserPublic, Channel } from './shared/with_front/types';
+import { randomUUID } from 'crypto';
 import customFetch from './shared/utils/fetch';
 
 export const userManager = {
@@ -105,25 +106,27 @@ export const userManager = {
         // Create new DM channel
         // Store both names separated by & so we can display the right one per user
         const channelName = `${user.name}&${friend.name}`;
+        const channelId = randomUUID();
         const channelData = {
+          id: channelId,
           name: channelName,
           type: 'private',
           created_by: userId,
           created_at: new Date().toISOString()
         };
 
-        const channelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
+        const result = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
 
-        if (channelId) {
+        if (result) {
           console.log(`[UserManager] Created new DM channel ${channelId} between ${userId} and ${friendId}`);
           // Add both users as members
           await customFetch('http://database:3000/database/channel/member', 'POST', {
-            channel_id: parseInt(channelId),
+            channel_id: channelId,
             user_id: userId,
             role: 'owner'
           });
           await customFetch('http://database:3000/database/channel/member', 'POST', {
-            channel_id: parseInt(channelId),
+            channel_id: channelId,
             user_id: friendId,
             role: 'member'
           });

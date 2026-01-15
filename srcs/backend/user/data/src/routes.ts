@@ -186,10 +186,7 @@ const markChannelReadSchema = {
 const postMessageSchema = {
   schema : {
     description: 'send a message',
-    body: Type.Object({
-      channel_id: Type.Number(),
-      content: Type.String()
-    }),
+    body: Type.Pick(MessageSchema, ['channel_id', 'content']),
     response: {
       200: Type.Object({
         success: Type.Boolean(),
