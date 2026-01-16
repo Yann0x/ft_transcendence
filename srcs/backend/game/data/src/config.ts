@@ -16,6 +16,7 @@ export interface Paddle {
 export const BALL_RADIUS = 8;
 export const BALL_SPEED = 660;
 export const BALL_INITIAL_SPEED = BALL_SPEED * 0.8;  // 528 px/s
+export const BALL_MAX_SPEED = BALL_SPEED * 3;        // 1980 px/s
 export const BALL_ACCELERATION = 1.05;               // +5% par rebond paddle
 
 export const PADDLE_WIDTH = 10;

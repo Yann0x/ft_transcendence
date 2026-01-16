@@ -1,7 +1,7 @@
 import type { GameState } from './state.js';
 import { resetBall } from './state.js';
 import type { Ball, Paddle } from './config.js';
-import { PADDLE_SPEED, WIN_SCORE, BALL_ACCELERATION } from './config.js';
+import { PADDLE_SPEED, WIN_SCORE, BALL_ACCELERATION, BALL_MAX_SPEED } from './config.js';
 
 export function updateBall(state: GameState, dt: number): void {
   if (state.phase !== 'playing') return;
@@ -91,7 +91,7 @@ export function bouncePaddles(state: GameState): void {
 
     // Calculer la vitesse actuelle pour l'acceleration
     const currentSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-    const newSpeed = currentSpeed * BALL_ACCELERATION;
+    const newSpeed = Math.min(currentSpeed * BALL_ACCELERATION, BALL_MAX_SPEED);
 
     const direction = isLeft ? 1 : -1;
     ball.vx = direction * Math.cos(angle) * newSpeed;
