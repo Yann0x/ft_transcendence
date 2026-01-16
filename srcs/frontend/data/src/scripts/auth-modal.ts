@@ -3,6 +3,7 @@
    ============================================ */
 
 import { User } from '../shared/types';
+import { PongGame } from '../game';
 
 export const AuthModal = {
   modal: null as HTMLElement | null,
@@ -113,6 +114,7 @@ export const AuthModal = {
   open(): void {
     this.modal?.classList.remove('hidden');
     this.showLogin(); // Always show login by default
+    PongGame.pauseGame(); // Mettre le jeu en pause
   },
 
   /**
@@ -121,6 +123,7 @@ export const AuthModal = {
   openSignup(): void {
     this.modal?.classList.remove('hidden');
     this.showSignup(); // Show signup form
+    PongGame.pauseGame(); // Mettre le jeu en pause
   },
 
   /**
@@ -128,6 +131,7 @@ export const AuthModal = {
    */
   close(): void {
     this.modal?.classList.add('hidden');
+    PongGame.resumeGame(); // Reprendre le jeu
   },
 
   setupFormSubmissions(): void {

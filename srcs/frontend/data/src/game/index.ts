@@ -5,7 +5,7 @@ import { State, setPhase, type GameState } from './state';
 import { drawRect, drawCircle, drawNet, drawText } from './render';
 import { updateFps, drawFps, toggleFPS, toggleHitboxes, showHitboxes } from './debug';
 import { WIN_SCORE, SERVER_WIDTH, SERVER_HEIGHT } from './config';
-import { bindKeyboard, getInput, getInputP1, getInputP2 } from './input';
+import { bindKeyboard, unbindKeyboard, getInput, getInputP1, getInputP2 } from './input';
 import { Network, type AIDifficulty } from './network';
 
 let running = false;
@@ -14,6 +14,7 @@ let lastInputSentP2 = { up: false, down: false };
 let gameMode: 'solo' | 'pvp' | null = null;
 let localMode = false; // true = PvP local (2 joueurs meme clavier), false = vs AI
 let currentDifficulty: AIDifficulty = 'normal';
+let pollInterval: number | null = null;
 
 export function init(): void {
   const container = document.getElementById("game-container")
@@ -22,26 +23,65 @@ export function init(): void {
     console.log('No game-container element onthis page, exit')
     return;
   }
+
+  // Si deja running, cleanup d'abord
+  if (running) {
+    cleanup();
+  }
+
   createCanvas(container);
   State.init();
 
-  if (!running) {
-    bindKeyboard();
-    bindKeys();
-    bindModeButtons();
+  bindKeyboard();
+  bindKeys();
+  bindModeButtons();
 
-    // Default: auto-connect in solo mode (normal)
-    gameMode = 'solo';
-    localMode = false;
-    currentDifficulty = 'normal';
-    connectToServer('solo', 'normal');
+  // Default: auto-connect in solo mode (normal)
+  gameMode = 'solo';
+  localMode = false;
+  currentDifficulty = 'normal';
+  connectToServer('solo', 'normal');
 
-    // Start polling PvP stats
-    pollPvPStats();
-    setInterval(pollPvPStats, 3000);
+  // Start polling PvP stats
+  pollPvPStats();
+  pollInterval = window.setInterval(pollPvPStats, 3000);
 
-    running = true;
-    requestAnimationFrame(gameLoop);
+  running = true;
+  requestAnimationFrame(gameLoop);
+}
+
+export function cleanup(): void {
+  console.log('[GAME] Cleanup');
+  running = false;
+
+  // Arrêter le polling
+  if (pollInterval !== null) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+
+  // Retirer les listeners clavier
+  unbindKeyboard();
+
+  // Déconnecter du serveur
+  Network.disconnect();
+
+  // Réinitialiser l'état
+  gameMode = null;
+  localMode = false;
+}
+
+export function pauseGame(): void {
+  const state = State.getState();
+  if (state && state.phase === 'playing') {
+    Network.sendPause();
+  }
+}
+
+export function resumeGame(): void {
+  const state = State.getState();
+  if (state && state.phase === 'paused') {
+    Network.sendResume();
   }
 }
 
@@ -181,7 +221,14 @@ function bindKeys(): void {
   window.addEventListener('keydown', (e) => {
     if (e.key === 'f') toggleFPS();
     if (e.key === 'h') toggleHitboxes();
-    if (e.key === ' ') Network.sendStart();
+    if (e.key === ' ') {
+      const state = State.getState();
+      if (state?.phase === 'ended' && state.endReason === 'forfeit') {
+        connectToServer('pvp');
+      } else {
+        Network.sendStart();
+      }
+    }
     if (e.key === 'Escape') {
       const state = State.getState();
       if (state?.phase === 'playing') {
@@ -225,6 +272,7 @@ async function connectToServer(mode: 'solo' | 'local' | 'pvp', difficulty: AIDif
 
 interface ServerState {
   phase: string;
+  endReason?: 'forfeit' | 'score';
   ball: { x: number; y: number; radius: number; vx: number; vy: number };
   paddles: [
     { x: number; y: number; width: number; height: number },
@@ -255,6 +303,7 @@ function applyServerState(serverState: ServerState): void {
 
   state.score.left = serverState.score.left;
   state.score.right = serverState.score.right;
+  state.endReason = serverState.endReason;
 
   const phase = serverState.phase as GameState['phase'];
   if (state.phase !== phase) {
@@ -364,12 +413,20 @@ export function render(state: GameState): void {
     drawText('Press ESC to resume', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
   } else if (state.phase === 'ended') {
     const winner = state.score.left >= WIN_SCORE ? 'Left' : 'Right';
-    drawText(`${winner} wins!`, w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
-    drawText('Press SPACE to restart', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+    if (state.endReason === 'forfeit') {
+      drawText('Opponent disconnected', w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
+      drawText('You win! Press SPACE to find a new game', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+    } else {
+      drawText(`${winner} wins!`, w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
+      drawText('Press SPACE to restart', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+    }
   }
 }
 
 export const PongGame = {
   init,
+  cleanup,
+  pauseGame,
+  resumeGame,
   render
 };
