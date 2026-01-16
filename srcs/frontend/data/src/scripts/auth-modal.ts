@@ -2,6 +2,8 @@
    AUTH MODAL - Authentication Modal Management
    ============================================ */
 
+import { PongGame } from '../game';
+
 export const AuthModal = {
   modal: null as HTMLElement | null,
   loginTab: null as HTMLElement | null,
@@ -100,6 +102,7 @@ export const AuthModal = {
   open(): void {
     this.modal?.classList.remove('hidden');
     this.showLogin(); // Always show login by default
+    PongGame.pauseGame(); // Pause game when modal opens
   },
 
   /**
@@ -108,6 +111,7 @@ export const AuthModal = {
   openSignup(): void {
     this.modal?.classList.remove('hidden');
     this.showSignup(); // Show signup form
+    PongGame.pauseGame(); // Pause game when modal opens
   },
 
   /**
@@ -115,6 +119,7 @@ export const AuthModal = {
    */
   close(): void {
     this.modal?.classList.add('hidden');
+    PongGame.resumeGame(); // Resume game when modal closes
   },
 
   setupFormSubmissions(): void {

@@ -5,7 +5,7 @@ import { State, setPhase, type GameState } from './state';
 import { drawRect, drawCircle, drawNet, drawText } from './render';
 import { updateFps, drawFps, toggleFPS, toggleHitboxes, showHitboxes } from './debug';
 import { WIN_SCORE, SERVER_WIDTH, SERVER_HEIGHT } from './config';
-import { bindKeyboard, getInput, getInputP1, getInputP2 } from './input';
+import { bindKeyboard, unbindKeyboard, getInput, getInputP1, getInputP2 } from './input';
 import { Network, type AIDifficulty } from './network';
 
 let running = false;
@@ -14,28 +14,67 @@ let lastInputSentP2 = { up: false, down: false };
 let gameMode: 'solo' | 'pvp' | null = null;
 let localMode = false; // true = PvP local (2 joueurs meme clavier), false = vs AI
 let currentDifficulty: AIDifficulty = 'normal';
+let pollInterval: number | null = null;
 
 export function init(container: HTMLElement): void {
+  // Si deja running, cleanup d'abord
+  if (running) {
+    cleanup();
+  }
+
   createCanvas(container);
   State.init();
 
-  if (!running) {
-    bindKeyboard();
-    bindKeys();
-    bindModeButtons();
+  bindKeyboard();
+  bindKeys();
+  bindModeButtons();
 
-    // Default: auto-connect in solo mode (normal)
-    gameMode = 'solo';
-    localMode = false;
-    currentDifficulty = 'normal';
-    connectToServer('solo', 'normal');
+  // Default: auto-connect in solo mode (normal)
+  gameMode = 'solo';
+  localMode = false;
+  currentDifficulty = 'normal';
+  connectToServer('solo', 'normal');
 
-    // Start polling PvP stats
-    pollPvPStats();
-    setInterval(pollPvPStats, 3000);
+  // Start polling PvP stats
+  pollPvPStats();
+  pollInterval = window.setInterval(pollPvPStats, 3000);
 
-    running = true;
-    requestAnimationFrame(gameLoop);
+  running = true;
+  requestAnimationFrame(gameLoop);
+}
+
+export function cleanup(): void {
+  console.log('[GAME] Cleanup');
+  running = false;
+
+  // Stop polling
+  if (pollInterval !== null) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+
+  // Unbind keyboard
+  unbindKeyboard();
+
+  // Disconnect from server
+  Network.disconnect();
+
+  // Reset state
+  gameMode = null;
+  localMode = false;
+}
+
+export function pauseGame(): void {
+  const state = State.getState();
+  if (state && state.phase === 'playing') {
+    Network.sendPause();
+  }
+}
+
+export function resumeGame(): void {
+  const state = State.getState();
+  if (state && state.phase === 'paused') {
+    Network.sendResume();
   }
 }
 
@@ -379,5 +418,8 @@ export function render(state: GameState): void {
 
 export const PongGame = {
   init,
+  cleanup,
+  pauseGame,
+  resumeGame,
   render
 };

@@ -15,6 +15,7 @@ import { PongGame } from '../game'
 const App = {
   appContainer: null as HTMLElement | null,
   me: null as { id: string; username: string } | null,
+  currentPage: '' as string,
 
   /**
    * Initialise l'application
@@ -76,6 +77,11 @@ const App = {
   async loadPage(name: string): Promise<void> {
     if (!this.appContainer) return;
 
+    // Cleanup du jeu si on quitte la page home
+    if (this.currentPage === 'home' && name !== 'home') {
+      PongGame.cleanup();
+    }
+
     const [navbar, page, footer] = await Promise.all([
       this.loadComponent('navbar'),
       fetch(`/pages/${name}.html`).then(r => r.text()),
@@ -97,6 +103,9 @@ const App = {
         PongGame.init(gameContainer);
       }
     }
+
+    // Update current page
+    this.currentPage = name;
   },
 
   /**

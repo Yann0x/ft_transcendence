@@ -1,15 +1,38 @@
 // INPUT - Gestion des entrees clavier
 
 const keysDown = new Set<string>();
+let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
 
 export function bindKeyboard(): void {
-  window.addEventListener('keydown', (e) => {
+  // Remove old listeners first
+  unbindKeyboard();
+
+  keydownHandler = (e: KeyboardEvent) => {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
       e.preventDefault();
     }
     keysDown.add(e.key);
-  });
-  window.addEventListener('keyup', (e) => keysDown.delete(e.key));
+  };
+
+  keyupHandler = (e: KeyboardEvent) => {
+    keysDown.delete(e.key);
+  };
+
+  window.addEventListener('keydown', keydownHandler);
+  window.addEventListener('keyup', keyupHandler);
+}
+
+export function unbindKeyboard(): void {
+  if (keydownHandler) {
+    window.removeEventListener('keydown', keydownHandler);
+    keydownHandler = null;
+  }
+  if (keyupHandler) {
+    window.removeEventListener('keyup', keyupHandler);
+    keyupHandler = null;
+  }
+  keysDown.clear();
 }
 
 export function getInput(): { up: boolean; down: boolean } {
