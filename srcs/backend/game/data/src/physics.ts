@@ -1,7 +1,7 @@
 import type { GameState } from './state.js';
 import { resetBall } from './state.js';
 import type { Ball, Paddle } from './config.js';
-import { PADDLE_SPEED, BALL_SPEED, WIN_SCORE } from './config.js';
+import { PADDLE_SPEED, WIN_SCORE, BALL_ACCELERATION, BALL_MAX_SPEED } from './config.js';
 
 export function updateBall(state: GameState, dt: number): void {
   if (state.phase !== 'playing') return;
@@ -89,9 +89,13 @@ export function bouncePaddles(state: GameState): void {
     const maxAngle = Math.PI / 4; // 45 degres max
     const angle = hitOffset * maxAngle;
 
+    // Calculer la vitesse actuelle pour l'acceleration
+    const currentSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+    const newSpeed = Math.min(currentSpeed * BALL_ACCELERATION, BALL_MAX_SPEED);
+
     const direction = isLeft ? 1 : -1;
-    ball.vx = direction * Math.cos(angle) * BALL_SPEED;
-    ball.vy = Math.sin(angle) * BALL_SPEED;
+    ball.vx = direction * Math.cos(angle) * newSpeed;
+    ball.vy = Math.sin(angle) * newSpeed;
   }
 }
 
@@ -105,6 +109,7 @@ export function checkGoal(state: GameState): void {
     state.lastScorer = 'right';
     if (score.right >= WIN_SCORE) {
       state.phase = 'ended';
+      state.endReason = 'score';
     } else {
       resetBall(state, false);
     }
@@ -116,6 +121,7 @@ export function checkGoal(state: GameState): void {
     state.lastScorer = 'left';
     if (score.left >= WIN_SCORE) {
       state.phase = 'ended';
+      state.endReason = 'score';
     } else {
       resetBall(state, true);
     }
