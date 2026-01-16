@@ -20,6 +20,7 @@ const App = {
   appContainer: null as HTMLElement | null,
   me: null as User | null,
   onlineUsers: new Map<string, UserPublic>(),  // userId -> UserPublic
+  currentPage: '' as string,
 
   async init(): Promise<void> {
     console.log('🏓 ft_transcendance - App initialized');
@@ -78,6 +79,11 @@ const App = {
   async loadPage(name: string): Promise<void> {
     if (!this.appContainer) return;
 
+    // Cleanup du jeu si on quitte la page home
+    if (this.currentPage === 'home' && name !== 'home') {
+      PongGame.cleanup();
+    }
+
     const [navbar, page, footer] = await Promise.all([
       this.loadComponent('navbar'),
       fetch(`/pages/${name}.html`).then(r => r.text()),
@@ -93,6 +99,9 @@ const App = {
     this.runDedicatedScript(name);
     I18n.refresh();
     Contrast.bindControls();
+
+    // Mettre à jour la page courante
+    this.currentPage = name;
   },
 
   runDedicatedScript(page: string) {
