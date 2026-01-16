@@ -1,7 +1,7 @@
 import type { WebSocket } from 'ws';
 import { createGameState, type GameState, type PlayerInput } from './state.js';
 import { physicsTick } from './physics.js';
-import { TICK_INTERVAL, type AIDifficulty } from './config.js';
+import { TICK_INTERVAL, WIN_SCORE, type AIDifficulty } from './config.js';
 import { createAIState, updateAI, getAIInput, type AIState } from './ai.js';
 
 export interface Player {
@@ -61,6 +61,9 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string): Play
       room.state.phase = 'ready';
       broadcastState(room);
     }
+  } else if (room.state.phase === 'paused' && room.isPvP && room.players.length === 2) {
+    resumeGame(room);
+    console.log(`[ROOM] ${room.id} resumed - opponent rejoined`);
   }
 
   return player;
@@ -73,15 +76,39 @@ export function removePlayer(room: Room, playerId: string): void {
     console.log(`[ROOM] ${playerId} left ${room.id}`);
   }
 
-  if (room.players.length < 2 && room.state.phase === 'playing') {
-    room.state.phase = 'paused';
-    stopGameLoop(room);
-  }
-
+  // Gestion selon le mode et la phase
   if (room.players.length === 0) {
     stopGameLoop(room);
     rooms.delete(room.id);
     console.log(`[ROOM] Deleted ${room.id}`);
+    return;
+  }
+
+  // Si mode PvP et qu'il reste 1 joueur
+  if (room.isPvP && room.players.length === 1) {
+    if (room.state.phase === 'playing' || room.state.phase === 'paused') {
+      // Donner la victoire au joueur restant
+      const remainingPlayer = room.players[0];
+      if (!remainingPlayer) return;
+
+      const winningSide = remainingPlayer.side;
+      stopGameLoop(room);
+
+      if (winningSide === 'left') {
+        room.state.score.left = WIN_SCORE;
+      } else {
+        room.state.score.right = WIN_SCORE;
+      }
+
+      room.state.phase = 'ended';
+      room.state.endReason = 'forfeit';
+      broadcastState(room);
+      console.log(`[ROOM] ${room.id} ended - ${winningSide} wins by forfeit`);
+    } else if (room.state.phase === 'ready') {
+      room.state.phase = 'waiting';
+      broadcastState(room);
+      console.log(`[ROOM] ${room.id} back to waiting - opponent left`);
+    }
   }
 }
 
@@ -146,13 +173,14 @@ export function resumeGame(room: Room): void {
 export function restartGame(room: Room): void {
   if (room.state.phase !== 'ended') return;
 
+  const newState = createGameState();
+  room.state.ball = newState.ball;
+  room.state.paddles = newState.paddles;
   room.state.score = { left: 0, right: 0 };
-  room.state.ball = { x: 400, y: 300, radius: 8, vx: 330, vy: 330 };
-  room.state.paddles[0].y = 260;
-  room.state.paddles[1].y = 260;
   room.state.inputs = [{ up: false, down: false }, { up: false, down: false }];
   room.state.lastScorer = null;
   room.state.ballFrozenUntil = 0;
+  room.state.endReason = undefined;
 
   startGameLoop(room);
   console.log(`[ROOM] Restarted ${room.id}`);
@@ -177,6 +205,7 @@ function broadcastState(room: Room): void {
     type: 'state',
     data: {
       phase: room.state.phase,
+      endReason: room.state.endReason,
       ball: room.state.ball,
       paddles: room.state.paddles,
       score: room.state.score
