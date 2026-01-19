@@ -230,3 +230,141 @@ body.hc :focus-visible {
   outline: 3px solid #ffffff;
   outline-offset: 2px;
 }
+
+/* ---- Tournament Bracket ---- */
+.bracket-grid {
+  display: flex;
+  gap: 2rem;
+  min-width: max-content;
+  padding: 1rem;
+}
+
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.bracket-round-title {
+  font-weight: 600;
+  text-align: center;
+  color: #a3a3a3;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #404040;
+}
+
+.bracket-matches {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 1rem;
+  flex: 1;
+}
+
+.bracket-match {
+  background-color: #262626;
+  border: 1px solid #404040;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  min-width: 180px;
+  position: relative;
+}
+
+.bracket-match-current {
+  border-color: #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.bracket-match-finished {
+  opacity: 0.8;
+}
+
+.bracket-player {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  background-color: #171717;
+}
+
+.bracket-player-name {
+  font-size: 0.875rem;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bracket-score {
+  font-weight: 700;
+  font-size: 1rem;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.bracket-winner {
+  background-color: #059669;
+  color: white;
+}
+
+.bracket-playing {
+  animation: pulse 2s infinite;
+}
+
+.bracket-vs {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #737373;
+  padding: 0.25rem 0;
+}
+
+.bracket-live {
+  position: absolute;
+  top: -0.5rem;
+  right: -0.5rem;
+  background-color: #dc2626;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  animation: pulse 1s infinite;
+}
+
+.bracket-winner-display {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.bracket-champion {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Badge neutral for finished tournaments */
+.badge-neutral {
+  background-color: #404040;
+  color: #d4d4d4;
+}
+

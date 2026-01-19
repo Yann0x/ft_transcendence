@@ -11,6 +11,7 @@ import { User, UserPublic } from '../shared/types'
 import { I18n } from './i18n'
 import { Contrast } from './contrast'
 import { PongGame } from '../game'
+import { Tournaments } from './tournaments'
 
 /**
  * Application principale
@@ -83,6 +84,11 @@ const App = {
     if (this.currentPage === 'home' && name !== 'home') {
       PongGame.cleanup();
     }
+    
+    // Cleanup des tournois si on quitte la page tournaments
+    if (this.currentPage === 'tournaments' && name !== 'tournaments') {
+      Tournaments.cleanup();
+    }
 
     const [navbar, page, footer] = await Promise.all([
       this.loadComponent('navbar'),
@@ -112,6 +118,9 @@ const App = {
         break
       case "home":
         PongGame.init();
+        break
+      case "tournaments":
+        Tournaments.init();
         break
     }
   },
