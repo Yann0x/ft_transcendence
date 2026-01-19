@@ -19,12 +19,56 @@ export const MatchSchema = Type.Object({
 })
 export type Match = Static<typeof MatchSchema>;
 
+// Tournament Player - represents a participant in a tournament
+export const TournamentPlayerSchema = Type.Object({
+  odIndex:      Type.Number(),                    // Original index in bracket (0 to maxPlayers-1)
+  odId:         Type.String(),                    // Unique player ID for this tournament
+  odAlias:      Type.String(),                    // Display name in tournament
+  odUserId:     Type.Optional(Type.String()),     // User ID if logged in (undefined for guests)
+  odIsCreator:  Type.Boolean(),                   // Is this player the tournament creator
+})
+export type TournamentPlayer = Static<typeof TournamentPlayerSchema>;
+
+// Tournament Match - represents a single match in the bracket
+export const TournamentMatchSchema = Type.Object({
+  odId:         Type.String(),                    // Match unique ID
+  odRound:      Type.Number(),                    // Round number (0 = first round, 1 = semi, 2 = final for 8 players)
+  odMatchIndex: Type.Number(),                    // Match index within the round
+  odPlayer1:    Type.Optional(TournamentPlayerSchema), // Player 1 (null if TBD)
+  odPlayer2:    Type.Optional(TournamentPlayerSchema), // Player 2 (null if TBD)
+  odScore1:     Type.Number(),                    // Player 1 score
+  odScore2:     Type.Number(),                    // Player 2 score
+  odStatus:     Type.Union([                      // Match status
+    Type.Literal('pending'),      // Waiting for players to be determined
+    Type.Literal('ready'),        // Both players known, waiting to start
+    Type.Literal('playing'),      // Match in progress
+    Type.Literal('finished'),     // Match completed
+  ]),
+  odWinner:     Type.Optional(TournamentPlayerSchema), // Winner of the match
+  odGameRoomId: Type.Optional(Type.String()),     // Game room ID when playing
+})
+export type TournamentMatch = Static<typeof TournamentMatchSchema>;
+
+// Tournament Status
+export const TournamentStatusSchema = Type.Union([
+  Type.Literal('waiting'),      // Waiting for players to join
+  Type.Literal('in_progress'),  // Tournament started, matches being played
+  Type.Literal('finished'),     // Tournament completed
+])
+export type TournamentStatus = Static<typeof TournamentStatusSchema>;
+
+// Full Tournament
 export const TournamentSchema = Type.Object({
-  id:           Type.String(),
-  name:         Type.String(),
-  participants: Type.Array(Type.String()),
-  status:       Type.String(),
-  matches:      Type.Array(MatchSchema),
+  odId:           Type.String(),                  // Unique tournament ID
+  odName:         Type.Optional(Type.String()),   // Optional tournament name
+  odMaxPlayers:   Type.Union([Type.Literal(2), Type.Literal(4), Type.Literal(8)]), // 2, 4 or 8 players
+  odStatus:       TournamentStatusSchema,
+  odPlayers:      Type.Array(TournamentPlayerSchema), // Players who joined
+  odMatches:      Type.Array(TournamentMatchSchema),  // All matches in bracket
+  odCurrentMatch: Type.Optional(Type.String()),   // Current match ID being played
+  odWinner:       Type.Optional(TournamentPlayerSchema), // Tournament winner
+  odCreatedAt:    Type.String({ format: 'date-time' }),
+  odCreatedBy:    TournamentPlayerSchema,         // Player who created the tournament
 })
 export type Tournament = Static<typeof TournamentSchema>;
 

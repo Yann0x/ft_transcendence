@@ -209,6 +209,15 @@ await server.register(async function publicDocs(instance) {
     websocket: true,
   });
 
+  // Tournament service (HTTP + WebSocket) - Public for viewing, but creating/joining may need user info
+  server.register(proxy, {
+    upstream: 'http://tournament:3000',
+    prefix: '/api/tournament',
+    rewritePrefix: '/tournament',
+    http2: false,
+    websocket: true,
+  });
+
    server.register(proxy, {
       upstream: 'http://frontend:3000',
       prefix: '/',
