@@ -79,11 +79,15 @@ export function createTournamentRoom(
   let room = tournamentRooms.get(matchId);
   
   if (room) {
-    // Room exists, this is player 2 joining
-    if (!isPlayer1 && room.tournamentInfo) {
-      room.tournamentInfo.player2Id = tournamentPlayerId;
+    // Room exists, update the appropriate player ID
+    if (room.tournamentInfo) {
+      if (isPlayer1 && !room.tournamentInfo.player1Id) {
+        room.tournamentInfo.player1Id = tournamentPlayerId;
+      } else if (!isPlayer1 && !room.tournamentInfo.player2Id) {
+        room.tournamentInfo.player2Id = tournamentPlayerId;
+      }
     }
-    console.log(`[TOURNAMENT] Player ${tournamentPlayerId} joining existing room for match ${matchId}`);
+    console.log(`[TOURNAMENT] Player ${tournamentPlayerId} (isPlayer1: ${isPlayer1}) joining existing room for match ${matchId}`);
     return room;
   }
   
@@ -102,23 +106,30 @@ export function createTournamentRoom(
       tournamentId,
       matchId,
       player1Id: isPlayer1 ? tournamentPlayerId : '',
-      player2Id: isPlayer1 ? undefined : tournamentPlayerId,
+      player2Id: isPlayer1 ? '' : tournamentPlayerId,
       matchStarted: false,
       lastScore: { left: 0, right: 0 }
     }
   };
   
-  if (isPlayer1 && room.tournamentInfo) {
-    room.tournamentInfo.player1Id = tournamentPlayerId;
-  }
-  
   rooms.set(id, room);
   tournamentRooms.set(matchId, room);
-  console.log(`[TOURNAMENT] Created room for match ${matchId}, player1: ${tournamentPlayerId}`);
+  console.log(`[TOURNAMENT] Created room for match ${matchId}, ${isPlayer1 ? 'player1' : 'player2'}: ${tournamentPlayerId}`);
   return room;
 }
 
 export function addPlayer(room: Room, socket: WebSocket, playerId: string, tournamentPlayerId?: string): Player | null {
+  // Check if this player is already in the room (prevent duplicate joins)
+  if (room.tournamentInfo && tournamentPlayerId) {
+    const existingPlayer = room.players.find(p => p.tournamentPlayerId === tournamentPlayerId);
+    if (existingPlayer) {
+      console.log(`[ROOM] Player ${tournamentPlayerId} already in room ${room.id}, updating socket`);
+      // Update socket for reconnection
+      existingPlayer.socket = socket;
+      return existingPlayer;
+    }
+  }
+
   if (room.players.length >= 2) return null;
 
   // Verify tournament player authorization
@@ -128,9 +139,23 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
       return null;
     }
     const { player1Id, player2Id } = room.tournamentInfo;
-    if (tournamentPlayerId !== player1Id && tournamentPlayerId !== player2Id) {
+    // Allow if this player ID matches either slot, or if the slot is empty (will be filled)
+    const isPlayer1 = tournamentPlayerId === player1Id || (player1Id === '' && player2Id !== tournamentPlayerId);
+    const isPlayer2 = tournamentPlayerId === player2Id || (player2Id === '' && player1Id !== tournamentPlayerId);
+    
+    if (!isPlayer1 && !isPlayer2) {
       console.log(`[ROOM] Rejected ${playerId} - not authorized for this tournament match (expected: ${player1Id} or ${player2Id}, got: ${tournamentPlayerId})`);
       return null;
+    }
+    
+    // Fill in empty slot if needed
+    if (isPlayer1 && player1Id === '') {
+      room.tournamentInfo.player1Id = tournamentPlayerId;
+      console.log(`[ROOM] Set player1Id to ${tournamentPlayerId}`);
+    }
+    if (isPlayer2 && player2Id === '') {
+      room.tournamentInfo.player2Id = tournamentPlayerId;
+      console.log(`[ROOM] Set player2Id to ${tournamentPlayerId}`);
     }
   }
 
