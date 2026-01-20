@@ -2,11 +2,15 @@ type TranslationMap = Record<string, string>;
 
 const STORAGE_KEY = 'language';
 const DEFAULT_LANG = 'fr';
-const SUPPORTED_LANGS = ['fr', 'en'] as const;
+const SUPPORTED_LANGS = ['fr', 'en', 'es'] as const;
+type SupportedLang = (typeof SUPPORTED_LANGS)[number];
 
-const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
+const translations: Record<SupportedLang, TranslationMap> = {
   fr: {
+    // App
     'app.title': 'ft_transcendance',
+    
+    // Navigation
     'nav.play': 'Jouer',
     'nav.tournaments': 'Tournois',
     'nav.chat': 'Chat',
@@ -16,10 +20,15 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'nav.signup': 'Inscription',
     'nav.language': 'Langue',
     'nav.contrast': 'Contraste élevé',
+    'nav.social': 'Social',
+    
+    // Footer
     'footer.copy': '© 2025 ft_transcendence - École 42',
     'footer.about': 'À propos',
     'footer.rules': 'Règles',
     'footer.contact': 'Contact',
+    
+    // Auth
     'auth.login': 'Connexion',
     'auth.signup': 'Inscription',
     'auth.email': 'Email',
@@ -38,9 +47,13 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'auth.email_placeholder': 'votre@email.com',
     'auth.password_placeholder': '••••••••',
     'auth.username_placeholder': 'votre_username',
+    
+    // Home
     'home.game_title': 'Pong Arena',
     'home.status_online': 'En ligne',
+    'home.status_offline': 'Hors-ligne',
     'home.players_online': '42 joueurs connectés',
+    'home.players_waiting': 'en attente',
     'home.game_area_placeholder': 'Zone de jeu - À implémenter',
     'home.controls': '⌨️ W/S ou ↑/↓ - Déplacer',
     'home.first_to': '🎯 Premier à 11 points',
@@ -49,6 +62,35 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'home.stat_wins': 'Victoires',
     'home.stat_rank': 'Classement',
     'home.stat_tournaments': 'Tournois gagnés',
+    'home.controls_move': 'W/S ou ↑/↓ - Déplacer',
+    'home.controls_start': 'ESPACE - Démarrer',
+    'home.controls_pause': 'ÉCHAP - Pause',
+    'home.btn_solo': 'Solo',
+    'home.btn_local': 'PvP Local',
+    'home.btn_pvp': 'PvP Online',
+    'home.difficulty_easy': 'Facile',
+    'home.difficulty_normal': 'Normal',
+    'home.difficulty_hard': 'Difficile',
+    
+    // Game messages
+    'game.choose_mode': 'Choisissez Solo ou PvP pour jouer',
+    'game.waiting_opponent': 'En attente d\'un adversaire...',
+    'game.connecting': 'Connexion...',
+    'game.press_space_start': 'Appuyez sur ESPACE pour commencer',
+    'game.paused': 'PAUSE',
+    'game.press_esc_resume': 'Appuyez sur ÉCHAP pour reprendre',
+    'game.opponent_disconnected': 'Adversaire déconnecté',
+    'game.waiting_reconnection': 'En attente de reconnexion...',
+    'game.victory': '🏆 Victoire !',
+    'game.defeat': 'Défaite',
+    'game.you_advance': 'Vous avancez ! Retour au tournoi...',
+    'game.returning_tournament': 'Retour au tournoi...',
+    'game.you_win_space': 'Vous gagnez ! Appuyez sur ESPACE pour une nouvelle partie',
+    'game.press_space_restart': 'Appuyez sur ESPACE pour recommencer',
+    'game.left_wins': 'Gauche gagne !',
+    'game.right_wins': 'Droite gagne !',
+    
+    // Stats
     'stats.title': 'Mes Statistiques',
     'stats.subtitle': 'Retrouvez ici vos statistiques de jeu et votre progression',
     'stats.games_played': 'Parties jouées',
@@ -71,6 +113,8 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'stats.table_result': 'Résultat',
     'stats.table_date': 'Date',
     'stats.no_data': 'Aucune donnée pour le moment',
+    
+    // Friends
     'friends.title': 'Mes Amis',
     'friends.subtitle': 'Gérez vos amis et consultez leur profil',
     'friends.list_title': 'Liste des amis',
@@ -79,6 +123,11 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'friends.blocked_title': 'Utilisateurs bloqués',
     'friends.blocked_empty_title': 'Aucun utilisateur bloqué',
     'friends.blocked_empty_subtitle': 'Les utilisateurs bloqués apparaîtront ici',
+    'friends.my_friends': 'Mes amis',
+    'friends.no_friends': "Pas encore d'amis",
+    'friends.search_to_add': 'Cherchez des utilisateurs pour en ajouter !',
+    
+    // Chat / Social
     'chat.direct': 'Direct',
     'chat.tournaments': 'Tournois',
     'chat.search_placeholder': 'Chercher...',
@@ -96,6 +145,17 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'chat.welcome_subtitle': 'Ou lancez une nouvelle discussion',
     'chat.message_placeholder': 'Écrivez votre message...',
     'chat.send': 'Envoyer',
+    'chat.conversations': 'Conversations',
+    'chat.search_conversations': 'Rechercher des conversations...',
+    'chat.no_conversations': 'Aucune conversation',
+    'chat.start_chatting': 'Commencez à discuter avec un ami !',
+    'chat.select_to_start': 'Sélectionnez une conversation pour commencer',
+    'chat.search_friend': 'Ou cherchez un ami pour discuter !',
+    'chat.type_message': 'Tapez un message...',
+    'chat.search_users': 'Chercher des utilisateurs...',
+    'chat.search_results': 'RÉSULTATS DE RECHERCHE',
+    
+    // Tournaments
     'tournaments.title': 'Tournois',
     'tournaments.create': '+ Créer un tournoi',
     'tournaments.subtitle': "Participez à des tournois et affrontez d'autres joueurs",
@@ -108,10 +168,91 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'tournaments.none_available_sub': 'Attendez ou créez un nouveau tournoi',
     'tournaments.none_past': 'Aucun tournoi terminé',
     'tournaments.none_past_sub': "L'historique des tournois apparaîtra ici",
+    'tournaments.back': '← Retour aux tournois',
+    'tournaments.waiting_players': 'En attente de joueurs',
+    'tournaments.players': 'Joueurs:',
+    'tournaments.format': 'Format:',
+    'tournaments.players_format': 'joueurs',
+    'tournaments.current_match': 'Match en cours:',
+    'tournaments.participants': 'Participants',
+    'tournaments.bracket': 'Bracket',
+    'tournaments.create_title': 'Créer un tournoi',
+    'tournaments.name_label': 'Nom du tournoi (optionnel)',
+    'tournaments.name_placeholder': 'Ex: Tournoi du weekend',
+    'tournaments.player_count': 'Nombre de joueurs',
+    'tournaments.test': 'test',
+    'tournaments.alias_label': 'Votre pseudo pour ce tournoi',
+    'tournaments.alias_placeholder': 'Entrez votre pseudo',
+    'tournaments.alias_hint': 'Ce nom sera affiché pendant le tournoi',
+    'tournaments.create_btn': 'Créer le tournoi',
+    'tournaments.join_title': 'Rejoindre le tournoi',
+    'tournaments.join_btn': 'Rejoindre',
+    'tournaments.view_btn': 'Voir',
+    'tournaments.leave_btn': 'Quitter',
+    'tournaments.play_match': '🎮 Jouer mon match',
+    'tournaments.created_by': 'Créé par',
+    'tournaments.status_waiting': 'En attente',
+    'tournaments.status_in_progress': 'En cours',
+    'tournaments.status_finished': 'Terminé',
+    'tournaments.you': '(vous)',
+    'tournaments.slot_waiting': 'En attente...',
+    'tournaments.winner': 'Gagnant',
+    'tournaments.round_quarters': 'Quarts de finale',
+    'tournaments.round_semis': 'Demi-finales',
+    'tournaments.round_final': 'Finale',
+    'tournaments.confirm_leave': 'Êtes-vous sûr de vouloir quitter ce tournoi ?',
+    'tournaments.alert_deleted': 'Ce tournoi a été supprimé',
+    'tournaments.alert_enter_alias': 'Veuillez entrer un pseudo',
+    'tournaments.alert_create_error': 'Erreur lors de la création du tournoi',
+    'tournaments.alert_connection_error': 'Erreur de connexion',
+    'tournaments.alert_join_error': 'Erreur lors de la connexion au tournoi',
+    'tournaments.alert_not_in_tournament': 'Vous n\'êtes pas dans ce tournoi',
+    'tournaments.alert_error': 'Erreur',
+    'tournaments.alert_not_found': 'Tournoi non trouvé',
+    
+    // Intro
     'intro.tagline': 'Le Pong nouvelle génération',
+    
+    // Settings
+    'settings': 'Paramètres',
+    'settings.title': 'Paramètres du compte',
+    'settings.avatar_hint': 'Cliquez pour changer votre avatar',
+    'settings.name': "Nom d'utilisateur",
+    'settings.email': 'Email',
+    'settings.change_password': 'Changer le mot de passe',
+    'settings.new_password': 'Nouveau mot de passe',
+    'settings.confirm_password': 'Confirmer le mot de passe',
+    'settings.password_hint': 'Laissez vide pour garder le mot de passe actuel',
+    'settings.save': 'Enregistrer les modifications',
+    'settings.blocked_users': 'Utilisateurs bloqués',
+    'settings.no_blocked_users': 'Aucun utilisateur bloqué',
+    'settings.danger_zone': 'Zone de danger',
+    'settings.delete_account': 'Supprimer mon compte',
+    'settings.delete_warning': 'Cette action est irréversible. Toutes vos données seront supprimées.',
+    'settings.unblock': 'Débloquer',
+    
+    // Profile
+    'profile.offline': 'Hors ligne',
+    'profile.online': 'En ligne',
+    'profile.statistics': 'Statistiques',
+    'profile.games_played': 'Parties jouées',
+    'profile.win_rate': 'Taux de victoire',
+    'profile.wins': 'Victoires',
+    'profile.losses': 'Défaites',
+    'profile.add_friend': 'Ajouter en ami',
+    'profile.remove_friend': 'Retirer des amis',
+    'profile.send_message': 'Envoyer un message',
+    'profile.block': 'Bloquer',
+    
+    // Logout
+    'logout': 'Déconnexion',
   },
+  
   en: {
+    // App
     'app.title': 'ft_transcendance',
+    
+    // Navigation
     'nav.play': 'Play',
     'nav.tournaments': 'Tournaments',
     'nav.chat': 'Chat',
@@ -121,10 +262,15 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'nav.signup': 'Sign up',
     'nav.language': 'Language',
     'nav.contrast': 'High contrast',
+    'nav.social': 'Social',
+    
+    // Footer
     'footer.copy': '© 2025 ft_transcendence - Ecole 42',
     'footer.about': 'About',
     'footer.rules': 'Rules',
     'footer.contact': 'Contact',
+    
+    // Auth
     'auth.login': 'Log in',
     'auth.signup': 'Sign up',
     'auth.email': 'Email',
@@ -143,9 +289,13 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'auth.email_placeholder': 'you@email.com',
     'auth.password_placeholder': '••••••••',
     'auth.username_placeholder': 'your_username',
+    
+    // Home
     'home.game_title': 'Pong Arena',
     'home.status_online': 'Online',
+    'home.status_offline': 'Offline',
     'home.players_online': '42 players online',
+    'home.players_waiting': 'waiting',
     'home.game_area_placeholder': 'Game area - Coming soon',
     'home.controls': '⌨️ W/S or ↑/↓ - Move',
     'home.first_to': '🎯 First to 11 points',
@@ -154,6 +304,29 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'home.stat_wins': 'Wins',
     'home.stat_rank': 'Rank',
     'home.stat_tournaments': 'Tournaments won',
+    'home.controls_move': 'W/S or ↑/↓ - Move',
+    'home.controls_start': 'SPACE - Start',
+    'home.controls_pause': 'ESC - Pause',
+    'home.btn_solo': 'Solo',
+    'home.btn_local': 'Local PvP',
+    'home.btn_pvp': 'Online PvP',
+    'home.difficulty_easy': 'Easy',
+    'home.difficulty_normal': 'Normal',
+    'home.difficulty_hard': 'Hard',
+    
+    // Game messages
+    'game.choose_mode': 'Choose a game mode',
+    'game.waiting_opponent': 'Waiting for opponent...',
+    'game.press_space_start': 'Press SPACE to start',
+    'game.paused': 'PAUSED',
+    'game.press_esc_resume': 'Press ESC to resume',
+    'game.opponent_disconnected': 'OPPONENT DISCONNECTED',
+    'game.victory': 'Victory!',
+    'game.defeat': 'Defeated',
+    'game.left_wins': 'Left wins!',
+    'game.right_wins': 'Right wins!',
+    
+    // Stats
     'stats.title': 'My Stats',
     'stats.subtitle': 'Track your game stats and progression',
     'stats.games_played': 'Games played',
@@ -176,6 +349,8 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'stats.table_result': 'Result',
     'stats.table_date': 'Date',
     'stats.no_data': 'No data yet',
+    
+    // Friends
     'friends.title': 'My Friends',
     'friends.subtitle': 'Manage your friends and view their profiles',
     'friends.list_title': 'Friends list',
@@ -184,6 +359,11 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'friends.blocked_title': 'Blocked users',
     'friends.blocked_empty_title': 'No blocked users',
     'friends.blocked_empty_subtitle': 'Blocked users will appear here',
+    'friends.my_friends': 'My friends',
+    'friends.no_friends': 'No friends yet',
+    'friends.search_to_add': 'Search users to add friends!',
+    
+    // Chat / Social
     'chat.direct': 'Direct',
     'chat.tournaments': 'Tournaments',
     'chat.search_placeholder': 'Search...',
@@ -201,6 +381,17 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'chat.welcome_subtitle': 'Or start a new discussion',
     'chat.message_placeholder': 'Write your message...',
     'chat.send': 'Send',
+    'chat.conversations': 'Conversations',
+    'chat.search_conversations': 'Search conversations...',
+    'chat.no_conversations': 'No conversations',
+    'chat.start_chatting': 'Start chatting with a friend!',
+    'chat.select_to_start': 'Select a conversation to start',
+    'chat.search_friend': 'Or search for a friend to chat!',
+    'chat.type_message': 'Type a message...',
+    'chat.search_users': 'Search users...',
+    'chat.search_results': 'SEARCH RESULTS',
+    
+    // Tournaments
     'tournaments.title': 'Tournaments',
     'tournaments.create': '+ Create a tournament',
     'tournaments.subtitle': 'Join tournaments and face other players',
@@ -213,15 +404,328 @@ const translations: Record<(typeof SUPPORTED_LANGS)[number], TranslationMap> = {
     'tournaments.none_available_sub': 'Wait or create a new tournament',
     'tournaments.none_past': 'No completed tournaments',
     'tournaments.none_past_sub': 'Tournament history will appear here',
+    'tournaments.back': '← Back to tournaments',
+    'tournaments.waiting_players': 'Waiting for players',
+    'tournaments.players': 'Players:',
+    'tournaments.format': 'Format:',
+    'tournaments.players_format': 'players',
+    'tournaments.current_match': 'Current match:',
+    'tournaments.participants': 'Participants',
+    'tournaments.bracket': 'Bracket',
+    'tournaments.create_title': 'Create a tournament',
+    'tournaments.name_label': 'Tournament name (optional)',
+    'tournaments.name_placeholder': 'Ex: Weekend tournament',
+    'tournaments.player_count': 'Number of players',
+    'tournaments.test': 'test',
+    'tournaments.alias_label': 'Your alias for this tournament',
+    'tournaments.alias_placeholder': 'Enter your alias',
+    'tournaments.alias_hint': 'This name will be displayed during the tournament',
+    'tournaments.create_btn': 'Create tournament',
+    'tournaments.join_title': 'Join tournament',
+    'tournaments.join_btn': 'Join',
+    'tournaments.view_btn': 'View',
+    'tournaments.leave_btn': 'Leave',
+    'tournaments.play_match': '🎮 Play my match',
+    'tournaments.created_by': 'Created by',
+    'tournaments.status_waiting': 'Waiting',
+    'tournaments.status_in_progress': 'In progress',
+    'tournaments.status_finished': 'Finished',
+    'tournaments.you': '(you)',
+    'tournaments.slot_waiting': 'Waiting...',
+    'tournaments.winner': 'Winner',
+    'tournaments.round_quarters': 'Quarter-finals',
+    'tournaments.round_semis': 'Semi-finals',
+    'tournaments.round_final': 'Final',
+    'tournaments.confirm_leave': 'Are you sure you want to leave this tournament?',
+    'tournaments.alert_deleted': 'This tournament has been deleted',
+    'tournaments.alert_enter_alias': 'Please enter an alias',
+    'tournaments.alert_create_error': 'Error creating tournament',
+    'tournaments.alert_connection_error': 'Connection error',
+    'tournaments.alert_join_error': 'Error joining tournament',
+    'tournaments.alert_not_in_tournament': 'You are not in this tournament',
+    'tournaments.alert_error': 'Error',
+    'tournaments.alert_not_found': 'Tournament not found',
+    
+    // Intro
     'intro.tagline': 'The next-gen Pong',
+    
+    // Settings
+    'settings': 'Settings',
+    'settings.title': 'Account settings',
+    'settings.avatar_hint': 'Click to change your avatar',
+    'settings.name': 'Username',
+    'settings.email': 'Email',
+    'settings.change_password': 'Change password',
+    'settings.new_password': 'New password',
+    'settings.confirm_password': 'Confirm password',
+    'settings.password_hint': 'Leave empty to keep current password',
+    'settings.save': 'Save changes',
+    'settings.blocked_users': 'Blocked users',
+    'settings.no_blocked_users': 'No blocked users',
+    'settings.danger_zone': 'Danger zone',
+    'settings.delete_account': 'Delete my account',
+    'settings.delete_warning': 'This action is irreversible. All your data will be deleted.',
+    'settings.unblock': 'Unblock',
+    
+    // Profile
+    'profile.offline': 'Offline',
+    'profile.online': 'Online',
+    'profile.statistics': 'Statistics',
+    'profile.games_played': 'Games played',
+    'profile.win_rate': 'Win rate',
+    'profile.wins': 'Wins',
+    'profile.losses': 'Losses',
+    'profile.add_friend': 'Add friend',
+    'profile.remove_friend': 'Remove friend',
+    'profile.send_message': 'Send message',
+    'profile.block': 'Block',
+    
+    // Logout
+    'logout': 'Log out',
+  },
+  
+  es: {
+    // App
+    'app.title': 'ft_transcendance',
+    
+    // Navigation
+    'nav.play': 'Jugar',
+    'nav.tournaments': 'Torneos',
+    'nav.chat': 'Chat',
+    'nav.friends': 'Amigos',
+    'nav.stats': 'Estadísticas',
+    'nav.login': 'Iniciar sesión',
+    'nav.signup': 'Registrarse',
+    'nav.language': 'Idioma',
+    'nav.contrast': 'Alto contraste',
+    'nav.social': 'Social',
+    
+    // Footer
+    'footer.copy': '© 2025 ft_transcendence - Ecole 42',
+    'footer.about': 'Acerca de',
+    'footer.rules': 'Reglas',
+    'footer.contact': 'Contacto',
+    
+    // Auth
+    'auth.login': 'Iniciar sesión',
+    'auth.signup': 'Registrarse',
+    'auth.email': 'Correo electrónico',
+    'auth.password': 'Contraseña',
+    'auth.username': 'Nombre de usuario',
+    'auth.remember': 'Recordarme',
+    'auth.login_submit': 'Iniciar sesión',
+    'auth.no_account': '¿No tienes cuenta?',
+    'auth.create_account': 'Crear una cuenta',
+    'auth.have_account': '¿Ya tienes cuenta?',
+    'auth.login_link': 'Iniciar sesión',
+    'auth.terms': 'Acepto los términos de servicio',
+    'auth.signup_submit': 'Registrarse',
+    'auth.or_continue': 'o continuar con',
+    'auth.oauth_42': 'Iniciar sesión con 42',
+    'auth.email_placeholder': 'tu@email.com',
+    'auth.password_placeholder': '••••••••',
+    'auth.username_placeholder': 'tu_usuario',
+    
+    // Home
+    'home.game_title': 'Pong Arena',
+    'home.status_online': 'En línea',
+    'home.status_offline': 'Desconectado',
+    'home.players_online': '42 jugadores conectados',
+    'home.players_waiting': 'esperando',
+    'home.game_area_placeholder': 'Área de juego - Próximamente',
+    'home.controls': '⌨️ W/S o ↑/↓ - Mover',
+    'home.first_to': '🎯 Primero en 11 puntos',
+    'home.settings': '⚙️ Configuración',
+    'home.stat_games': 'Partidas jugadas',
+    'home.stat_wins': 'Victorias',
+    'home.stat_rank': 'Clasificación',
+    'home.stat_tournaments': 'Torneos ganados',
+    'home.controls_move': 'W/S o ↑/↓ - Mover',
+    'home.controls_start': 'ESPACIO - Iniciar',
+    'home.controls_pause': 'ESC - Pausa',
+    'home.btn_solo': 'Solo',
+    'home.btn_local': 'PvP Local',
+    'home.btn_pvp': 'PvP Online',
+    'home.difficulty_easy': 'Fácil',
+    'home.difficulty_normal': 'Normal',
+    'home.difficulty_hard': 'Difícil',
+    
+    // Game messages
+    'game.choose_mode': 'Elige un modo de juego',
+    'game.waiting_opponent': 'Esperando oponente...',
+    'game.press_space_start': 'Presiona ESPACIO para empezar',
+    'game.paused': 'PAUSA',
+    'game.press_esc_resume': 'Presiona ESC para continuar',
+    'game.opponent_disconnected': 'OPONENTE DESCONECTADO',
+    'game.victory': '¡Victoria!',
+    'game.defeat': 'Derrotado',
+    'game.left_wins': '¡Izquierda gana!',
+    'game.right_wins': '¡Derecha gana!',
+    
+    // Stats
+    'stats.title': 'Mis Estadísticas',
+    'stats.subtitle': 'Consulta tus estadísticas de juego y tu progreso',
+    'stats.games_played': 'Partidas jugadas',
+    'stats.win_rate': 'Tasa de victorias',
+    'stats.global_rank': 'Clasificación global',
+    'stats.tournaments_won': 'Torneos ganados',
+    'stats.game_stats_title': 'Estadísticas de juego',
+    'stats.wins': 'Victorias',
+    'stats.losses': 'Derrotas',
+    'stats.points_scored': 'Puntos anotados',
+    'stats.points_allowed': 'Puntos recibidos',
+    'stats.performance_title': 'Rendimiento',
+    'stats.best_score': 'Mejor puntuación',
+    'stats.worst_score': 'Peor puntuación',
+    'stats.streak': 'Racha de victorias',
+    'stats.elo': 'ELO',
+    'stats.recent_games': 'Partidas recientes',
+    'stats.table_opponent': 'Oponente',
+    'stats.table_score': 'Puntuación',
+    'stats.table_result': 'Resultado',
+    'stats.table_date': 'Fecha',
+    'stats.no_data': 'Sin datos por el momento',
+    
+    // Friends
+    'friends.title': 'Mis Amigos',
+    'friends.subtitle': 'Gestiona tus amigos y consulta sus perfiles',
+    'friends.list_title': 'Lista de amigos',
+    'friends.empty_title': 'Aún no tienes amigos',
+    'friends.empty_subtitle': '¡Invita a otros jugadores para empezar a construir tu red!',
+    'friends.blocked_title': 'Usuarios bloqueados',
+    'friends.blocked_empty_title': 'Sin usuarios bloqueados',
+    'friends.blocked_empty_subtitle': 'Los usuarios bloqueados aparecerán aquí',
+    'friends.my_friends': 'Mis amigos',
+    'friends.no_friends': 'Sin amigos aún',
+    'friends.search_to_add': '¡Busca usuarios para añadir amigos!',
+    
+    // Chat / Social
+    'chat.direct': 'Directo',
+    'chat.tournaments': 'Torneos',
+    'chat.search_placeholder': 'Buscar...',
+    'chat.no_direct': 'Sin conversaciones directas',
+    'chat.tournament_notifications': 'Notificaciones de torneos',
+    'chat.tournament_notifications_desc': 'Alertas y próximos partidos',
+    'chat.tournament_general': 'Chat general',
+    'chat.tournament_general_desc': 'Discusiones de torneos',
+    'chat.select_conversation': 'Selecciona una conversación',
+    'chat.select_subtitle': '-',
+    'chat.view_profile': 'Ver perfil',
+    'chat.invite_play': 'Invitar a jugar',
+    'chat.block_user': 'Bloquear usuario',
+    'chat.welcome': '💬 Selecciona una conversación para comenzar',
+    'chat.welcome_subtitle': 'O inicia una nueva discusión',
+    'chat.message_placeholder': 'Escribe tu mensaje...',
+    'chat.send': 'Enviar',
+    'chat.conversations': 'Conversaciones',
+    'chat.search_conversations': 'Buscar conversaciones...',
+    'chat.no_conversations': 'Sin conversaciones',
+    'chat.start_chatting': '¡Empieza a chatear con un amigo!',
+    'chat.select_to_start': 'Selecciona una conversación para empezar',
+    'chat.search_friend': '¡O busca un amigo para chatear!',
+    'chat.type_message': 'Escribe un mensaje...',
+    'chat.search_users': 'Buscar usuarios...',
+    'chat.search_results': 'RESULTADOS DE BÚSQUEDA',
+    
+    // Tournaments
+    'tournaments.title': 'Torneos',
+    'tournaments.create': '+ Crear un torneo',
+    'tournaments.subtitle': 'Participa en torneos y enfréntate a otros jugadores',
+    'tournaments.active': 'Torneos en curso',
+    'tournaments.available': 'Torneos disponibles',
+    'tournaments.past': 'Torneos terminados',
+    'tournaments.none_active': 'Sin torneos en curso',
+    'tournaments.none_active_sub': 'Los torneos activos aparecerán aquí',
+    'tournaments.none_available': 'Sin torneos disponibles',
+    'tournaments.none_available_sub': 'Espera o crea un nuevo torneo',
+    'tournaments.none_past': 'Sin torneos terminados',
+    'tournaments.none_past_sub': 'El historial de torneos aparecerá aquí',
+    'tournaments.back': '← Volver a torneos',
+    'tournaments.waiting_players': 'Esperando jugadores',
+    'tournaments.players': 'Jugadores:',
+    'tournaments.format': 'Formato:',
+    'tournaments.players_format': 'jugadores',
+    'tournaments.current_match': 'Partido actual:',
+    'tournaments.participants': 'Participantes',
+    'tournaments.bracket': 'Bracket',
+    'tournaments.create_title': 'Crear un torneo',
+    'tournaments.name_label': 'Nombre del torneo (opcional)',
+    'tournaments.name_placeholder': 'Ej: Torneo del fin de semana',
+    'tournaments.player_count': 'Número de jugadores',
+    'tournaments.test': 'prueba',
+    'tournaments.alias_label': 'Tu alias para este torneo',
+    'tournaments.alias_placeholder': 'Ingresa tu alias',
+    'tournaments.alias_hint': 'Este nombre se mostrará durante el torneo',
+    'tournaments.create_btn': 'Crear torneo',
+    'tournaments.join_title': 'Unirse al torneo',
+    'tournaments.join_btn': 'Unirse',
+    'tournaments.view_btn': 'Ver',
+    'tournaments.leave_btn': 'Salir',
+    'tournaments.play_match': '🎮 Jugar mi partido',
+    'tournaments.created_by': 'Creado por',
+    'tournaments.status_waiting': 'En espera',
+    'tournaments.status_in_progress': 'En curso',
+    'tournaments.status_finished': 'Terminado',
+    'tournaments.you': '(tú)',
+    'tournaments.slot_waiting': 'Esperando...',
+    'tournaments.winner': 'Ganador',
+    'tournaments.round_quarters': 'Cuartos de final',
+    'tournaments.round_semis': 'Semifinales',
+    'tournaments.round_final': 'Final',
+    'tournaments.confirm_leave': '¿Estás seguro de que quieres salir de este torneo?',
+    'tournaments.alert_deleted': 'Este torneo ha sido eliminado',
+    'tournaments.alert_enter_alias': 'Por favor ingresa un alias',
+    'tournaments.alert_create_error': 'Error al crear el torneo',
+    'tournaments.alert_connection_error': 'Error de conexión',
+    'tournaments.alert_join_error': 'Error al unirse al torneo',
+    'tournaments.alert_not_in_tournament': 'No estás en este torneo',
+    'tournaments.alert_error': 'Error',
+    'tournaments.alert_not_found': 'Torneo no encontrado',
+    
+    // Intro
+    'intro.tagline': 'El Pong de nueva generación',
+    
+    // Settings
+    'settings': 'Configuración',
+    'settings.title': 'Configuración de la cuenta',
+    'settings.avatar_hint': 'Haz clic para cambiar tu avatar',
+    'settings.name': 'Nombre de usuario',
+    'settings.email': 'Correo electrónico',
+    'settings.change_password': 'Cambiar contraseña',
+    'settings.new_password': 'Nueva contraseña',
+    'settings.confirm_password': 'Confirmar contraseña',
+    'settings.password_hint': 'Deja vacío para mantener la contraseña actual',
+    'settings.save': 'Guardar cambios',
+    'settings.blocked_users': 'Usuarios bloqueados',
+    'settings.no_blocked_users': 'Sin usuarios bloqueados',
+    'settings.danger_zone': 'Zona de peligro',
+    'settings.delete_account': 'Eliminar mi cuenta',
+    'settings.delete_warning': 'Esta acción es irreversible. Todos tus datos serán eliminados.',
+    'settings.unblock': 'Desbloquear',
+    
+    // Profile
+    'profile.offline': 'Desconectado',
+    'profile.online': 'En línea',
+    'profile.statistics': 'Estadísticas',
+    'profile.games_played': 'Partidas jugadas',
+    'profile.win_rate': 'Tasa de victorias',
+    'profile.wins': 'Victorias',
+    'profile.losses': 'Derrotas',
+    'profile.add_friend': 'Añadir amigo',
+    'profile.remove_friend': 'Eliminar amigo',
+    'profile.send_message': 'Enviar mensaje',
+    'profile.block': 'Bloquear',
+    
+    // Logout
+    'logout': 'Cerrar sesión',
   }
 };
 
-let currentLang: 'fr' | 'en' = DEFAULT_LANG;
+let currentLang: SupportedLang = DEFAULT_LANG;
 
-function resolveLanguage(lang: string): (typeof SUPPORTED_LANGS)[number] {
-  if (SUPPORTED_LANGS.includes(lang as (typeof SUPPORTED_LANGS)[number])) {
-    return lang as (typeof SUPPORTED_LANGS)[number];
+function resolveLanguage(lang: string): SupportedLang {
+  if (SUPPORTED_LANGS.includes(lang as SupportedLang)) {
+    return lang as SupportedLang;
   }
   return DEFAULT_LANG;
 }
@@ -260,6 +764,18 @@ function applyTranslations(root: ParentNode = document): void {
   }
 }
 
+function updateFlagSelection(): void {
+  const flags = document.querySelectorAll<HTMLButtonElement>('.lang-flag');
+  flags.forEach((flag) => {
+    const lang = flag.getAttribute('data-lang');
+    if (lang === currentLang) {
+      flag.classList.add('ring-2', 'ring-blue-500', 'ring-offset-2', 'ring-offset-neutral-900');
+    } else {
+      flag.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-2', 'ring-offset-neutral-900');
+    }
+  });
+}
+
 function setLanguage(lang: string, persist = true): void {
   currentLang = resolveLanguage(lang);
   document.documentElement.lang = currentLang;
@@ -267,6 +783,7 @@ function setLanguage(lang: string, persist = true): void {
     localStorage.setItem(STORAGE_KEY, currentLang);
   }
   applyTranslations(document);
+  updateFlagSelection();
 }
 
 function getLanguage(): string {
@@ -274,16 +791,38 @@ function getLanguage(): string {
 }
 
 function bindControls(): void {
+  // Bind flag buttons
+  const flags = document.querySelectorAll<HTMLButtonElement>('.lang-flag');
+  flags.forEach((flag) => {
+    flag.onclick = () => {
+      const lang = flag.getAttribute('data-lang');
+      if (lang) {
+        setLanguage(lang);
+      }
+    };
+  });
+  
+  // Legacy select support (if still present)
   const select = document.getElementById('lang-select') as HTMLSelectElement | null;
   if (select) {
     select.value = currentLang;
     select.onchange = () => setLanguage(select.value);
   }
+  
+  updateFlagSelection();
 }
 
 function init(): void {
   const stored = localStorage.getItem(STORAGE_KEY);
-  const inferred = navigator.language?.toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  const browserLang = navigator.language?.toLowerCase();
+  let inferred: SupportedLang = 'en';
+  
+  if (browserLang?.startsWith('fr')) {
+    inferred = 'fr';
+  } else if (browserLang?.startsWith('es')) {
+    inferred = 'es';
+  }
+  
   const initial = resolveLanguage(stored || inferred);
   setLanguage(initial, false);
   bindControls();
@@ -300,4 +839,5 @@ export const I18n = {
   applyTranslations,
   setLanguage,
   getLanguage,
+  translate,
 };

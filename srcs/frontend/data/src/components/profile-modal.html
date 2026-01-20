@@ -25,36 +25,36 @@
       <h2 id="profile-name" class="text-xl font-bold text-white mt-4">Username</h2>
 
       <!-- Status Text -->
-      <span id="profile-status" class="text-sm text-neutral-400 mt-1">Hors ligne</span>
+      <span id="profile-status" class="text-sm text-neutral-400 mt-1" data-i18n="profile.offline">Hors ligne</span>
     </div>
 
     <!-- Stats Section -->
     <div class="mt-8">
-      <h3 class="text-sm font-medium text-neutral-400 mb-4 text-center">Statistiques</h3>
+      <h3 class="text-sm font-medium text-neutral-400 mb-4 text-center" data-i18n="profile.statistics">Statistiques</h3>
 
       <div class="grid grid-cols-2 gap-4">
         <!-- Games Played -->
         <div class="bg-neutral-800 rounded-lg p-4 text-center">
           <span id="profile-games-played" class="text-2xl font-bold text-white block">0</span>
-          <span class="text-xs text-neutral-400">Parties jouees</span>
+          <span class="text-xs text-neutral-400" data-i18n="profile.games_played">Parties jouées</span>
         </div>
 
         <!-- Win Rate -->
         <div class="bg-neutral-800 rounded-lg p-4 text-center">
           <span id="profile-win-rate" class="text-2xl font-bold text-blue-400 block">0%</span>
-          <span class="text-xs text-neutral-400">Taux de victoire</span>
+          <span class="text-xs text-neutral-400" data-i18n="profile.win_rate">Taux de victoire</span>
         </div>
 
         <!-- Wins -->
         <div class="bg-neutral-800 rounded-lg p-4 text-center">
           <span id="profile-games-won" class="text-2xl font-bold text-green-400 block">0</span>
-          <span class="text-xs text-neutral-400">Victoires</span>
+          <span class="text-xs text-neutral-400" data-i18n="profile.wins">Victoires</span>
         </div>
 
         <!-- Losses -->
         <div class="bg-neutral-800 rounded-lg p-4 text-center">
           <span id="profile-games-lost" class="text-2xl font-bold text-red-400 block">0</span>
-          <span class="text-xs text-neutral-400">Defaites</span>
+          <span class="text-xs text-neutral-400" data-i18n="profile.losses">Défaites</span>
         </div>
       </div>
     </div>
@@ -66,7 +66,7 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
         </svg>
-        <span>Ajouter en ami</span>
+        <span data-i18n="profile.add_friend">Ajouter en ami</span>
       </button>
 
       <button id="profile-remove-friend"
@@ -74,7 +74,7 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6v1h12v-1a6 6 0 00-6-6zM21 12h-6"></path>
         </svg>
-        <span>Retirer des amis</span>
+        <span data-i18n="profile.remove_friend">Retirer des amis</span>
       </button>
 
       <button id="profile-message"
@@ -82,7 +82,7 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
         </svg>
-        <span>Envoyer un message</span>
+        <span data-i18n="profile.send_message">Envoyer un message</span>
       </button>
 
       <button id="profile-block"
@@ -90,7 +90,7 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
         </svg>
-        <span>Bloquer</span>
+        <span data-i18n="profile.block">Bloquer</span>
       </button>
     </div>
 

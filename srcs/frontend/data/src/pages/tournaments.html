@@ -66,7 +66,7 @@
 
     <!-- Tournament Detail View (shown when viewing a specific tournament) -->
     <div id="tournament-detail-view" class="hidden">
-      <button id="btn-back-to-list" class="btn btn-outline mb-6">
+      <button id="btn-back-to-list" class="btn btn-outline mb-6" data-i18n="tournaments.back">
         ← Retour aux tournois
       </button>
       
@@ -76,7 +76,7 @@
           <div class="flex items-center justify-between">
             <div>
               <h2 id="detail-tournament-name" class="text-2xl font-bold">Nom du tournoi</h2>
-              <p id="detail-tournament-status" class="text-neutral-400 mt-1">En attente de joueurs</p>
+              <p id="detail-tournament-status" class="text-neutral-400 mt-1" data-i18n="tournaments.waiting_players">En attente de joueurs</p>
             </div>
             <div id="detail-tournament-actions">
               <!-- Dynamic buttons: Join, Leave, Start Match -->
@@ -86,15 +86,15 @@
         <div class="card-body">
           <div class="flex items-center gap-8">
             <div>
-              <span class="text-neutral-400">Joueurs:</span>
+              <span class="text-neutral-400" data-i18n="tournaments.players">Joueurs:</span>
               <span id="detail-player-count" class="font-bold ml-2">0/4</span>
             </div>
             <div>
-              <span class="text-neutral-400">Format:</span>
-              <span id="detail-format" class="font-bold ml-2">4 joueurs</span>
+              <span class="text-neutral-400" data-i18n="tournaments.format">Format:</span>
+              <span id="detail-format" class="font-bold ml-2">4 <span data-i18n="tournaments.players_format">joueurs</span></span>
             </div>
             <div id="detail-current-match-info" class="hidden">
-              <span class="text-neutral-400">Match en cours:</span>
+              <span class="text-neutral-400" data-i18n="tournaments.current_match">Match en cours:</span>
               <span id="detail-current-match" class="font-bold ml-2 text-amber-400">-</span>
             </div>
           </div>
@@ -104,7 +104,7 @@
       <!-- Players List -->
       <div class="card mb-6">
         <div class="card-header">
-          <h3 class="text-lg font-bold">Participants</h3>
+          <h3 class="text-lg font-bold" data-i18n="tournaments.participants">Participants</h3>
         </div>
         <div class="card-body">
           <div id="detail-players-list" class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -116,7 +116,7 @@
       <!-- Bracket Visualization -->
       <div class="card">
         <div class="card-header">
-          <h3 class="text-lg font-bold">Bracket</h3>
+          <h3 class="text-lg font-bold" data-i18n="tournaments.bracket">Bracket</h3>
         </div>
         <div class="card-body overflow-x-auto">
           <div id="bracket-container" class="bracket">
@@ -133,42 +133,43 @@
 <div id="create-tournament-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden">
   <div class="bg-neutral-900 rounded-xl border border-neutral-700 w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-xl font-bold">Créer un tournoi</h2>
+      <h2 class="text-xl font-bold" data-i18n="tournaments.create_title">Créer un tournoi</h2>
       <button id="close-create-modal" class="text-neutral-400 hover:text-white text-2xl">&times;</button>
     </div>
     
     <form id="create-tournament-form">
       <!-- Tournament Name (optional) -->
       <div class="mb-4">
-        <label class="block text-sm font-medium text-neutral-300 mb-2">Nom du tournoi (optionnel)</label>
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="tournaments.name_label">Nom du tournoi (optionnel)</label>
         <input type="text" id="tournament-name-input" 
                class="w-full bg-neutral-800 border border-neutral-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+               data-i18n-placeholder="tournaments.name_placeholder"
                placeholder="Ex: Tournoi du weekend" maxlength="50">
       </div>
       
       <!-- Player Count -->
       <div class="mb-4">
-        <label class="block text-sm font-medium text-neutral-300 mb-2">Nombre de joueurs</label>
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="tournaments.player_count">Nombre de joueurs</label>
         <div class="flex gap-4">
           <label class="flex-1">
             <input type="radio" name="player-count" value="2" class="hidden peer">
             <div class="peer-checked:border-blue-500 peer-checked:bg-blue-500/10 border border-neutral-600 rounded-lg p-4 text-center cursor-pointer hover:border-neutral-500 transition">
               <div class="text-2xl font-bold">2</div>
-              <div class="text-xs text-neutral-400">test</div>
+              <div class="text-xs text-neutral-400" data-i18n="tournaments.test">test</div>
             </div>
           </label>
           <label class="flex-1">
             <input type="radio" name="player-count" value="4" checked class="hidden peer">
             <div class="peer-checked:border-blue-500 peer-checked:bg-blue-500/10 border border-neutral-600 rounded-lg p-4 text-center cursor-pointer hover:border-neutral-500 transition">
               <div class="text-2xl font-bold">4</div>
-              <div class="text-xs text-neutral-400">joueurs</div>
+              <div class="text-xs text-neutral-400" data-i18n="tournaments.players_format">joueurs</div>
             </div>
           </label>
           <label class="flex-1">
             <input type="radio" name="player-count" value="8" class="hidden peer">
             <div class="peer-checked:border-blue-500 peer-checked:bg-blue-500/10 border border-neutral-600 rounded-lg p-4 text-center cursor-pointer hover:border-neutral-500 transition">
               <div class="text-2xl font-bold">8</div>
-              <div class="text-xs text-neutral-400">joueurs</div>
+              <div class="text-xs text-neutral-400" data-i18n="tournaments.players_format">joueurs</div>
             </div>
           </label>
         </div>
@@ -176,14 +177,15 @@
       
       <!-- Creator Alias (for guests) -->
       <div id="creator-alias-section" class="mb-6">
-        <label class="block text-sm font-medium text-neutral-300 mb-2">Votre pseudo pour ce tournoi</label>
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="tournaments.alias_label">Votre pseudo pour ce tournoi</label>
         <input type="text" id="creator-alias-input" 
                class="w-full bg-neutral-800 border border-neutral-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+               data-i18n-placeholder="tournaments.alias_placeholder"
                placeholder="Entrez votre pseudo" maxlength="20" required>
-        <p class="text-sm text-neutral-500 mt-1">Ce nom sera affiché pendant le tournoi</p>
+        <p class="text-sm text-neutral-500 mt-1" data-i18n="tournaments.alias_hint">Ce nom sera affiché pendant le tournoi</p>
       </div>
       
-      <button type="submit" class="btn btn-primary w-full py-3">
+      <button type="submit" class="btn btn-primary w-full py-3" data-i18n="tournaments.create_btn">
         Créer le tournoi
       </button>
     </form>
@@ -194,7 +196,7 @@
 <div id="join-tournament-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 hidden">
   <div class="bg-neutral-900 rounded-xl border border-neutral-700 w-full max-w-md p-6">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-xl font-bold">Rejoindre le tournoi</h2>
+      <h2 class="text-xl font-bold" data-i18n="tournaments.join_title">Rejoindre le tournoi</h2>
       <button id="close-join-modal" class="text-neutral-400 hover:text-white text-2xl">&times;</button>
     </div>
     
@@ -202,13 +204,14 @@
       <input type="hidden" id="join-tournament-id">
       
       <div class="mb-6">
-        <label class="block text-sm font-medium text-neutral-300 mb-2">Votre pseudo pour ce tournoi</label>
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="tournaments.alias_label">Votre pseudo pour ce tournoi</label>
         <input type="text" id="join-alias-input" 
                class="w-full bg-neutral-800 border border-neutral-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500"
+               data-i18n-placeholder="tournaments.alias_placeholder"
                placeholder="Entrez votre pseudo" maxlength="20" required>
       </div>
       
-      <button type="submit" class="btn btn-primary w-full py-3">
+      <button type="submit" class="btn btn-primary w-full py-3" data-i18n="tournaments.join_btn">
         Rejoindre
       </button>
     </form>
