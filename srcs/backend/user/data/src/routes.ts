@@ -209,6 +209,7 @@ export function userRoutes(server: FastifyInstance) {
   server.get('/user/getFriends', getFriendsSchema, handlers.getFriendsHandler);
 
   //Chat
+  server.get('/user/channels', handlers.getUserChannels);
   server.get('/user/channel/:channelId', getChannelSchema, handlers.getChannelHandler);
   server.put('/user/channel/:channelId/read', markChannelReadSchema, handlers.markChannelReadHandler);
   server.post('/user/message', postMessageSchema, handlers.sendMessage);

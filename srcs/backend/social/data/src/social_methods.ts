@@ -2,7 +2,8 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { WebSocket } from '@fastify/websocket';
 import { SocialEvent, User } from './shared/with_front/types';
 import customFetch from './shared/utils/fetch';
-import {connexionManager} from './connexion_manager'
+import {connexionManager} from './connexion_manager';
+import * as commandHandlers from './command_handlers.js';
 
 
 export async function socialWss(socket: WebSocket, req: FastifyRequest) {
@@ -54,6 +55,35 @@ function setSocketListeners(user: User, socket: WebSocket){
       const message = rawMessage.toString();
       const event = JSON.parse(message) as SocialEvent;
       console.log(`[SOCIAL] Received event from user ${user.id}:`, event.type);
+
+      // Route commands to appropriate handlers
+      switch (event.type) {
+        case 'add_friend':
+          await commandHandlers.handleAddFriend(user, socket, event.data);
+          break;
+        case 'remove_friend':
+          await commandHandlers.handleRemoveFriend(user, socket, event.data);
+          break;
+        case 'send_message':
+          await commandHandlers.handleSendMessage(user, socket, event.data);
+          break;
+        case 'block_user':
+          await commandHandlers.handleBlockUser(user, socket, event.data);
+          break;
+        case 'unblock_user':
+          await commandHandlers.handleUnblockUser(user, socket, event.data);
+          break;
+        case 'mark_read':
+          await commandHandlers.handleMarkRead(user, socket, event.data);
+          break;
+        default:
+          console.log(`[SOCIAL] Unknown event type: ${event.type}`);
+          socket.send(JSON.stringify({
+            type: 'error',
+            data: { reason: `Unknown command: ${event.type}` },
+            timestamp: new Date().toISOString()
+          } as SocialEvent));
+      }
     } catch (error) {
       console.error('[SOCIAL] Error processing message:', error);
       socket.send(JSON.stringify({
@@ -160,6 +190,62 @@ export async function notifyChannelUpdate(request: FastifyRequest, reply: Fastif
     const event: SocialEvent = {
       type: 'channel_update',
       data: channel,
+      timestamp: new Date().toISOString()
+    };
+    connexionManager.sendToUser(userId, event);
+  });
+
+  return reply.status(200).send({ success: true });
+}
+
+export async function notifyFriendAdd(request: FastifyRequest, reply: FastifyReply) {
+  const { userIds, friend } = request.body as {
+    userIds: string[];
+    friend: any
+  };
+
+  if (!userIds || userIds.length === 0) {
+    return reply.status(400).send({ success: false, message: 'userIds required' });
+  }
+
+  if (!friend) {
+    return reply.status(400).send({ success: false, message: 'friend required' });
+  }
+
+  console.log(`[SOCIAL] Sending friend_add event to ${userIds.length} users for friend ${friend.id}`);
+
+  userIds.forEach(userId => {
+    const event: SocialEvent = {
+      type: 'friend_add',
+      data: { friend },
+      timestamp: new Date().toISOString()
+    };
+    connexionManager.sendToUser(userId, event);
+  });
+
+  return reply.status(200).send({ success: true });
+}
+
+export async function notifyFriendRemove(request: FastifyRequest, reply: FastifyReply) {
+  const { userIds, friendId } = request.body as {
+    userIds: string[];
+    friendId: string
+  };
+
+  if (!userIds || userIds.length === 0) {
+    return reply.status(400).send({ success: false, message: 'userIds required' });
+  }
+
+  if (!friendId) {
+    return reply.status(400).send({ success: false, message: 'friendId required' });
+  }
+
+  console.log(`[SOCIAL] Sending friend_remove event to ${userIds.length} users for friendId ${friendId}`);
+
+  userIds.forEach(userId => {
+    const event: SocialEvent = {
+      type: 'friend_remove',
+      data: { friendId },
       timestamp: new Date().toISOString()
     };
     connexionManager.sendToUser(userId, event);

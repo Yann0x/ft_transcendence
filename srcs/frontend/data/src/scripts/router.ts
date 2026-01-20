@@ -107,7 +107,14 @@ const Router = {
         link.classList.remove('active');
       }
     });
+  },
+
+  getPage(): string {
+    this.currentPath = window.location.pathname;
+    const route = this.routes.find(r => r.path === this.currentPath);
+    return route ? route.page : 'home'; // or any default page
   }
+
 };
 
 export { Router };

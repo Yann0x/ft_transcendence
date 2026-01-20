@@ -5,6 +5,7 @@
 import { User } from '../shared/types';
 import { App } from './app';
 import { Router } from './router';
+import * as SocialCommands from './social/social-commands';
 
 export const ProfileModal = {
   modal: null as HTMLElement | null,
@@ -108,7 +109,7 @@ export const ProfileModal = {
     }
 
     // Set online status
-    const isOnline = user.id ? App.onlineUsers.has(user.id) : false;
+    const isOnline = user.id ? App.onlineUsersMap.has(user.id) : false;
     if (statusEl) {
       statusEl.textContent = isOnline ? 'En ligne' : 'Hors ligne';
       statusEl.className = isOnline ? 'text-sm text-green-400 mt-1' : 'text-sm text-neutral-400 mt-1';
@@ -142,12 +143,9 @@ export const ProfileModal = {
     const actionsContainer = document.getElementById('profile-actions');
     const addFriendBtn = document.getElementById('profile-add-friend');
     const removeFriendBtn = document.getElementById('profile-remove-friend');
-    const messageBtn = document.getElementById('profile-message');
-    const blockBtn = document.getElementById('profile-block');
 
     if (!actionsContainer) return;
 
-    // Hide actions for own profile
     const isOwnProfile = user.id === App.me?.id;
     if (isOwnProfile) {
       actionsContainer.classList.add('hidden');
@@ -156,10 +154,9 @@ export const ProfileModal = {
 
     actionsContainer.classList.remove('hidden');
 
-    // Check if user is a friend
     const isFriend = user.id ? App.isFriend(user.id) : false;
+    const isBlocked = user.id ? App.isUserBlocked(user.id) : false;
 
-    // Show appropriate friend button
     if (addFriendBtn && removeFriendBtn) {
       if (isFriend) {
         addFriendBtn.classList.add('hidden');
@@ -170,20 +167,21 @@ export const ProfileModal = {
       }
     }
 
-    // Setup button listeners (remove old ones first)
+    // Update block button text
+    const blockBtn = document.getElementById('profile-block');
+    if (blockBtn) {
+      blockBtn.textContent = isBlocked ? 'Débloquer' : 'Bloquer';
+    }
+
     this.attachActionListeners(user);
   },
 
-  /**
-   * Attach click listeners to action buttons
-   */
   attachActionListeners(user: User): void {
     const addFriendBtn = document.getElementById('profile-add-friend');
     const removeFriendBtn = document.getElementById('profile-remove-friend');
     const messageBtn = document.getElementById('profile-message');
     const blockBtn = document.getElementById('profile-block');
 
-    // Clone and replace to remove old listeners
     if (addFriendBtn) {
       const newAddBtn = addFriendBtn.cloneNode(true) as HTMLElement;
       addFriendBtn.parentNode?.replaceChild(newAddBtn, addFriendBtn);
@@ -209,33 +207,18 @@ export const ProfileModal = {
     }
   },
 
-  /**
-   * Handle add friend action
-   */
   async handleAddFriend(user: User): Promise<void> {
     if (!user.id) return;
 
     try {
-      const token = sessionStorage.getItem('authToken');
-      const response = await fetch('/user/addFriend', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ friendId: user.id })
-      });
+      await SocialCommands.addFriend(user.id);
+      console.log('[PROFILE] Friend added successfully');
 
-      if (response.ok) {
-        // Refresh current user data
-        await this.refreshCurrentUserData();
-        // Refresh the modal to update button state
-        await this.open(user.id);
-      } else {
-        console.error('[PROFILE] Failed to add friend');
-      }
+      // Refresh the modal to update button state
+      await this.open(user.id);
     } catch (error) {
       console.error('[PROFILE] Error adding friend:', error);
+      alert('Failed to add friend');
     }
   },
 
@@ -246,26 +229,14 @@ export const ProfileModal = {
     if (!user.id) return;
 
     try {
-      const token = sessionStorage.getItem('authToken');
-      const response = await fetch('/user/rmFriend', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ friendId: user.id })
-      });
+      await SocialCommands.removeFriend(user.id);
+      console.log('[PROFILE] Friend removed successfully');
 
-      if (response.ok) {
-        // Refresh current user data
-        await this.refreshCurrentUserData();
-        // Refresh the modal to update button state
-        await this.open(user.id);
-      } else {
-        console.error('[PROFILE] Failed to remove friend');
-      }
+      // Refresh the modal to update button state
+      await this.open(user.id);
     } catch (error) {
       console.error('[PROFILE] Error removing friend:', error);
+      alert('Failed to remove friend');
     }
   },
 
@@ -299,9 +270,6 @@ export const ProfileModal = {
         if (window.location.pathname !== '/social_hub' && window.location.pathname !== '/social_hub/') {
           Router.navigate('social_hub');
         } else {
-          // Already on social page, just load the channel
-          const { Chat } = await import('./chat');
-          await Chat.loadAndDisplayChannel(channel.id);
           sessionStorage.removeItem('pendingChannelId');
         }
       } else {
@@ -312,37 +280,34 @@ export const ProfileModal = {
     }
   },
 
-  /**
-   * Handle block user action
-   */
   async handleBlock(user: User): Promise<void> {
     if (!user.id) return;
 
-    const confirmed = confirm(`Voulez-vous vraiment bloquer ${user.name || 'cet utilisateur'} ?`);
+    const isBlocked = App.isUserBlocked(user.id);
+    console.log('HandleBlock() isBlocked: ' + JSON.stringify(isBlocked) + "Attempt to block "  + JSON.stringify(user) + " App.Blockeds : " +  JSON.stringify(App.blockedUsersMap));
+
+    const confirmed = confirm(
+      isBlocked
+        ? `Voulez-vous vraiment débloquer ${user.name || 'cet utilisateur'} ?`
+        : `Voulez-vous vraiment bloquer ${user.name || 'cet utilisateur'} ?`
+    );
     if (!confirmed) return;
 
     try {
-      const token = sessionStorage.getItem('authToken');
-      const response = await fetch('/user/block', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ blockedUserId: user.id })
-      });
-
-      if (response.ok) {
-        // Update App maps
-        App.addBlockedUserToMaps(user);
-
-        // Close the modal after blocking
-        this.close();
+      if (isBlocked) {
+        await SocialCommands.unblockUser(user.id);
+        App.removeFromBlockedUsersMap(user.id);
+        console.log('[PROFILE] User unblocked successfully');
       } else {
-        console.error('[PROFILE] Failed to block user');
+        await SocialCommands.blockUser(user.id);
+        App.addToBlockedUsersMap(user);
+        console.log('[PROFILE] User blocked successfully');
       }
+
+      await this.open(user.id);
     } catch (error) {
-      console.error('[PROFILE] Error blocking user:', error);
+      console.error('[PROFILE] Error blocking/unblocking user:', error);
+      alert(`Failed to ${isBlocked ? 'unblock' : 'block'} user`);
     }
   },
 
@@ -370,9 +335,6 @@ export const ProfileModal = {
     }
   },
 
-  /**
-   * Close the modal
-   */
   close(): void {
     this.modal?.classList.add('hidden');
     this.currentUserId = null;

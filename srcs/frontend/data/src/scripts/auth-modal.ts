@@ -100,10 +100,14 @@ export const AuthModal = {
     this.loginTab?.classList.add('border-transparent', 'text-neutral-400');
     this.signupForm?.classList.remove('hidden');
     this.loginForm?.classList.add('hidden');
-    // Focus on email input
+    // Copy login email to signup email if present
     setTimeout(() => {
-      const emailInput = this.signupForm?.querySelector('input[name="email"]') as HTMLInputElement;
-      emailInput?.focus();
+      const loginEmailInput = this.loginForm?.querySelector('input[name="email"]') as HTMLInputElement;
+      const signupEmailInput = this.signupForm?.querySelector('input[name="email"]') as HTMLInputElement;
+      if (loginEmailInput && signupEmailInput && loginEmailInput.value) {
+        signupEmailInput.value = loginEmailInput.value;
+      }
+      signupEmailInput?.focus();
     }, 100);
   },
 
@@ -164,6 +168,8 @@ export const AuthModal = {
         }
 
         alert('Login successful!');
+        // Clear login form fields
+        loginFormElement.reset();
         this.close();
       } catch (error) {
         alert('An error occurred during login.');
@@ -171,6 +177,12 @@ export const AuthModal = {
     })
    signupFormElement?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      // Check if conditions of use are accepted
+      const termsCheckbox = signupFormElement.querySelector('input[name="terms"], input[id="terms"], input[type="checkbox"]') as HTMLInputElement | null;
+      if (termsCheckbox && !termsCheckbox.checked) {
+        alert('You must accept the conditions of use to sign up.');
+        return;
+      }
       // Handle signup form submission
       const formData = new FormData(signupFormElement);
       const name = formData.get('name') as string;
@@ -203,6 +215,8 @@ export const AuthModal = {
         }
 
         alert('Account created successfully!');
+        // Clear signup form fields
+        signupFormElement.reset();
         this.close();
       } catch (error) {
         alert('An error occurred during signup.');
