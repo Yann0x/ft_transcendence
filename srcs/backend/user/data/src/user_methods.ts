@@ -1,94 +1,59 @@
 import { FastifyReply, FastifyRequest } from "fastify";
-import { User, UserPublic, Message } from "./shared/with_front/types";
+import { randomUUID } from "crypto";
+import { User, UserPublic, Message, LoginResponse } from "./shared/with_front/types";
 import customFetch from "./shared/utils/fetch";
 import { userManager } from "./user_manager.js";
 
-async function fillUser(user : User): Promise<User> {
-
-      user.channels = await userManager.getChannels(user.id);
-
-      try {
-        // TODO: Implement endpoint to get user's tournaments
-        // user.tournaments = await customFetch('http://game:3000/game/user-tournaments', 'GET', { user_id: user.id });
-        user.tournaments = [];
-      } catch (error) {
-        user.tournaments = [];
-      }
-
-      // Fetch user's matches
-      try {
-        // TODO: Implement endpoint to get user's matches
-        // user.matches = await customFetch('http://game:3000/game/user-matches', 'GET', { user_id: user.id });
-        user.matches = [];
-      } catch (error) {
-        user.matches = [];
-      }
-
-      // Fetch user's stats
-      try {
-        // TODO: Implement endpoint to get user's stats
-        // user.stats = await customFetch('http://game:3000/game/user-stats', 'GET', { user_id: user.id });
-        user.stats = {
-          user_id: user.id!,
-          games_played: 0,
-          games_won: 0,
-          games_lost: 0,
-          win_rate: 0
-        };
-      } catch (error) {
-        user.stats = {
-          user_id: user.id!,
-          games_played: 0,
-          games_won: 0,
-          games_lost: 0,
-          win_rate: 0
-        };
-      }
-
-      // Fetch user's friends from UserManager
-      try {
-        user.friends = await userManager.getFriends(user.id!);
-      } catch (error) {
-        user.friends = [];
-      }
-
-      // Fetch user's blocked users
-      try {
-        const blockedUsers = await customFetch('http://database:3000/database/blocked', 'GET', {
-          user_id: user.id
-        }) as string[];
-        user.blocked_users = blockedUsers || [];
-      } catch (error) {
-        console.error('[USER] Failed to load blocked users:', error);
-        user.blocked_users = [];
-      }
-
-      // Fetch user's channels/chats
+async function fillUser(user : User): Promise<User>
+{
+      user.tournaments = [];
+      user.matches = [];
+      user.stats = {
+        user_id: user.id!,
+        games_played: 0,
+        games_won: 0,
+        games_lost: 0,
+        win_rate: 0
+      };
 
       return user;
+}
+
+async function buildLoginResponse(user: User, token: string): Promise<LoginResponse>
+{
+  const friends = await userManager.getFriends(user.id!);
+  const blockedUsers = await userManager.getBlockedUsers(user.id!);
+  const friendIds = friends.map(friend => friend.id!);
+  const blockedIds = blockedUsers.map(blocked => blocked.id!);
+  const cachedUsers: UserPublic[] = [...friends, ...blockedUsers];
+
+  const uniqueCachedUsers = cachedUsers.filter((user, index, self) =>
+    index === self.findIndex(u => u.id === user.id)
+  );
+
+  return {
+    user,
+    cachedUsers: uniqueCachedUsers,
+    friendIds,
+    blockedIds,
+    token
+  };
 }
 
 export async function registerUserHandler(
   req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
 ) {
-  console.log("[USER] registerUserHandler called with body:", req.body);
   try {
-    // Request body is already validated by schema at this point
     const userData: User = req.body;
-    // TODO: Hash password before sending to database
+    userData.id = randomUUID();
 
-    console.log("[USER] Calling database service at http://database:3000/database/user");
-    // Call database service
-    const result = await customFetch(
+    await customFetch(
       'http://database:3000/database/user',
       'POST',
       userData
     );
-    console.log("[USER] Database returned:", result);
-    userData.id = result as string;
 
-    // Get JWT from internal authenticate service for immediate login
     const token = await customFetch(
       'http://authenticate:3000/get_jwt',
       'POST',
@@ -99,15 +64,12 @@ export async function registerUserHandler(
       }
     );
 
-    // Fill user data (friends, channels, stats, etc.) for auto-login
     await fillUser(userData);
 
-    // Return same format as login for automatic login
-    return { token, user: userData };
+    const loginResponse = await buildLoginResponse(userData, token as string);
+    return loginResponse;
 
   } catch (error: any) {
-    console.log("[USER] Error occurred:", error);
-    // Propagate database errors to frontend
     const statusCode = error.statusCode || 500;
     const errorResponse = {
       error: error.error || 'Registration Failed',
@@ -126,10 +88,8 @@ export async function loginUserHandler(
   req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
 ) {
-  console.log("[USER] loginUserHandler called with body:", req.body);
   try {
     const credentials: User = req.body;
-    // 1) Find user by email
     const users : User = await customFetch(
       'http://database:3000/database/user',
       'GET',
@@ -146,9 +106,7 @@ export async function loginUserHandler(
     }
 
     const user : User = users[0];
-    console.log("[USER] Found user:", user);
 
-    // 2) Get stored password hash (currently stored in password_hash)
     const storedHash = await customFetch(
       'http://database:3000/database/user/password_hash',
       'GET',
@@ -164,7 +122,6 @@ export async function loginUserHandler(
       });
     }
 
-    // 3) Get JWT from internal authenticate service (signing only)
     const token = await customFetch(
       'http://authenticate:3000/get_jwt',
       'POST',
@@ -177,9 +134,9 @@ export async function loginUserHandler(
 
     await fillUser(user);
 
-    return { token, user };
+    const loginResponse = await buildLoginResponse(user, token as string);
+    return loginResponse;
   } catch (error: any) {
-    console.log("[USER] Login error:", error);
     const statusCode = error.statusCode || 500;
     return reply.status(statusCode).send({
       error: error.error || 'Login Failed',
@@ -194,8 +151,7 @@ export async function loginUserHandler(
 export async function logoutUserHandler(
   req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
-  ){ 
-    // NO LOGOUT LOGIC NEED YET
+  ){
   }
 
 export async function findUserHandler(
@@ -216,19 +172,13 @@ export async function findUserHandler(
       return [];
     }
 
-    // Map users: if requesting user searches for themselves, return full user, else public data
     const result = await Promise.all(users.map(async (user) => {
-      // Check if this is the requesting user searching for themselves
       const isOwnData = requestingUserId && user.id && requestingUserId === user.id;
-      console.log(`[USER] Processing user ${user.id}, requestingUserId: ${requestingUserId}, isOwnData: ${isOwnData}`);
 
       if (isOwnData) {
-        // Return full user data with friends, stats, etc.
         await fillUser(user);
-        console.log(`[USER] Returning full user data for ${user.id}`, user);
         return user as User;
       } else {
-        console.log(`[USER] Returning public user data for ${user.id}`, user);
         return user as UserPublic;
       }
    }
@@ -251,13 +201,33 @@ export async function updateUserHandler(
   reply: FastifyReply
 ) {
   try {
-    const updateData = req.body;
+    const updateData = req.body as User;
 
     const result = await customFetch(
       'http://database:3000/database/user',
       'PUT',
       updateData
     );
+
+    const userId = updateData.id;
+    if (userId) {
+      try {
+        const friends = await customFetch(
+          `http://database:3000/database/friends?user_id=${userId}`,
+          'GET'
+        ) as Array<{ id: string }>;
+
+        if (friends && friends.length > 0) {
+          const friendIds = friends.map(f => f.id);
+          await customFetch('http://social:3000/social/notify/user_update', 'POST', {
+            notifyUserIds: friendIds,
+            updatedUserId: userId
+          });
+        }
+      } catch (notifyError) {
+        console.error('Failed to notify friends about profile update:', notifyError);
+      }
+    }
 
     return {
       success: true,
@@ -324,50 +294,38 @@ export async function addFriendHandler(
       return reply.status(400).send({ success: false, message: 'Failed to add friend' });
     }
 
-    // Get or create DM channel and notify both users
     try {
-      // Check if DM channel already exists (userManager.addFriend may have created it)
       let channelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
         user1_id: userId,
         user2_id: friendId
       }) as number | null;
 
-      // If channel doesn't exist yet, create it
       if (!channelId) {
-        const currentUser = await userManager.getUser(userId);
-        const otherUser = await userManager.getUser(friendId);
+        const channelData = {
+          id : randomUUID(),
+          type: 'private',
+          created_by: userId,
+          created_at: new Date().toISOString()
+        };
 
-        if (currentUser && otherUser) {
-          const channelName = `${currentUser.name}&${otherUser.name}`;
-          const channelData = {
-            name: channelName,
-            type: 'private',
-            created_by: userId,
-            created_at: new Date().toISOString()
-          };
+        const newChannelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
 
-          const newChannelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
+        if (newChannelId) {
+          channelId = newChannelId as unknown as number;
+          // Add both users as members
+          await customFetch('http://database:3000/database/channel/member', 'POST', {
+            channel_id: newChannelId,
+            user_id: userId
+          });
 
-          if (newChannelId) {
-            channelId = parseInt(newChannelId);
+          await customFetch('http://database:3000/database/channel/member', 'POST', {
+            channel_id: newChannelId,
+            user_id: friendId
+          });
 
-            // Add both users as members
-            await customFetch('http://database:3000/database/channel/member', 'POST', {
-              channel_id: channelId,
-              user_id: userId
-            });
-
-            await customFetch('http://database:3000/database/channel/member', 'POST', {
-              channel_id: channelId,
-              user_id: friendId
-            });
-
-            console.log(`[USER] Created DM channel ${channelId} for new friendship ${userId} <-> ${friendId}`);
-          }
         }
       }
 
-      // Always notify both users about the channel (whether new or existing)
       if (channelId) {
         const channel = await userManager.getChannel(String(channelId));
         if (channel) {
@@ -375,24 +333,30 @@ export async function addFriendHandler(
             userIds: [userId, friendId],
             channel: channel
           });
-          console.log(`[USER] Sent channel_update for DM channel ${channelId} to both users`);
         }
       }
     } catch (error) {
       console.error('[USER] Failed to handle DM channel for new friendship:', error);
-      // Don't fail the whole request if channel creation fails
     }
 
-    // Notify both users that they need to refresh their own data
     try {
-      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
-        notifyUserIds: [userId, friendId],
-        updatedUserId: userId
-      });
-      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
-        notifyUserIds: [userId, friendId],
-        updatedUserId: friendId
-      });
+      const currentUser = await userManager.getUser(userId);
+      const friendUser = await userManager.getUser(friendId);
+
+      if (currentUser && friendUser) {
+        const currentUserPublic = { id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar, status: currentUser.status };
+        const friendUserPublic = { id: friendUser.id, name: friendUser.name, avatar: friendUser.avatar, status: friendUser.status };
+
+        await customFetch('http://social:3000/social/notify/friend_add', 'POST', {
+          userIds: [userId],
+          friend: friendUserPublic
+        });
+
+        await customFetch('http://social:3000/social/notify/friend_add', 'POST', {
+          userIds: [friendId],
+          friend: currentUserPublic
+        });
+      }
     } catch (error) {
       console.error('[USER] Failed to notify social service:', error);
     }
@@ -422,15 +386,15 @@ export async function removeFriendHandler(
       return reply.status(400).send({ success: false, message: 'Failed to remove friend' });
     }
 
-    // Notify both users that they need to refresh their own data
     try {
-      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
-        notifyUserIds: [userId, friendId],
-        updatedUserId: userId
+      await customFetch('http://social:3000/social/notify/friend_remove', 'POST', {
+        userIds: [userId],
+        friendId: friendId
       });
-      await customFetch('http://social:3000/social/notify/user_update', 'POST', {
-        notifyUserIds: [userId, friendId],
-        updatedUserId: friendId
+
+      await customFetch('http://social:3000/social/notify/friend_remove', 'POST', {
+        userIds: [friendId],
+        friendId: userId
       });
     } catch (error) {
       console.error('[USER] Failed to notify social service:', error);
@@ -454,8 +418,13 @@ export async function getFriendsHandler(
       return reply.status(401).send([]);
     }
 
-    const friends = await userManager.getFriends(userId);
-    return reply.status(200).send(friends);
+    // Get friends directly from database
+    const friends = await customFetch(
+      `http://database:3000/database/friends?user_id=${userId}`,
+      'GET'
+    );
+
+    return reply.status(200).send(friends || []);
   } catch (error: any) {
     console.error('[USER] getFriends error:', error);
     return reply.status(500).send([]);
@@ -474,19 +443,16 @@ export async function getChannelHandler(
       return reply.status(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
     }
 
-    // Fetch the channel from user manager (which gets fresh data from database)
     const channel = await userManager.getChannel(channelId);
 
     if (!channel) {
       return reply.status(404).send({ error: 'Not Found', message: 'Channel not found' });
     }
 
-    // Check if user is a member of this channel
     if (!channel.members.includes(userId)) {
       return reply.status(403).send({ error: 'Forbidden', message: 'You are not a member of this channel' });
     }
 
-    // Check if this conversation is blocked (symmetric check)
     if (channel.type === 'private' && channel.members && channel.members.length === 2) {
       const otherUserId = channel.members.find((id: string) => id !== userId);
       if (otherUserId) {
@@ -519,20 +485,17 @@ export async function markChannelReadHandler(
       return reply.status(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
     }
 
-    // Get channel from user manager
     const channel = await userManager.getChannel(channelId);
     if (!channel) {
       return reply.status(404).send({ error: 'Not Found', message: 'Channel not found' });
     }
 
-    // Check if user is member
     if (!channel.members.includes(userId)) {
       return reply.status(403).send({ error: 'Forbidden', message: 'You are not a member of this channel' });
     }
 
-    // Mark all messages as read in database
     const success = await customFetch('http://database:3000/database/channel/mark-read', 'PUT', {
-      channel_id: parseInt(channelId),
+      channel_id: channelId,
       user_id: userId
     });
 
@@ -540,7 +503,6 @@ export async function markChannelReadHandler(
       return reply.status(500).send({ error: 'Failed to mark as read', message: 'Database update failed' });
     }
 
-    // Update in-memory cache
     const now = new Date().toISOString();
     channel.messages.forEach((msg: Message) => {
       if (msg.sender_id !== userId && msg.read_at === null) {
@@ -548,16 +510,13 @@ export async function markChannelReadHandler(
       }
     });
 
-    // Notify all channel members about the updated channel (with read status)
     try {
       await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
         userIds: channel.members,
         channel: channel
       });
-      console.log(`[USER] Sent channel_update event for channel ${channelId} after marking as read`);
     } catch (error) {
       console.error('[USER] Failed to notify social service about channel update:', error);
-      // Don't fail the request if notification fails
     }
 
     return reply.status(200).send({ success: true, message: 'Marked as read' });
@@ -617,7 +576,6 @@ export async function blockUserHandler(
       return reply.status(400).send({ success: false, message: 'Failed to block user' });
     }
 
-    // Update user manager cache
     const user = await userManager.getUser(userId);
     if (user) {
       if (!user.blocked_users) user.blocked_users = [];
@@ -626,18 +584,12 @@ export async function blockUserHandler(
       }
     }
 
-    // Remove friend relationship if exists (symmetric blocking)
     try {
-      const removed = await userManager.removeFriend(userId, blockedUserId);
-      if (removed) {
-        console.log(`[USER] Removed friend relationship between ${userId} and ${blockedUserId}`);
-      }
+      await userManager.removeFriend(userId, blockedUserId);
     } catch (error) {
       console.error('[USER] Failed to remove friend relationship:', error);
-      // Don't fail the block request if friend removal fails
     }
 
-    // Always send user_update events after blocking (to refresh friends lists and blocked lists)
     try {
       await customFetch('http://social:3000/social/notify/user_update', 'POST', {
         notifyUserIds: [userId, blockedUserId],
@@ -648,13 +600,10 @@ export async function blockUserHandler(
         notifyUserIds: [userId, blockedUserId],
         updatedUserId: blockedUserId
       });
-
-      console.log(`[USER] Sent user_update events to both users after blocking`);
     } catch (error) {
       console.error('[USER] Failed to send user_update events:', error);
     }
 
-    // Send channel_update to both users for symmetric UI update
     try {
       const channelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
         user1_id: userId,
@@ -664,19 +613,15 @@ export async function blockUserHandler(
       if (channelId) {
         const channel = await userManager.getChannel(String(channelId));
         if (channel) {
-          // Add isBlocked flag (true after blocking)
           (channel as any).isBlocked = true;
-          // Send channel_update to BOTH users (symmetric)
           await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
             userIds: [userId, blockedUserId],
             channel: channel
           });
-          console.log(`[USER] Sent channel_update for channel ${channelId} to both users after blocking`);
         }
       }
     } catch (error) {
       console.error('[USER] Failed to send channel_update after blocking:', error);
-      // Don't fail the request if notification fails
     }
 
     return reply.status(200).send({ success: true, message: 'User blocked' });
@@ -698,7 +643,6 @@ export async function unblockUserHandler(
       return reply.status(401).send({ success: false, message: 'Unauthorized' });
     }
 
-    // Remove from database
     const success = await customFetch('http://database:3000/database/blocked', 'DELETE', {
       user_id: userId,
       blocked_user_id: blockedUserId
@@ -708,13 +652,11 @@ export async function unblockUserHandler(
       return reply.status(400).send({ success: false, message: 'Failed to unblock user' });
     }
 
-    // Update user manager cache
     const user = await userManager.getUser(userId);
     if (user && user.blocked_users) {
       user.blocked_users = user.blocked_users.filter((id: string) => id !== blockedUserId);
     }
 
-    // Send user_update events to both users (to refresh blocked lists)
     try {
       await customFetch('http://social:3000/social/notify/user_update', 'POST', {
         notifyUserIds: [userId, blockedUserId],
@@ -725,13 +667,10 @@ export async function unblockUserHandler(
         notifyUserIds: [userId, blockedUserId],
         updatedUserId: blockedUserId
       });
-
-      console.log(`[USER] Sent user_update events to both users after unblocking`);
     } catch (error) {
       console.error('[USER] Failed to send user_update events:', error);
     }
 
-    // Send channel_update to both users for symmetric UI update
     try {
       const channelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
         user1_id: userId,
@@ -741,19 +680,15 @@ export async function unblockUserHandler(
       if (channelId) {
         const channel = await userManager.getChannel(String(channelId));
         if (channel) {
-          // Add isBlocked flag (false after unblocking)
           (channel as any).isBlocked = false;
-          // Send channel_update to BOTH users (symmetric)
           await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
             userIds: [userId, blockedUserId],
             channel: channel
           });
-          console.log(`[USER] Sent channel_update for channel ${channelId} to both users after unblocking`);
         }
       }
     } catch (error) {
       console.error('[USER] Failed to send channel_update after unblocking:', error);
-      // Don't fail the request if notification fails
     }
 
     return reply.status(200).send({ success: true, message: 'User unblocked' });
@@ -862,30 +797,17 @@ export async function createDMChannelHandler(
       return reply.status(400).send({ error: 'Bad Request', message: 'userId is required in request body' });
     }
 
-    // Check if DM channel already exists
     const existingChannelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
       user1_id: currentUserId,
       user2_id: otherUserId
     }) as number | null;
 
     if (existingChannelId) {
-      // Channel already exists, return it
       const channel = await userManager.getChannel(String(existingChannelId));
       return reply.status(200).send(channel);
     }
 
-    // Get user data for channel name
-    const currentUser = await userManager.getUser(currentUserId);
-    const otherUser = await userManager.getUser(otherUserId);
-
-    if (!currentUser || !otherUser) {
-      return reply.status(404).send({ error: 'Not Found', message: 'User not found' });
-    }
-
-    // Create new DM channel
-    const channelName = `${currentUser.name}&${otherUser.name}`;
     const channelData = {
-      name: channelName,
       type: 'private',
       created_by: currentUserId,
       created_at: new Date().toISOString()
@@ -897,21 +819,18 @@ export async function createDMChannelHandler(
       return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to create channel' });
     }
 
-    // Add both users as members
     await customFetch('http://database:3000/database/channel/member', 'POST', {
-      channel_id: parseInt(newChannelId),
+      channel_id: newChannelId,
       user_id: currentUserId
     });
 
     await customFetch('http://database:3000/database/channel/member', 'POST', {
-      channel_id: parseInt(newChannelId),
+      channel_id: newChannelId,
       user_id: otherUserId
     });
 
-    // Get full channel data
     const channel = await userManager.getChannel(newChannelId);
 
-    // Notify both users via WebSocket
     await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
       userIds: [currentUserId, otherUserId],
       channel: channel
@@ -921,5 +840,24 @@ export async function createDMChannelHandler(
   } catch (error: any) {
     console.error('[USER] createDMChannel error:', error);
     return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to create DM channel' });
+  }
+}
+
+export async function getUserChannels(request: FastifyRequest, reply: FastifyReply) {
+  const userId = request.headers['x-sender-id'] as string;
+  if (!userId) {
+    return reply.status(401).send({ error: 'Unauthorized' });
+  }
+
+  try {
+    const channels = await customFetch(
+      `http://database:3000/database/user/channels?user_id=${userId}`,
+      'GET'
+    );
+
+    return reply.send(channels);
+  } catch (error: any) {
+    console.error('[USER] getUserChannels error:', error);
+    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to load channels' });
   }
 }

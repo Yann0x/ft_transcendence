@@ -5,12 +5,12 @@ import { User, Channel, Message } from './shared/with_front/types';
 let db: Database.Database;
 
 export function initializeDatabase(path: string | undefined = 'database.db' ): Database.Database {
-    db = new Database(path); 
-    db.pragma('WAL=1');   
+    db = new Database(path);
+    db.pragma('WAL=1');
     db.prepare(
     `
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id TEXT PRIMARY KEY,
             name TEXT NOT NULL UNIQUE,
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
@@ -31,17 +31,17 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     db.prepare(
     `
         CREATE TABLE IF NOT EXISTS channel (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
+            id TEXT PRIMARY KEY,
+            name TEXT,
             type TEXT CHECK( type IN ('public','private') ) NOT NULL,
-            created_by REFERENCES users(id),
+            created_by TEXT REFERENCES users(id),
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     `).run();
     db.prepare(
     `
         CREATE TABLE IF NOT EXISTS channel_member (
-            channel_id INTEGER REFERENCES channel(id) ON DELETE CASCADE,
+            channel_id TEXT REFERENCES channel(id) ON DELETE CASCADE,
             user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
             role TEXT CHECK(role IN ('member','moderator','owner')) DEFAULT 'member',
             joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -52,8 +52,8 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     `
         CREATE TABLE IF NOT EXISTS message (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            channel_id REFERENCES channel(id),
-            sender_id REFERENCES users(id),
+            channel_id TEXT REFERENCES channel(id),
+            sender_id TEXT REFERENCES users(id),
             content TEXT NOT NULL,
             sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             read_at DATETIME DEFAULT NULL
@@ -102,7 +102,7 @@ export function getUser(req, reply): User[] {
     const whereClause = conditions.length ? conditions.join(' AND ') : '1=1';
 
     const users = db.prepare(
-        `SELECT id, name, email FROM users WHERE ${whereClause}`
+        `SELECT id, name, email, avatar FROM users WHERE ${whereClause}`
     ).all(...values) as User[];
 
     return users;
@@ -145,11 +145,11 @@ export function updateUser(req, reply): boolean | string {
 }
 
 export function createUser(req, reply): string | null {
-    const request = db.prepare('INSERT INTO users (name, email, password_hash, avatar) VALUES (?, ?, ?, ?)');
-    const result = request.run(req.body.name, req.body.email, req.body.password, req.body.avatar);
+    const request = db.prepare('INSERT INTO users (id, name, email, password_hash, avatar) VALUES (?, ?, ?, ?, ?)');
+    const result = request.run(req.body.id, req.body.name, req.body.email, req.body.password, req.body.avatar);
     if (result.changes === 0)
         return null;
-    return String(result.lastInsertRowid);
+    return req.body.id;
 }
 
 export function deleteUser(req, reply): boolean {
@@ -202,15 +202,15 @@ export function getChannel(req: FastifyRequest, reply: FastifyReply): Channel | 
     return channel;
 }
 
-export function postChannel(req: FastifyRequest, reply: FastifyReply) 
+export function postChannel(req: FastifyRequest, reply: FastifyReply)
 {
     const channel = req.body as Channel;
-    const request = db.prepare('INSERT INTO channel (name, type, created_by, created_at) VALUES (?, ?, ?, ?)'
+    const request = db.prepare('INSERT INTO channel (id, name, type, created_by, created_at) VALUES (?, ?, ?, ?, ?)'
     )
-    const result = request.run(channel.name, channel.type, channel.created_by, channel.created_at);
+    const result = request.run(channel.id, channel.name, channel.type, channel.created_by, channel.created_at);
     if (result.changes === 0)
-        return ('No Change made')
-    return String(result.lastInsertRowid)
+        return undefined
+    return channel.id
 }
 
 export function putChannelName(req: FastifyRequest, reply: FastifyReply)
@@ -385,7 +385,7 @@ export function getFriends( req: FastifyRequest, reply: FastifyReply )
     const { user_id } = req.query as any;
 
     if (!user_id) {
-        return [];
+        return reply.send([]);
     }
 
     // Get all friend IDs for the user
@@ -394,7 +394,7 @@ export function getFriends( req: FastifyRequest, reply: FastifyReply )
     ).all(user_id) as {friend_id: string}[];
 
     if (!friendIds || friendIds.length === 0) {
-        return [];
+        return reply.send([]);
     }
 
     // Get full user info for each friend
@@ -414,7 +414,7 @@ export function getFriends( req: FastifyRequest, reply: FastifyReply )
         return null;
     }).filter(f => f !== null);
 
-    return friends;
+    return reply.send(friends);
 }
 
 export function postFriend( req: FastifyRequest, reply: FastifyReply )

@@ -2,8 +2,8 @@
    AUTH MODAL - Authentication Modal Management
    ============================================ */
 
-import { User } from '../shared/types';
 import { PongGame } from '../game';
+import { LoginResponse } from '../shared/types';
 
 export const AuthModal = {
   modal: null as HTMLElement | null,
@@ -11,7 +11,7 @@ export const AuthModal = {
   signupTab: null as HTMLElement | null,
   loginForm: null as HTMLElement | null,
   signupForm: null as HTMLElement | null,
-  onLoginSuccess: null as ((user: User) => void) | null,
+  onLoginSuccess: null as ((loginResponse: LoginResponse) => void) | null,
 
   /**
    * Initialize the auth modal
@@ -101,10 +101,14 @@ export const AuthModal = {
     this.loginTab?.classList.add('border-transparent', 'text-neutral-400');
     this.signupForm?.classList.remove('hidden');
     this.loginForm?.classList.add('hidden');
-    // Focus on email input
+    // Copy login email to signup email if present
     setTimeout(() => {
-      const emailInput = this.signupForm?.querySelector('input[name="email"]') as HTMLInputElement;
-      emailInput?.focus();
+      const loginEmailInput = this.loginForm?.querySelector('input[name="email"]') as HTMLInputElement;
+      const signupEmailInput = this.signupForm?.querySelector('input[name="email"]') as HTMLInputElement;
+      if (loginEmailInput && signupEmailInput && loginEmailInput.value) {
+        signupEmailInput.value = loginEmailInput.value;
+      }
+      signupEmailInput?.focus();
     }, 100);
   },
 
@@ -157,17 +161,19 @@ export const AuthModal = {
           return;
         }
 
-        const data = await response.json();
-        if (data.token) {
-          sessionStorage.setItem('authToken', data.token);
+        const loginResponse: LoginResponse = await response.json();
+        if (loginResponse.token) {
+          sessionStorage.setItem('authToken', loginResponse.token);
         }
 
-        // Store user data and notify app
-        if (this.onLoginSuccess && data.user) {
-          this.onLoginSuccess(data.user as User);
+        // Pass LoginResponse to app for handling
+        if (this.onLoginSuccess) {
+          this.onLoginSuccess(loginResponse);
         }
 
         alert('Login successful!');
+        // Clear login form fields
+        loginFormElement.reset();
         this.close();
       } catch (error) {
         alert('An error occurred during login.');
@@ -175,6 +181,12 @@ export const AuthModal = {
     })
    signupFormElement?.addEventListener('submit', async (e) => {
       e.preventDefault();
+      // Check if conditions of use are accepted
+      const termsCheckbox = signupFormElement.querySelector('input[name="terms"], input[id="terms"], input[type="checkbox"]') as HTMLInputElement | null;
+      if (termsCheckbox && !termsCheckbox.checked) {
+        alert('You must accept the conditions of use to sign up.');
+        return;
+      }
       // Handle signup form submission
       const formData = new FormData(signupFormElement);
       const name = formData.get('name') as string;
@@ -194,19 +206,21 @@ export const AuthModal = {
           return;
         }
 
-        const data = await response.json();
+        const loginResponse: LoginResponse = await response.json();
 
         // Auto-login after successful registration
-        if (data.token) {
-          sessionStorage.setItem('authToken', data.token);
+        if (loginResponse.token) {
+          sessionStorage.setItem('authToken', loginResponse.token);
         }
 
-        // Store user data and notify app
-        if (this.onLoginSuccess && data.user) {
-          this.onLoginSuccess(data.user as User);
+        // Pass LoginResponse to app for handling
+        if (this.onLoginSuccess) {
+          this.onLoginSuccess(loginResponse);
         }
 
         alert('Account created successfully!');
+        // Clear signup form fields
+        signupFormElement.reset();
         this.close();
       } catch (error) {
         alert('An error occurred during signup.');

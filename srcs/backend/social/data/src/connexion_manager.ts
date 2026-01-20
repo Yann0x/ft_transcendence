@@ -35,6 +35,10 @@ export const connexionManager = {
         return Array.from(this.connected.values()).map(c => c.user);
     },
 
+    isUserConnected(user_id: UserPublic.id): boolean {
+        return this.connected.has(user_id);
+    },
+
     sendToUser(user_id: UserPublic.id, event: any) {
        console.log(`[SOCIAL] Send to ${user_id} : ${event}`)
         const connectedUser = this.connected.get(user_id);
