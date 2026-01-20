@@ -1,53 +1,52 @@
 <!-- Tournaments Page -->
-<main class="flex-1 flex items-center justify-center p-8">
+<main id="main-content" class="flex-1 flex items-center justify-center p-8" role="main" aria-labelledby="tournaments-title">
   <div class="w-full max-w-7xl" id="tournaments-page">
     
     <!-- Page Header -->
-    <div class="mb-8">
+    <header class="mb-8">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <span class="text-4xl">🏆</span>
-          <h1 class="text-3xl font-bold" data-i18n="tournaments.title">Tournois</h1>
+          <span class="text-4xl" aria-hidden="true">🏆</span>
+          <h1 id="tournaments-title" class="text-3xl font-bold" data-i18n="tournaments.title">Tournois</h1>
         </div>
-        <button id="btn-create-tournament" class="btn btn-secondary">
+        <button id="btn-create-tournament" class="btn btn-secondary" aria-haspopup="dialog">
           <span data-i18n="tournaments.create">+ Créer un tournoi</span>
         </button>
       </div>
       <p class="text-neutral-400" data-i18n="tournaments.subtitle">Participez à des tournois et affrontez d'autres joueurs</p>
-    </div>
+    </header>
 
     <!-- Tournament Lists View (default) -->
-    <div id="tournament-lists-view">
+    <div id="tournament-lists-view" role="region" aria-label="Liste des tournois">
       <!-- Active Tournaments -->
-      <div class="mb-8">
-        <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
-          <span class="text-red-500">●</span>
+      <section class="mb-8" aria-labelledby="active-tournaments-title">
+        <h2 id="active-tournaments-title" class="text-2xl font-bold mb-4 flex items-center gap-2">
+          <span class="text-red-500" aria-hidden="true">●</span>
           <span data-i18n="tournaments.active">Tournois en cours</span>
         </h2>
-        <div id="active-tournaments" class="grid gap-4">
+        <div id="active-tournaments" class="grid gap-4" role="list" aria-live="polite">
           <!-- Tournament cards will be inserted here -->
-          <div class="empty-state bg-neutral-900 rounded-lg border border-neutral-800 p-8 text-center text-neutral-500">
+          <div class="empty-state bg-neutral-900 rounded-lg border border-neutral-800 p-8 text-center text-neutral-500" role="listitem">
             <p class="text-lg mb-2" data-i18n="tournaments.none_active">Aucun tournoi en cours</p>
             <p class="text-sm" data-i18n="tournaments.none_active_sub">Les tournois actifs apparaîtront ici</p>
           </div>
         </div>
-      </div>
+      </section>
 
       <!-- Available Tournaments -->
-      <div class="mb-8">
-        <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">
-          <span class="text-green-500">●</span>
+      <section class="mb-8" aria-labelledby="available-tournaments-title">
+        <h2 id="available-tournaments-title" class="text-2xl font-bold mb-4 flex items-center gap-2">
+          <span class="text-green-500" aria-hidden="true">●</span>
           <span data-i18n="tournaments.available">Tournois disponibles</span>
         </h2>
-        <div id="available-tournaments" class="grid gap-4">
+        <div id="available-tournaments" class="grid gap-4" role="list" aria-live="polite">
           <!-- Tournament cards will be inserted here -->
-          <div class="empty-state bg-neutral-900 rounded-lg border border-neutral-800 p-8 text-center text-neutral-500">
+          <div class="empty-state bg-neutral-900 rounded-lg border border-neutral-800 p-8 text-center text-neutral-500" role="listitem">
             <p class="text-lg mb-2" data-i18n="tournaments.none_available">Aucun tournoi disponible</p>
             <p class="text-sm" data-i18n="tournaments.none_available_sub">Attendez ou créez un nouveau tournoi</p>
           </div>
         </div>
-      </div>
-
+      </section>
       <!-- Finished Tournaments -->
       <div>
         <h2 class="text-2xl font-bold mb-4 flex items-center gap-2">

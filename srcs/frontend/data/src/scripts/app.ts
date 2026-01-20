@@ -11,7 +11,7 @@ import { Social } from './social/social'
 import { socialClient } from './social/social-client'
 import { User, UserPublic, LoginResponse, Channel } from '../shared/types'
 import { I18n } from './i18n'
-import { Contrast } from './contrast'
+import { Accessibility } from './accessibility'
 import { PongGame } from '../game'
 import { Tournaments } from './tournaments'
 
@@ -226,7 +226,7 @@ const App = {
     await this.loadSettingsModal();
     await this.loadProfileModal();
     I18n.init();
-    Contrast.init();
+    Accessibility.init();
     I18n.refresh();
 
     // Load intro animation
@@ -313,7 +313,7 @@ const App = {
 
     this.runDedicatedScript(name);
     I18n.refresh();
-    Contrast.bindControls();
+    Accessibility.bindControls();
 
     // Mettre à jour la page courante
     this.currentPage = name;

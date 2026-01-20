@@ -368,3 +368,388 @@ body.hc :focus-visible {
   color: #d4d4d4;
 }
 
+/* ============================================
+   ACCESSIBILITY STYLES
+   ============================================ */
+
+/* Screen Reader Only (visually hidden but accessible) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip Link */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2563eb;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0 0 0.5rem 0.5rem;
+  z-index: 10000;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 3px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+/* Accessibility Toggle Button */
+.a11y-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background-color: transparent;
+  border: 1px solid #404040;
+  color: #d4d4d4;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.a11y-toggle:hover {
+  background-color: #262626;
+  color: white;
+  border-color: #525252;
+}
+
+.a11y-toggle:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.a11y-toggle svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Accessibility Panel */
+.a11y-panel {
+  position: fixed;
+  top: 4rem;
+  right: 1rem;
+  width: 360px;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  background-color: #171717;
+  border: 1px solid #404040;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.a11y-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #404040;
+  background-color: #262626;
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.a11y-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+}
+
+.a11y-panel-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  background: transparent;
+  border: none;
+  color: #a3a3a3;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.a11y-panel-close:hover {
+  background-color: #404040;
+  color: white;
+}
+
+.a11y-panel-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Accessibility Option */
+.a11y-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem;
+  background-color: #262626;
+  border-radius: 0.5rem;
+  border: 1px solid #404040;
+}
+
+.a11y-option-vertical {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.a11y-option-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.a11y-option-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.a11y-option-label {
+  font-weight: 500;
+  color: white;
+  font-size: 0.9375rem;
+}
+
+.a11y-option-desc {
+  font-size: 0.8125rem;
+  color: #a3a3a3;
+  margin-top: 0.125rem;
+}
+
+/* Toggle Button (Switch) */
+.a11y-toggle-btn {
+  position: relative;
+  width: 3rem;
+  height: 1.625rem;
+  background-color: #404040;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.a11y-toggle-btn:hover {
+  background-color: #525252;
+}
+
+.a11y-toggle-btn.active {
+  background-color: #2563eb;
+}
+
+.a11y-toggle-btn:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.a11y-toggle-slider {
+  position: absolute;
+  top: 0.1875rem;
+  left: 0.1875rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+}
+
+.a11y-toggle-btn.active .a11y-toggle-slider {
+  transform: translateX(1.375rem);
+}
+
+/* Font Size Options */
+.a11y-font-sizes {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.a11y-font-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #171717;
+  border: 2px solid #404040;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.a11y-font-option:hover {
+  border-color: #525252;
+  background-color: #262626;
+}
+
+.a11y-font-option:has(input:checked) {
+  border-color: #2563eb;
+  background-color: #1e3a5f;
+}
+
+.a11y-font-option:has(input:focus-visible) {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.a11y-font-option input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.a11y-font-sample {
+  font-weight: 700;
+  color: white;
+}
+
+.a11y-font-label {
+  font-size: 0.6875rem;
+  color: #a3a3a3;
+}
+
+/* Keyboard Shortcuts */
+.a11y-shortcuts {
+  padding: 0.875rem;
+  background-color: #1a1a1a;
+  border-radius: 0.5rem;
+  border: 1px solid #333;
+}
+
+.a11y-shortcuts-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #a3a3a3;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.a11y-shortcuts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #d4d4d4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.a11y-shortcuts-list kbd {
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  background-color: #262626;
+  border: 1px solid #404040;
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+/* ---- Focus Highlight Mode ---- */
+body.focus-highlight *:focus-visible {
+  outline: 3px solid #2563eb !important;
+  outline-offset: 3px !important;
+}
+
+body.focus-highlight a:focus-visible,
+body.focus-highlight button:focus-visible,
+body.focus-highlight input:focus-visible,
+body.focus-highlight select:focus-visible,
+body.focus-highlight textarea:focus-visible {
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* ---- Reduced Motion Mode ---- */
+body.reduced-motion,
+body.reduced-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+body.reduced-motion .animate-pulse,
+body.reduced-motion .animate-spin,
+body.reduced-motion .animate-bounce {
+  animation: none !important;
+}
+
+/* ---- High Contrast Mode - Enhanced ---- */
+body.hc .a11y-panel {
+  background-color: #000000;
+  border-color: #ffffff;
+}
+
+body.hc .a11y-panel-header {
+  background-color: #000000;
+  border-color: #ffffff;
+}
+
+body.hc .a11y-option {
+  background-color: #000000;
+  border-color: #ffffff;
+}
+
+body.hc .a11y-toggle-btn {
+  background-color: #333;
+  border: 2px solid #fff;
+}
+
+body.hc .a11y-toggle-btn.active {
+  background-color: #ffffff;
+}
+
+body.hc .a11y-toggle-btn.active .a11y-toggle-slider {
+  background-color: #000000;
+}
+
+body.hc .a11y-font-option {
+  border-color: #ffffff;
+  background-color: #000000;
+}
+
+body.hc .a11y-font-option:has(input:checked) {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+body.hc .a11y-font-option:has(input:checked) .a11y-font-sample,
+body.hc .a11y-font-option:has(input:checked) .a11y-font-label {
+  color: #000000;
+}
+
+body.hc .skip-link {
+  background-color: #ffffff;
+  color: #000000;
+}
+
+body.hc :focus-visible {
+  outline: 3px solid #ffffff !important;
+  outline-offset: 3px !important;
+}

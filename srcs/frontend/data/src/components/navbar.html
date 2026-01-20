@@ -64,21 +64,33 @@
         </div>
       </div>
 
-      <!-- Language and contrast (always visible) -->
+      <!-- Language and accessibility (always visible) -->
       <div class="flex items-center gap-3">
         <!-- Language Flags -->
         <div class="flex items-center gap-1">
-          <button type="button" class="lang-flag w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all hover:scale-110 cursor-pointer" data-lang="fr" title="Français">
+          <button type="button" class="lang-flag w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all hover:scale-110 cursor-pointer" data-lang="fr" title="Français" aria-label="Français">
             🇫🇷
           </button>
-          <button type="button" class="lang-flag w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all hover:scale-110 cursor-pointer" data-lang="en" title="English">
+          <button type="button" class="lang-flag w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all hover:scale-110 cursor-pointer" data-lang="en" title="English" aria-label="English">
             🇬🇧
           </button>
-          <button type="button" class="lang-flag w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all hover:scale-110 cursor-pointer" data-lang="es" title="Español">
+          <button type="button" class="lang-flag w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all hover:scale-110 cursor-pointer" data-lang="es" title="Español" aria-label="Español">
             🇪🇸
           </button>
         </div>
-        <button id="contrast-toggle" class="btn btn-outline text-sm" type="button" aria-pressed="false" data-i18n="nav.contrast">Contraste élevé</button>
+        
+        <!-- Accessibility Toggle -->
+        <button id="a11y-toggle" class="a11y-toggle" type="button" 
+                aria-expanded="false" 
+                aria-haspopup="dialog"
+                aria-label="Accessibilité"
+                title="Accessibilité">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="10" r="3"/>
+            <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/>
+          </svg>
+        </button>
       </div>
 
       <!-- Auth buttons (hidden when logged in) -->
