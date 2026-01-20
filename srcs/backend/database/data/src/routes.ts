@@ -82,11 +82,11 @@ const dbGetChannelSchema = {
 const dbPostChannelSchema = {
   schema: {
     body: Type.Object(
-      Type.Pick(ChannelSchema, ['name', 'type', 'created_by', 'created_at']).properties,
-      { required: ['name', 'type', 'created_by'] }
+      Type.Pick(ChannelSchema, ['id', 'name', 'type', 'created_by', 'created_at']).properties,
+      { required: ['id', 'name', 'type', 'created_by'] }
     ),
     response : {
-      200: Type.String()
+      200: Type.Optional(ChannelSchema.id)
     }
   }
 }
