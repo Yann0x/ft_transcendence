@@ -16,7 +16,6 @@ export function buildCheckJwtHandler(server: FastifyInstance) {
       reply.status(401).send({ error: 'Unauthorized', statusCode: 401, service: 'authenticate' })
       return
     }
-
     const token = authHeader.replace('Bearer ', '')
     try {
       server.jwt.verify(token)
@@ -28,3 +27,33 @@ export function buildCheckJwtHandler(server: FastifyInstance) {
     }
   }
 }
+
+export  function hashPassword(server: FastifyInstance)
+{
+  return async (req: FastifyRequest, rep: FastifyReply) => {
+    const toHash = req.body;
+    if (!toHash)
+      rep.status(401).send({error: 'No pass to Hash', statusCode:401, service : 'authenticate'});
+    const newHash = server.bcrypt.hash(toHash);
+    return newHash;
+  }
+};
+
+export  function validHashPassword(server: FastifyInstance)
+{
+  return async (req: FastifyRequest, rep: FastifyReply) => {
+    const toCheck = req.body?.to_check as String;
+    const realHash = req.body?.valid as String;
+    if (!toCheck || !realHash)
+      return rep.status(401).send({error: 'Missing pass', statusCode: 401, service:  'authenticate'});
+   const result = await server.bcrypt.compare(toCheck, realHash);
+   if (!result)
+      return rep.status(401).send({
+        error: 'Unauthorized',
+        message: 'Invalid credentials',
+        statusCode: 401,
+        service: 'authenticate'
+      });
+      rep.status(200).send(true);
+  }
+};
