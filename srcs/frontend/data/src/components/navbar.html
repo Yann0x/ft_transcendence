@@ -66,11 +66,18 @@
 
       <!-- Language and contrast (always visible) -->
       <div class="flex items-center gap-3">
-        <label class="text-xs text-neutral-400" for="lang-select" data-i18n="nav.language">Langue</label>
-        <select id="lang-select" class="bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm text-white">
-          <option value="fr">FR</option>
-          <option value="en">EN</option>
-        </select>
+        <!-- Language Flags -->
+        <div class="flex items-center gap-1">
+          <button type="button" class="lang-flag w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all hover:scale-110 cursor-pointer" data-lang="fr" title="Français">
+            🇫🇷
+          </button>
+          <button type="button" class="lang-flag w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all hover:scale-110 cursor-pointer" data-lang="en" title="English">
+            🇬🇧
+          </button>
+          <button type="button" class="lang-flag w-8 h-8 rounded-full flex items-center justify-center text-lg transition-all hover:scale-110 cursor-pointer" data-lang="es" title="Español">
+            🇪🇸
+          </button>
+        </div>
         <button id="contrast-toggle" class="btn btn-outline text-sm" type="button" aria-pressed="false" data-i18n="nav.contrast">Contraste élevé</button>
       </div>
 

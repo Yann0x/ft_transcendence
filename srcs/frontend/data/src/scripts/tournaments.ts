@@ -6,6 +6,7 @@
 import type { Tournament, TournamentPlayer, TournamentMatch } from '../shared/types.js'
 import { App } from './app'
 import Router from './router'
+import { I18n } from './i18n'
 
 interface TournamentState {
   tournaments: {
@@ -177,7 +178,7 @@ export const Tournaments = {
     if (state.currentTournament?.odId === tournamentId) {
       state.currentTournament = null
       this.showListView()
-      alert('Ce tournoi a été supprimé')
+      alert(I18n.translate('tournaments.alert_deleted'))
     }
   },
 
@@ -306,7 +307,7 @@ export const Tournaments = {
     
     const alias = aliasInput.value.trim() || App.me?.name
     if (!alias) {
-      alert('Veuillez entrer un pseudo')
+      alert(I18n.translate('tournaments.alert_enter_alias'))
       return
     }
     
@@ -335,11 +336,11 @@ export const Tournaments = {
         this.viewTournament(tournament.odId)
       } else {
         const error = await response.json()
-        alert(error.error || 'Erreur lors de la création du tournoi')
+        alert(error.error || I18n.translate('tournaments.alert_create_error'))
       }
     } catch (error) {
       console.error('Failed to create tournament:', error)
-      alert('Erreur de connexion')
+      alert(I18n.translate('tournaments.alert_connection_error'))
     }
   },
 
@@ -356,7 +357,7 @@ export const Tournaments = {
     const alias = aliasInput.value.trim()
     
     if (!alias) {
-      alert('Veuillez entrer un pseudo')
+      alert(I18n.translate('tournaments.alert_enter_alias'))
       return
     }
     
@@ -383,11 +384,11 @@ export const Tournaments = {
         this.viewTournament(tournamentId)
       } else {
         const error = await response.json()
-        alert(error.error || 'Erreur lors de la connexion au tournoi')
+        alert(error.error || I18n.translate('tournaments.alert_join_error'))
       }
     } catch (error) {
       console.error('Failed to join tournament:', error)
-      alert('Erreur de connexion')
+      alert(I18n.translate('tournaments.alert_connection_error'))
     }
   },
 
@@ -422,12 +423,12 @@ export const Tournaments = {
         if (error.error === 'This alias is already taken in this tournament') {
           this.openJoinModal(tournamentId)
         } else {
-          alert(error.error || 'Erreur lors de la connexion au tournoi')
+          alert(error.error || I18n.translate('tournaments.alert_join_error'))
         }
       }
     } catch (error) {
       console.error('Failed to join tournament:', error)
-      alert('Erreur de connexion')
+      alert(I18n.translate('tournaments.alert_connection_error'))
     }
   },
 
@@ -437,11 +438,11 @@ export const Tournaments = {
   async leaveTournament(tournamentId: string): Promise<void> {
     const playerId = sessionStorage.getItem(`tournament_player_${tournamentId}`)
     if (!playerId) {
-      alert('Vous n\'êtes pas dans ce tournoi')
+      alert(I18n.translate('tournaments.alert_not_in_tournament'))
       return
     }
     
-    if (!confirm('Êtes-vous sûr de vouloir quitter ce tournoi ?')) {
+    if (!confirm(I18n.translate('tournaments.confirm_leave'))) {
       return
     }
     
@@ -458,11 +459,11 @@ export const Tournaments = {
         this.showListView()
       } else {
         const error = await response.json()
-        alert(error.error || 'Erreur')
+        alert(error.error || I18n.translate('tournaments.alert_error'))
       }
     } catch (error) {
       console.error('Failed to leave tournament:', error)
-      alert('Erreur de connexion')
+      alert(I18n.translate('tournaments.alert_connection_error'))
     }
   },
 
@@ -492,11 +493,11 @@ export const Tournaments = {
         this.showDetailView()
         this.renderTournamentDetail()
       } else {
-        alert('Tournoi non trouvé')
+        alert(I18n.translate('tournaments.alert_not_found'))
       }
     } catch (error) {
       console.error('Failed to fetch tournament:', error)
-      alert('Erreur de connexion')
+      alert(I18n.translate('tournaments.alert_connection_error'))
     }
   },
 
@@ -586,11 +587,11 @@ export const Tournaments = {
     
     switch (status) {
       case 'waiting':
-        statusBadge = '<span class="badge badge-success">En attente</span>'
-        actionButton = `<button class="btn btn-outline text-sm join-btn" data-tournament-id="${tournament.odId}">Rejoindre</button>`
+        statusBadge = `<span class="badge badge-success">${I18n.translate('tournaments.status_waiting')}</span>`
+        actionButton = `<button class="btn btn-outline text-sm join-btn" data-tournament-id="${tournament.odId}">${I18n.translate('tournaments.join_btn')}</button>`
         break
       case 'in_progress':
-        statusBadge = '<span class="badge badge-warning">En cours</span>'
+        statusBadge = `<span class="badge badge-warning">${I18n.translate('tournaments.status_in_progress')}</span>`
         // Show current match info
         const currentMatch = tournament.odMatches.find((m: TournamentMatch) => m.odId === tournament.odCurrentMatch)
         if (currentMatch) {
@@ -598,7 +599,7 @@ export const Tournaments = {
         }
         break
       case 'finished':
-        statusBadge = '<span class="badge badge-neutral">Terminé</span>'
+        statusBadge = `<span class="badge badge-neutral">${I18n.translate('tournaments.status_finished')}</span>`
         if (tournament.odWinner) {
           actionButton = `<span class="text-emerald-400 text-sm">🏆 ${tournament.odWinner.odAlias}</span>`
         }
@@ -613,14 +614,14 @@ export const Tournaments = {
             ${statusBadge}
           </div>
           <div class="text-sm text-neutral-400">
-            <span>${playerCount}/${maxPlayers} joueurs</span>
+            <span>${playerCount}/${maxPlayers} ${I18n.translate('tournaments.players_format')}</span>
             <span class="mx-2">•</span>
-            <span>Créé par ${this.escapeHtml(tournament.odCreatedBy.odAlias)}</span>
+            <span>${I18n.translate('tournaments.created_by')} ${this.escapeHtml(tournament.odCreatedBy.odAlias)}</span>
           </div>
         </div>
         <div class="flex items-center gap-2">
           ${actionButton}
-          <button class="btn btn-outline text-sm view-btn">Voir</button>
+          <button class="btn btn-outline text-sm view-btn">${I18n.translate('tournaments.view_btn')}</button>
         </div>
       </div>
     `
@@ -681,14 +682,14 @@ export const Tournaments = {
     if (nameEl) nameEl.textContent = tournament.odName || `Tournoi #${tournament.odId.slice(-6)}`
     
     const statusTexts: Record<string, string> = {
-      'waiting': 'En attente de joueurs',
-      'in_progress': 'Tournoi en cours',
-      'finished': 'Tournoi terminé'
+      'waiting': I18n.translate('tournaments.waiting_players'),
+      'in_progress': I18n.translate('tournaments.status_in_progress'),
+      'finished': I18n.translate('tournaments.status_finished')
     }
     if (statusEl) statusEl.textContent = statusTexts[tournament.odStatus] || tournament.odStatus
     
     if (playerCountEl) playerCountEl.textContent = `${tournament.odPlayers.length}/${tournament.odMaxPlayers}`
-    if (formatEl) formatEl.textContent = `${tournament.odMaxPlayers} joueurs`
+    if (formatEl) formatEl.textContent = `${tournament.odMaxPlayers} ${I18n.translate('tournaments.players_format')}`
     
     // Current match info
     if (tournament.odCurrentMatch) {
@@ -711,9 +712,9 @@ export const Tournaments = {
       
       if (tournament.odStatus === 'waiting') {
         if (isParticipant) {
-          actionsHtml = `<button id="btn-leave-tournament" class="btn btn-outline text-red-400 border-red-400 hover:bg-red-400/10">Quitter</button>`
+          actionsHtml = `<button id="btn-leave-tournament" class="btn btn-outline text-red-400 border-red-400 hover:bg-red-400/10">${I18n.translate('tournaments.leave_btn')}</button>`
         } else {
-          actionsHtml = `<button id="btn-join-detail" class="btn btn-secondary">Rejoindre</button>`
+          actionsHtml = `<button id="btn-join-detail" class="btn btn-secondary">${I18n.translate('tournaments.join_btn')}</button>`
         }
       } else if (tournament.odStatus === 'in_progress' && isParticipant) {
         // Check if it's my turn to play
@@ -721,10 +722,10 @@ export const Tournaments = {
         if (currentMatch && 
             (currentMatch.odPlayer1?.odId === state.myPlayerId || currentMatch.odPlayer2?.odId === state.myPlayerId) &&
             currentMatch.odStatus === 'ready') {
-          actionsHtml = `<button id="btn-play-match" class="btn btn-primary animate-pulse">🎮 Jouer mon match</button>`
+          actionsHtml = `<button id="btn-play-match" class="btn btn-primary animate-pulse">${I18n.translate('tournaments.play_match')}</button>`
         }
       } else if (tournament.odStatus === 'finished' && tournament.odWinner) {
-        actionsHtml = `<span class="text-xl">🏆 Gagnant: <strong class="text-emerald-400">${this.escapeHtml(tournament.odWinner.odAlias)}</strong></span>`
+        actionsHtml = `<span class="text-xl">🏆 ${I18n.translate('tournaments.winner')}: <strong class="text-emerald-400">${this.escapeHtml(tournament.odWinner.odAlias)}</strong></span>`
       }
       
       actionsEl.innerHTML = actionsHtml
@@ -772,7 +773,7 @@ export const Tournaments = {
           <div class="flex items-center gap-2">
             <span class="text-lg">${isCreator ? '👑' : '🎮'}</span>
             <span class="font-medium ${isMe ? 'text-blue-400' : ''}">${this.escapeHtml(player.odAlias)}</span>
-            ${isMe ? '<span class="text-xs text-blue-400">(vous)</span>' : ''}
+            ${isMe ? `<span class="text-xs text-blue-400">${I18n.translate('tournaments.you')}</span>` : ''}
           </div>
         `
       } else {
@@ -780,7 +781,7 @@ export const Tournaments = {
         card.innerHTML = `
           <div class="flex items-center gap-2 text-neutral-500">
             <span class="text-lg">⏳</span>
-            <span>En attente...</span>
+            <span>${I18n.translate('tournaments.slot_waiting')}</span>
           </div>
         `
       }
@@ -798,10 +799,10 @@ export const Tournaments = {
     
     const totalRounds = tournament.odMaxPlayers === 2 ? 1 : (tournament.odMaxPlayers === 4 ? 2 : 3)
     const roundNames = tournament.odMaxPlayers === 2
-      ? ['Finale']
+      ? [I18n.translate('tournaments.round_final')]
       : (tournament.odMaxPlayers === 4 
-        ? ['Demi-finales', 'Finale']
-        : ['Quarts de finale', 'Demi-finales', 'Finale'])
+        ? [I18n.translate('tournaments.round_semis'), I18n.translate('tournaments.round_final')]
+        : [I18n.translate('tournaments.round_quarters'), I18n.translate('tournaments.round_semis'), I18n.translate('tournaments.round_final')])
     
     let html = '<div class="bracket-grid">'
     

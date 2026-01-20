@@ -8,6 +8,7 @@ import { WIN_SCORE, SERVER_WIDTH, SERVER_HEIGHT } from './config';
 import { bindKeyboard, unbindKeyboard, getInput, getInputP1, getInputP2 } from './input';
 import { Network, type AIDifficulty, type TournamentMatchInfo } from './network';
 import Router from '../scripts/router';
+import { I18n } from '../scripts/i18n';
 
 let running = false;
 let lastInputSent = { up: false, down: false };
@@ -510,19 +511,19 @@ export function render(state: GameState): void {
 
   // Phase messages
   if (!connected && !gameMode) {
-    drawText('Choose Solo or PvP to play', w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
+    drawText(I18n.translate('game.choose_mode'), w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
   } else if (state.phase === 'waiting') {
-    const msg = gameMode === 'tournament' ? 'Waiting for opponent...' : (gameMode === 'pvp' ? 'Waiting for opponent...' : 'Connecting...');
+    const msg = gameMode === 'tournament' ? I18n.translate('game.waiting_opponent') : (gameMode === 'pvp' ? I18n.translate('game.waiting_opponent') : 'Connecting...');
     drawText(msg, w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
   } else if (state.phase === 'ready') {
-    drawText('Press SPACE to start', w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
+    drawText(I18n.translate('game.press_space_start'), w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
   } else if (state.phase === 'paused') {
     if (gameMode === 'tournament') {
-      drawText('OPPONENT DISCONNECTED', w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
-      drawText('Waiting for reconnection...', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+      drawText(I18n.translate('game.opponent_disconnected'), w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
+      drawText(I18n.translate('game.waiting_opponent'), w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
     } else {
-      drawText('PAUSED', w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
-      drawText('Press ESC to resume', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+      drawText(I18n.translate('game.paused'), w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
+      drawText(I18n.translate('game.press_esc_resume'), w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
     }
   } else if (state.phase === 'ended') {
     const winner = state.score.left >= WIN_SCORE ? 'Left' : 'Right';
@@ -530,17 +531,17 @@ export function render(state: GameState): void {
     
     if (gameMode === 'tournament') {
       if (state.endReason === 'forfeit') {
-        drawText('Opponent disconnected', w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
+        drawText(I18n.translate('game.opponent_disconnected'), w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
         drawText(myWin ? 'You advance! Returning to tournament...' : 'Returning to tournament...', w / 2, h / 2 + 20, { color: '#f59e0b', font: '20px system-ui' });
       } else {
-        drawText(myWin ? '🏆 Victory!' : 'Defeated', w / 2, h / 2 - 20, { color: myWin ? '#10b981' : '#ef4444', font: 'bold 32px system-ui' });
+        drawText(myWin ? '🏆 ' + I18n.translate('game.victory') : I18n.translate('game.defeat'), w / 2, h / 2 - 20, { color: myWin ? '#10b981' : '#ef4444', font: 'bold 32px system-ui' });
         drawText('Returning to tournament...', w / 2, h / 2 + 20, { color: '#f59e0b', font: '20px system-ui' });
       }
     } else if (state.endReason === 'forfeit') {
-      drawText('Opponent disconnected', w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
+      drawText(I18n.translate('game.opponent_disconnected'), w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
       drawText('You win! Press SPACE to find a new game', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
     } else {
-      drawText(`${winner} wins!`, w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
+      drawText(winner === 'Left' ? I18n.translate('game.left_wins') : I18n.translate('game.right_wins'), w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
       drawText('Press SPACE to restart', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
     }
   }
