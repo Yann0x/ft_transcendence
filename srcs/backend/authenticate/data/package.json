@@ -18,7 +18,8 @@
     "@fastify/swagger": "^9.6.1",
     "@fastify/swagger-ui": "^5.2.3",
     "@sinclair/typebox": "^0.34.41",
-    "fastify": "^5.6.2"
+    "fastify": "^5.6.2",
+    "fastify-bcrypt": "^1.0.1"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

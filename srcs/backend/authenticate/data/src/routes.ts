@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { buildCheckJwtHandler, buildGetJwtHandler } from './authenticate_methods'
+import { buildCheckJwtHandler, buildGetJwtHandler, hashPassword, validHashPassword } from './authenticate_methods'
 import { ErrorResponseSchema, UserSchema } from './shared/with_front/types'
 import { Type } from '@sinclair/typebox'
 
@@ -39,8 +39,31 @@ const checkJwtSchema = {
     },
   },
 }
+const hashPassSchema = {
+  schema: {
+    body : Type.String(), 
+    response: {
+      200: Type.String(),
+      401: ErrorResponseSchema,
+    },
+  },
+}
+const checkPassSchema = {
+  schema: {
+    body : Type.Object({
+      to_check: Type.String(),
+      valid: Type.String(),
+    }) ,
+    response: {
+      200: Type.Boolean(),
+      401: ErrorResponseSchema,
+    },
+  },
+}
 
 export function authenticateRoutes(server: FastifyInstance) {
   server.post('/get_jwt', getJwtSchema, buildGetJwtHandler(server))
   server.post('/check_jwt', checkJwtSchema, buildCheckJwtHandler(server))
+  server.post('/hash_pass', hashPassSchema, hashPassword(server))
+  server.post('/check_pass_match', checkPassSchema, validHashPassword(server))
 }

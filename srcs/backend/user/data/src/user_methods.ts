@@ -47,6 +47,11 @@ export async function registerUserHandler(
   try {
     const userData: User = req.body;
     userData.id = randomUUID();
+    userData.password = await customFetch(
+      'http://authenticate:3000/hash_pass',
+      'POST',
+      userData.password
+    );
 
     await customFetch(
       'http://database:3000/database/user',
@@ -113,14 +118,7 @@ export async function loginUserHandler(
       { id: user.id }
     ) as string | null;
 
-    if (!storedHash || storedHash !== credentials.password) {
-      return reply.status(401).send({
-        error: 'Unauthorized',
-        message: 'Invalid credentials',
-        statusCode: 401,
-        service: 'user'
-      });
-    }
+    await customFetch('http://authenticate:3000/check_pass_match', 'POST', { to_check: credentials.password, valid: storedHash } );
 
     const token = await customFetch(
       'http://authenticate:3000/get_jwt',
