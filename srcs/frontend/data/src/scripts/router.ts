@@ -118,3 +118,4 @@ const Router = {
 };
 
 export { Router };
+export default Router;

@@ -8,6 +8,16 @@ export interface Player {
   id: string;
   socket: WebSocket;
   side: 'left' | 'right';
+  tournamentPlayerId?: string; // Tournament player ID if in tournament mode
+}
+
+export interface TournamentInfo {
+  tournamentId: string;
+  matchId: string;
+  player1Id: string;  // Tournament player ID for left player
+  player2Id?: string; // Tournament player ID for right player (set when they join)
+  matchStarted: boolean;
+  lastScore: { left: number; right: number };
 }
 
 export interface Room {
@@ -19,9 +29,23 @@ export interface Room {
   isPvP: boolean;
   allowAI: boolean;
   aiDifficulty: AIDifficulty;
+  tournamentInfo?: TournamentInfo; // Set if this is a tournament match
+}
+
+export interface TournamentCallbacks {
+  onMatchStart: (tournamentId: string, matchId: string, gameRoomId: string) => Promise<void>;
+  onScoreUpdate: (tournamentId: string, matchId: string, score1: number, score2: number) => Promise<void>;
+  onMatchEnd: (tournamentId: string, matchId: string, score1: number, score2: number) => Promise<void>;
+}
+
+let tournamentCallbacks: TournamentCallbacks | null = null;
+
+export function setTournamentCallbacks(callbacks: TournamentCallbacks): void {
+  tournamentCallbacks = callbacks;
 }
 
 const rooms = new Map<string, Room>();
+const tournamentRooms = new Map<string, Room>(); // matchId -> Room for tournament matches
 let roomCounter = 0;
 
 export function createRoom(isPvP: boolean = false, allowAI: boolean = true, aiDifficulty: AIDifficulty = 'hard'): Room {
@@ -42,17 +66,82 @@ export function createRoom(isPvP: boolean = false, allowAI: boolean = true, aiDi
   return room;
 }
 
-export function addPlayer(room: Room, socket: WebSocket, playerId: string): Player | null {
+/**
+ * Create or find a room for a tournament match
+ */
+export function createTournamentRoom(
+  tournamentId: string, 
+  matchId: string, 
+  tournamentPlayerId: string,
+  isPlayer1: boolean
+): Room {
+  // Check if room already exists for this match
+  let room = tournamentRooms.get(matchId);
+  
+  if (room) {
+    // Room exists, this is player 2 joining
+    if (!isPlayer1 && room.tournamentInfo) {
+      room.tournamentInfo.player2Id = tournamentPlayerId;
+    }
+    console.log(`[TOURNAMENT] Player ${tournamentPlayerId} joining existing room for match ${matchId}`);
+    return room;
+  }
+  
+  // Create new tournament room
+  const id = `tournament_${matchId}`;
+  room = {
+    id,
+    players: [],
+    state: createGameState(),
+    intervalId: null,
+    ai: null,
+    isPvP: true,
+    allowAI: false,
+    aiDifficulty: 'hard',
+    tournamentInfo: {
+      tournamentId,
+      matchId,
+      player1Id: isPlayer1 ? tournamentPlayerId : '',
+      player2Id: isPlayer1 ? undefined : tournamentPlayerId,
+      matchStarted: false,
+      lastScore: { left: 0, right: 0 }
+    }
+  };
+  
+  if (isPlayer1 && room.tournamentInfo) {
+    room.tournamentInfo.player1Id = tournamentPlayerId;
+  }
+  
+  rooms.set(id, room);
+  tournamentRooms.set(matchId, room);
+  console.log(`[TOURNAMENT] Created room for match ${matchId}, player1: ${tournamentPlayerId}`);
+  return room;
+}
+
+export function addPlayer(room: Room, socket: WebSocket, playerId: string, tournamentPlayerId?: string): Player | null {
   if (room.players.length >= 2) return null;
 
+  // Verify tournament player authorization
+  if (room.tournamentInfo) {
+    if (!tournamentPlayerId) {
+      console.log(`[ROOM] Rejected ${playerId} - tournament room requires tournamentPlayerId`);
+      return null;
+    }
+    const { player1Id, player2Id } = room.tournamentInfo;
+    if (tournamentPlayerId !== player1Id && tournamentPlayerId !== player2Id) {
+      console.log(`[ROOM] Rejected ${playerId} - not authorized for this tournament match (expected: ${player1Id} or ${player2Id}, got: ${tournamentPlayerId})`);
+      return null;
+    }
+  }
+
   const side = room.players.length === 0 ? 'left' : 'right';
-  const player: Player = { id: playerId, socket, side };
+  const player: Player = { id: playerId, socket, side, tournamentPlayerId };
   room.players.push(player);
 
-  console.log(`[ROOM] ${playerId} joined ${room.id} as ${side}`);
+  console.log(`[ROOM] ${playerId} joined ${room.id} as ${side}${tournamentPlayerId ? ` (tournament: ${tournamentPlayerId})` : ''}`);
 
   if (room.state.phase === 'waiting') {
-    if (room.isPvP) {
+    if (room.isPvP || room.tournamentInfo) {
       if (room.players.length === 2) {
         room.state.phase = 'ready';
         broadcastState(room);
@@ -80,12 +169,15 @@ export function removePlayer(room: Room, playerId: string): void {
   if (room.players.length === 0) {
     stopGameLoop(room);
     rooms.delete(room.id);
+    if (room.tournamentInfo) {
+      tournamentRooms.delete(room.tournamentInfo.matchId);
+    }
     console.log(`[ROOM] Deleted ${room.id}`);
     return;
   }
 
-  // Si mode PvP et qu'il reste 1 joueur
-  if (room.isPvP && room.players.length === 1) {
+  // Si mode PvP ou Tournament et qu'il reste 1 joueur
+  if ((room.isPvP || room.tournamentInfo) && room.players.length === 1) {
     if (room.state.phase === 'playing' || room.state.phase === 'paused') {
       // Donner la victoire au joueur restant
       const remainingPlayer = room.players[0];
@@ -104,6 +196,16 @@ export function removePlayer(room: Room, playerId: string): void {
       room.state.endReason = 'forfeit';
       broadcastState(room);
       console.log(`[ROOM] ${room.id} ended - ${winningSide} wins by forfeit`);
+      
+      // Notify tournament service if this is a tournament match
+      if (room.tournamentInfo && tournamentCallbacks) {
+        tournamentCallbacks.onMatchEnd(
+          room.tournamentInfo.tournamentId,
+          room.tournamentInfo.matchId,
+          room.state.score.left,
+          room.state.score.right
+        );
+      }
     } else if (room.state.phase === 'ready') {
       room.state.phase = 'waiting';
       broadcastState(room);
@@ -125,6 +227,16 @@ export function startGameLoop(room: Room): void {
 
   room.state.phase = 'playing';
   let lastTick = Date.now();
+  
+  // Notify tournament service if this is a tournament match
+  if (room.tournamentInfo && !room.tournamentInfo.matchStarted && tournamentCallbacks) {
+    room.tournamentInfo.matchStarted = true;
+    tournamentCallbacks.onMatchStart(
+      room.tournamentInfo.tournamentId,
+      room.tournamentInfo.matchId,
+      room.id
+    );
+  }
 
   room.intervalId = setInterval(() => {
     const now = Date.now();
@@ -138,9 +250,35 @@ export function startGameLoop(room: Room): void {
 
     physicsTick(room.state, dt);
     broadcastState(room);
+    
+    // Send score updates to tournament service
+    if (room.tournamentInfo && tournamentCallbacks) {
+      const currentScore = room.state.score;
+      const lastScore = room.tournamentInfo.lastScore;
+      
+      if (currentScore.left !== lastScore.left || currentScore.right !== lastScore.right) {
+        room.tournamentInfo.lastScore = { ...currentScore };
+        tournamentCallbacks.onScoreUpdate(
+          room.tournamentInfo.tournamentId,
+          room.tournamentInfo.matchId,
+          currentScore.left,
+          currentScore.right
+        );
+      }
+    }
 
     if (room.state.phase === 'ended') {
       stopGameLoop(room);
+      
+      // Notify tournament service of match end
+      if (room.tournamentInfo && tournamentCallbacks) {
+        tournamentCallbacks.onMatchEnd(
+          room.tournamentInfo.tournamentId,
+          room.tournamentInfo.matchId,
+          room.state.score.left,
+          room.state.score.right
+        );
+      }
     }
   }, TICK_INTERVAL);
 
@@ -222,6 +360,9 @@ function broadcastState(room: Room): void {
 // Matchmaking PvP: rejoindre une room en attente ou en creer une nouvelle
 export function findOrCreateRoom(): Room {
   for (const room of rooms.values()) {
+    // Skip tournament rooms - they should only be joined through tournament flow
+    if (room.tournamentInfo) continue;
+    
     if (room.isPvP && room.players.length === 1 && room.state.phase === 'waiting') {
       console.log(`[ROOM] Found existing PvP room ${room.id}`);
       return room;

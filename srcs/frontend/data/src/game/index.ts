@@ -6,15 +6,17 @@ import { drawRect, drawCircle, drawNet, drawText } from './render';
 import { updateFps, drawFps, toggleFPS, toggleHitboxes, showHitboxes } from './debug';
 import { WIN_SCORE, SERVER_WIDTH, SERVER_HEIGHT } from './config';
 import { bindKeyboard, unbindKeyboard, getInput, getInputP1, getInputP2 } from './input';
-import { Network, type AIDifficulty } from './network';
+import { Network, type AIDifficulty, type TournamentMatchInfo } from './network';
+import Router from '../scripts/router';
 
 let running = false;
 let lastInputSent = { up: false, down: false };
 let lastInputSentP2 = { up: false, down: false };
-let gameMode: 'solo' | 'pvp' | null = null;
+let gameMode: 'solo' | 'pvp' | 'tournament' | null = null;
 let localMode = false; // true = PvP local (2 joueurs meme clavier), false = vs AI
 let currentDifficulty: AIDifficulty = 'normal';
 let pollInterval: number | null = null;
+let tournamentMatchInfo: TournamentMatchInfo | null = null;
 
 export function init(): void {
   const container = document.getElementById("game-container")
@@ -35,6 +37,43 @@ export function init(): void {
   bindKeyboard();
   bindKeys();
   bindModeButtons();
+
+  // Check for tournament mode in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const tournamentId = urlParams.get('tournament');
+  const matchId = urlParams.get('match');
+  
+  if (tournamentId && matchId) {
+    // Tournament mode - get match info from session storage
+    const savedMatchInfo = sessionStorage.getItem('tournament_match');
+    if (savedMatchInfo) {
+      try {
+        tournamentMatchInfo = JSON.parse(savedMatchInfo);
+        if (tournamentMatchInfo) {
+          gameMode = 'tournament';
+          localMode = false;
+          
+          // Clear mode button selection for tournament mode
+          clearModeSelection();
+          
+          // Set online status for tournament mode (like PvP)
+          setOnlineStatus(true);
+          
+          connectToServerTournament(tournamentMatchInfo);
+          
+          // Start polling PvP stats
+          pollPvPStats();
+          pollInterval = window.setInterval(pollPvPStats, 3000);
+          
+          running = true;
+          requestAnimationFrame(gameLoop);
+          return;
+        }
+      } catch (e) {
+        console.error('[GAME] Invalid tournament match info:', e);
+      }
+    }
+  }
 
   // Default: auto-connect in solo mode (normal)
   gameMode = 'solo';
@@ -69,6 +108,10 @@ export function cleanup(): void {
   // Réinitialiser l'état
   gameMode = null;
   localMode = false;
+  tournamentMatchInfo = null;
+  
+  // Clear tournament match info from session
+  sessionStorage.removeItem('tournament_match');
 }
 
 export function pauseGame(): void {
@@ -127,6 +170,15 @@ function setOnlineStatus(isOnline: boolean): void {
   }
 }
 
+// Export setActiveButton so it can be called from outside
+let setActiveButtonFn: ((btn: HTMLElement | null) => void) | null = null;
+
+export function clearModeSelection(): void {
+  if (setActiveButtonFn) {
+    setActiveButtonFn(null); // Deselect all buttons
+  }
+}
+
 function bindModeButtons(): void {
   const btnSolo = document.getElementById('btn-solo');
   const btnLocal = document.getElementById('btn-local');
@@ -148,6 +200,9 @@ function bindModeButtons(): void {
       activeBtn.classList.add('btn-primary');
     }
   };
+  
+  // Store reference for external use
+  setActiveButtonFn = setActiveButton;
 
   const hideDifficultyMenu = () => {
     difficultyMenu?.classList.add('hidden');
@@ -270,6 +325,57 @@ async function connectToServer(mode: 'solo' | 'local' | 'pvp', difficulty: AIDif
   }
 }
 
+async function connectToServerTournament(matchInfo: TournamentMatchInfo): Promise<void> {
+  try {
+    isChangingMode = true;
+
+    // Store tournament ID for redirect after match
+    const currentTournamentId = matchInfo.tournamentId;
+
+    // Register callbacks BEFORE connecting to catch early state updates
+    Network.onStateUpdate((data) => {
+      applyServerState(data as ServerState);
+      
+      // Check if game ended - redirect back to tournament
+      const serverState = data as ServerState;
+      if (serverState.phase === 'ended' && tournamentMatchInfo) {
+        setTimeout(() => {
+          // Clear match info and redirect to tournament page using SPA router
+          sessionStorage.removeItem('tournament_match');
+          // Store tournament ID to view after redirect
+          sessionStorage.setItem('view_tournament_after_match', currentTournamentId);
+          Router.navigate('/tournaments');
+        }, 3000);
+      }
+    });
+
+    Network.onDisconnected(() => {
+      if (!isChangingMode) {
+        gameMode = null;
+        setPhase('waiting');
+        // Redirect back to tournament page using SPA router
+        if (tournamentMatchInfo) {
+          sessionStorage.setItem('view_tournament_after_match', currentTournamentId);
+          Router.navigate('/tournaments');
+        }
+      }
+    });
+
+    await Network.connect('tournament', 'hard', matchInfo);
+    isChangingMode = false;
+    setPhase('waiting');
+  } catch (err) {
+    console.error('[GAME] Tournament connection failed:', err);
+    isChangingMode = false;
+    gameMode = null;
+    // Redirect back to tournament page on error using SPA router
+    if (tournamentMatchInfo) {
+      sessionStorage.setItem('view_tournament_after_match', tournamentMatchInfo.tournamentId);
+    }
+    Router.navigate('/tournaments');
+  }
+}
+
 interface ServerState {
   phase: string;
   endReason?: 'forfeit' | 'score';
@@ -385,6 +491,8 @@ export function render(state: GameState): void {
   // Mode indicator
   if (!gameMode) {
     drawText('Select mode below', w / 2, 30, { font: '16px system-ui', color: '#525252' });
+  } else if (gameMode === 'tournament' && tournamentMatchInfo) {
+    drawText('🏆 Tournament Match', w / 2, 30, { font: 'bold 16px system-ui', color: '#f59e0b' });
   } else if (side) {
     let modeLabel: string;
     if (gameMode === 'pvp') {
@@ -404,16 +512,31 @@ export function render(state: GameState): void {
   if (!connected && !gameMode) {
     drawText('Choose Solo or PvP to play', w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
   } else if (state.phase === 'waiting') {
-    const msg = gameMode === 'pvp' ? 'Waiting for opponent...' : 'Connecting...';
+    const msg = gameMode === 'tournament' ? 'Waiting for opponent...' : (gameMode === 'pvp' ? 'Waiting for opponent...' : 'Connecting...');
     drawText(msg, w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
   } else if (state.phase === 'ready') {
     drawText('Press SPACE to start', w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
   } else if (state.phase === 'paused') {
-    drawText('PAUSED', w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
-    drawText('Press ESC to resume', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+    if (gameMode === 'tournament') {
+      drawText('OPPONENT DISCONNECTED', w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
+      drawText('Waiting for reconnection...', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+    } else {
+      drawText('PAUSED', w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
+      drawText('Press ESC to resume', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+    }
   } else if (state.phase === 'ended') {
     const winner = state.score.left >= WIN_SCORE ? 'Left' : 'Right';
-    if (state.endReason === 'forfeit') {
+    const myWin = (side === 'left' && state.score.left >= WIN_SCORE) || (side === 'right' && state.score.right >= WIN_SCORE);
+    
+    if (gameMode === 'tournament') {
+      if (state.endReason === 'forfeit') {
+        drawText('Opponent disconnected', w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
+        drawText(myWin ? 'You advance! Returning to tournament...' : 'Returning to tournament...', w / 2, h / 2 + 20, { color: '#f59e0b', font: '20px system-ui' });
+      } else {
+        drawText(myWin ? '🏆 Victory!' : 'Defeated', w / 2, h / 2 - 20, { color: myWin ? '#10b981' : '#ef4444', font: 'bold 32px system-ui' });
+        drawText('Returning to tournament...', w / 2, h / 2 + 20, { color: '#f59e0b', font: '20px system-ui' });
+      }
+    } else if (state.endReason === 'forfeit') {
       drawText('Opponent disconnected', w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
       drawText('You win! Press SPACE to find a new game', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
     } else {

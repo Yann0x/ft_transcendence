@@ -20,12 +20,24 @@ const state: NetworkState = {
 
 export type AIDifficulty = 'easy' | 'normal' | 'hard';
 
+export interface TournamentMatchInfo {
+  tournamentId: string;
+  matchId: string;
+  playerId: string;
+  isPlayer1: boolean;
+}
+
 /*
  * Connecte au serveur de jeu
- * @param mode - 'solo' pour jouer contre l'IA, 'local' pour PvP local, 'pvp' pour le matchmaking
+ * @param mode - 'solo' pour jouer contre l'IA, 'local' pour PvP local, 'pvp' pour le matchmaking, 'tournament' pour les tournois
  * @param difficulty - difficulte de l'IA (beginner, normal, hard)
+ * @param tournamentInfo - info du match de tournoi (requis pour mode='tournament')
  */
-export function connect(mode: 'solo' | 'local' | 'pvp' = 'solo', difficulty: AIDifficulty = 'hard'): Promise<void> {
+export function connect(
+  mode: 'solo' | 'local' | 'pvp' | 'tournament' = 'solo', 
+  difficulty: AIDifficulty = 'hard',
+  tournamentInfo?: TournamentMatchInfo
+): Promise<void> {
   return new Promise((resolve, reject) => {
     // Deconnecter d'abord si deja connecte
     if (state.socket) {
@@ -43,7 +55,15 @@ export function connect(mode: 'solo' | 'local' | 'pvp' = 'solo', difficulty: AID
     state.side = null;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${protocol}//${window.location.host}/api/game/ws?mode=${mode}&difficulty=${difficulty}`;
+    let url = `${protocol}//${window.location.host}/api/game/ws?mode=${mode}&difficulty=${difficulty}`;
+    
+    // Add tournament parameters if in tournament mode
+    if (mode === 'tournament' && tournamentInfo) {
+      url += `&tournamentId=${encodeURIComponent(tournamentInfo.tournamentId)}`;
+      url += `&matchId=${encodeURIComponent(tournamentInfo.matchId)}`;
+      url += `&playerId=${encodeURIComponent(tournamentInfo.playerId)}`;
+      url += `&isPlayer1=${tournamentInfo.isPlayer1}`;
+    }
 
     console.log('[NETWORK] Connecting to', url, 'mode:', mode);
     const newSocket = new WebSocket(url);
