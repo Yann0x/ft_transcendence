@@ -5,7 +5,14 @@
 import { User, UserPublic } from '../shared/types';
 
 // Forward declaration - will be set by App
-let getAppInstance: () => { me: User | null; logout: () => Promise<void>; updateNavbar: () => void; onLogin: (user: User) => void } | null;
+let getAppInstance: () => {
+  me: User | null;
+  logout: () => Promise<void>;
+  updateNavbar: () => void;
+  onLogin: (user: User) => void;
+  blockedUsersMap: Map<string, UserPublic>;
+  removeFromBlockedUsersMap: (userId: string) => void;
+} | null;
 
 export function setAppInstance(getter: typeof getAppInstance) {
   getAppInstance = getter;
@@ -463,7 +470,7 @@ export const SettingsModal = {
             const app = getAppInstance?.();
             // Update App maps
             if (app) {
-              app.removeBlockedUserFromMaps(userId);
+              app.removeFromBlockedUsersMap(userId);
             }
             // Refresh blocked users list
             this.loadBlockedUsers();

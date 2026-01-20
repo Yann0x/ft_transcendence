@@ -13,4 +13,10 @@ export function socialRoutes(server: FastifyInstance) {
 
   // REST endpoint for channel update notifications
   server.post('/social/notify/channel_update', handlers.notifyChannelUpdate);
+
+  // REST endpoint for friend add notifications
+  server.post('/social/notify/friend_add', handlers.notifyFriendAdd);
+
+  // REST endpoint for friend remove notifications
+  server.post('/social/notify/friend_remove', handlers.notifyFriendRemove);
 }

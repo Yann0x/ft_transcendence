@@ -7,8 +7,8 @@ import { Router } from './router'
 import { AuthModal } from './auth-modal'
 import { SettingsModal, setAppInstance } from './settings-modal'
 import { ProfileModal } from './profile-modal'
-import { Social } from './social'
-import { socialClient } from './social-client'
+import { Social } from './social/social'
+import { socialClient } from './social/social-client'
 import { User, UserPublic, LoginResponse, Channel } from '../shared/types'
 import { I18n } from './i18n'
 import { Contrast } from './contrast'
@@ -25,9 +25,7 @@ const App = {
   friendsMap: new Map<string, UserPublic>(),        // Key: friend ID
   blockedUsersMap: new Map<string, UserPublic>(),   // Key: blocked user ID
   onlineUsersMap: new Map<string, UserPublic>(),
-  channelsMap: new Map <string, Channel>(),
 
-  // Add or update user in central cache
   cacheUser(user: UserPublic): void {
     if (!user.id) return;
     const existing = this.cachedUsers.get(user.id);
@@ -37,36 +35,53 @@ const App = {
       this.cachedUsers.set(user.id, user);
   },
 
-  // Add multiple users to cache
+  async fetchAndCacheUsers(userIds: string[]): Promise<void> {
+      const token = sessionStorage.getItem('authToken');
+      if (!token || userIds.length === 0) return;
+
+      console.log(`[SOCIAL] Fetching data for ${userIds.length} users ${JSON.stringify(userIds)}`);
+      const userFetchPromises = userIds.map(userId =>
+          fetch(`/user/find?id=${userId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+          })
+          .then(res => res.ok ? res.json() : null)
+          .then(users => {
+              if (users && users.length > 0) {
+                  this.cacheUser(users[0]);
+              }
+          })
+          .catch(err => console.error(`[SOCIAL] Failed to fetch user ${userId}:`, err))
+      );
+
+      await Promise.all(userFetchPromises);
+  },
+
   cacheUsers(users: UserPublic[]): void {
     users.forEach(user => this.cacheUser(user));
   },
 
   async loadFriends(): Promise<void> {
-    if (!this.me?.id) return;
-
     try {
       const response = await fetch('/user/getFriends', {
         headers: {
           'Authorization': `Bearer ${sessionStorage.getItem('authToken')}`
         }
       });
-
       if (!response.ok) {
         console.error('[App] Failed to load friends');
         return;
       }
-
       const friends: UserPublic[] = await response.json();
-
       this.cacheUsers(friends);
-
       this.friendsMap.clear();
       friends.forEach(friend => {
         if (friend.id) {
           const cachedFriend = this.cachedUsers.get(friend.id);
           if (cachedFriend) {
             this.friendsMap.set(friend.id, cachedFriend);
+          }
+          else {
+            console.log('Something went wrong in App.loadFriends()');
           }
         }
       });
@@ -78,8 +93,6 @@ const App = {
   },
 
   async loadBlockedUsers(): Promise<void> {
-    if (!this.me?.id) return;
-
     try {
       const response = await fetch('/user/blocked', {
         headers: {
@@ -92,28 +105,31 @@ const App = {
         return;
       }
 
-      const blocked: UserPublic[] = await response.json();
+      const blocked: string[] = await response.json();
 
-      this.cacheUsers(blocked);
+      const blockedToFetch = blocked.filter(b => !App.cachedUsers.has(b));
+      await this.fetchAndCacheUsers(blockedToFetch);
 
       this.blockedUsersMap.clear();
       blocked.forEach(enemy => {
-        if (enemy.id) {
-          const cachedBlocked = this.cachedUsers.get(enemy.id);
+        if (enemy) {
+          const cachedBlocked = this.cachedUsers.get(enemy);
           if (cachedBlocked) {
-            this.blockedUsersMap.set(enemy.id, cachedBlocked);
+            this.blockedUsersMap.set(enemy, cachedBlocked);
+          }
+          else {
+            console.log('Something went wrong in App.loadBlockedUsers()');
           }
         }
       });
 
-      console.log(`[App] Loaded ${blocked.length} blocked users`);
+      console.log(`[App] Loaded ${blocked.length} blocked users, map size: ${this.blockedUsersMap.size}`, Array.from(this.blockedUsersMap.entries()).map(([id, user]) => ({ id, name: user.name })));
     } catch (error) {
       console.error('[App] Failed to load blockeds:', error);
     }
 
   },
 
-  // Helper methods for common checks
   isFriend(userId: string): boolean {
     return this.friendsMap.has(userId);
   },
@@ -152,7 +168,7 @@ const App = {
   addToOnlineUsersMap(user: UserPublic): void {
     if (!user.id) return;
     this.cacheUser(user);
-    const cachedUser = this.onlineUsersMap.get(user.id);
+    const cachedUser = this.cachedUsers.get(user.id);
     if (cachedUser) {
       this.onlineUsersMap.set(user.id, cachedUser);
     }
@@ -233,10 +249,7 @@ const App = {
       // For returning users, we need to load friends and blocked users from API
       // since we don't have the full LoginResponse stored
       this.me = JSON.parse(currentUser);
-      await Promise.all([
-        this.loadFriends(),
-        this.loadBlockedUsers()
-      ]);
+      Social.init();
     }
     else
     {
@@ -417,7 +430,6 @@ const App = {
     this.me = loginResponse.user;
     sessionStorage.setItem('currentUser', JSON.stringify(loginResponse.user));
 
-    // Build maps from LoginResponse data (no additional API calls needed)
     this.buildMapsFromLoginResponse(loginResponse);
 
     this.updateNavbar();

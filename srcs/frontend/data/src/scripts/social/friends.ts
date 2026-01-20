@@ -1,58 +1,18 @@
-import { UserPublic, SocialEvent } from '../shared/types';
-import { socialClient } from './social-client';
-import { Router } from './router';
-import { App } from './app';
-import { Chat } from './chat';
-import { ProfileModal } from './profile-modal';
+import { UserPublic } from '../shared/types';
+import { App } from '../app';
+import { ProfileModal } from '../profile-modal';
+import * as SocialCommands from './social-commands';
 
 export const Friends = {
 
-  init(): void {
-    const token = sessionStorage.getItem('authToken');
-    if (!App.me || !token) {
-      console.log('Vous devez être connecté pour accéder à cette page');
-      Router.navigate('home')
-      return;
-    }
-    // When used standalone (not via Social wrapper)
-    this.setupSearchListeners();
-    socialClient.connect(token);
-    this.display();
+  async display(): Promise <void> {
+    await this.displaySearchResults();
+    await this.displayFriends();
+    this.attachDocumentListeners();
   },
 
-
-  display(): void {
-    const token = sessionStorage.getItem('authToken');
-    if (!App.me || !token) {
-      alert('Vous devez être connecté pour accéder à cette page');
-      Router.navigate('home')
-      return;
-    }
-    const friendsList = document.getElementById('friends-list');
-    const searchResults = document.getElementById('search-results');
-    if (!friendsList && !searchResults) {
-      console.log('[FRIENDS] Not on friends page, skipping display refresh');
-      return;
-    }
-    this.loadSearch();
-    this.displayFriends();
-  },
-
-
-  setupSearchListeners(): void {
-    const searchInput = document.getElementById('user-search-input') as HTMLInputElement;
-    const searchBtn = document.getElementById('user-search-btn');
-    searchBtn?.addEventListener('click', () => {
-      this.loadSearch();
-    });
-    searchInput?.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        this.loadSearch();
-      }
-    });
-  },
-
-async displayFriends(): Promise<void> {
+async displayFriends(): Promise<void>
+{
     const friendsList = document.getElementById('friends-list');
     const friendsCount = document.getElementById('friends-count');
     const emptyState = document.getElementById('friends-empty-state');
@@ -63,7 +23,6 @@ async displayFriends(): Promise<void> {
 
     const friends = Array.from(App.friendsMap.values());
     if (friends.length === 0) {
-      console.log('[FRIENDS] No friends to display');
       emptyState?.classList.remove('hidden');
       friendsList.innerHTML = '';
       if (friendsCount) {
@@ -71,50 +30,20 @@ async displayFriends(): Promise<void> {
       }
       return;
     }
-    console.log('[FRIENDS] Rendering', friends.length, 'friends');
     emptyState?.classList.add('hidden');
 
     friendsList.innerHTML = friends.map((friend: UserPublic) => this.createFriendUserCard(friend)).join('');
-    this.attachFriendActionListeners();
     if (friendsCount) {
       friendsCount.textContent = `${friends.length} ami${friends.length > 1 ? 's' : ''}`;
     }
   },
-
-  async loadSearch(): Promise<void> {
-    const searchInput = document.getElementById('user-search-input') as HTMLInputElement;
-    const query = searchInput?.value.trim() || '';
-    let   users: UserPublic[] | undefined;
-    if (query) {
-      try {
-        const token = sessionStorage.getItem('authToken');
-        if (!token) {
-          console.log('[FRIENDS] Fail to  get token');
-          return;
-        }
-        const url = `/user/find?name=${encodeURIComponent(query)}`;
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (!response.ok) {
-          throw new Error('Search failed');
-        }
-        users = await response.json() as UserPublic[];
-      } catch (error) {
-        console.error('[FRIENDS] Search error:', error);
-        console.log('Error searching users');
-      }
-    } else {
-      users = Array.from(App.onlineUsersMap.values());
-    }
-    this.displaySearchResults(users);
-  },
-
-  displaySearchResults(users: UserPublic[] | undefined): void {
+  
+  async displaySearchResults(): Promise<void>
+  {
     const resultsContainer = document.getElementById('search-results');
     const resultsList = document.getElementById('search-results-list');
+
+    const users = await this.loadSearch();
 
     if (!resultsContainer || !resultsList || !users) return;
 
@@ -128,28 +57,41 @@ async displayFriends(): Promise<void> {
       return;
     }
     resultsList.innerHTML = filteredUsers.map(user => this.createSearchUserCard(user)).join('');
-    this.attachSearchActionListeners();
     resultsContainer.classList.remove('hidden');
   },
-  
-  updateUserOnlineStatusCard(userId: string, status: 'online' | 'offline'): void {
-    const statusDots = document.querySelectorAll(`[data-user-id="${userId}"] .status-dot`);
-    statusDots.forEach(dot => {
-      if (status === 'online') {
-        dot.classList.remove('bg-neutral-500');
-        dot.classList.add('bg-green-500');
-      } else {
-        dot.classList.remove('bg-green-500');
-        dot.classList.add('bg-neutral-500');
+
+  async loadSearch(): Promise<UserPublic[] | undefined>
+  {
+    const searchInput = document.getElementById('user-search-input') as HTMLInputElement;
+    const query = searchInput?.value.trim() || '';
+    let   users: UserPublic[] | undefined;
+    if (query) {
+      try {
+        const token = sessionStorage.getItem('authToken');
+        if (!token) {
+          return [];
+        }
+        const url = `/user/find?name=${encodeURIComponent(query)}`;
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!response.ok) {
+          throw new Error('Search failed');
+        }
+        users = await response.json() as UserPublic[];
+      } catch (error) {
+        console.error('[FRIENDS] Search error:', error);
       }
-    });
-    const statusTexts = document.querySelectorAll(`[data-user-id="${userId}"] .status-text`);
-    statusTexts.forEach(text => {
-      text.textContent = status;
-    });
+    } else {
+      users = Array.from(App.onlineUsersMap.values());
+    }
+    return users;
   },
 
-  createSearchUserCard(user: UserPublic): string {
+  createSearchUserCard(user: UserPublic): string
+  {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
     const isOnline = App.onlineUsersMap.has(user.id);
     const onlineStatus = isOnline ? 'online' : 'offline';
@@ -179,7 +121,8 @@ async displayFriends(): Promise<void> {
     return card;
   },
 
-  createFriendUserCard(user: UserPublic): string {
+  createFriendUserCard(user: UserPublic): string
+  {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
     const isOnline = App.onlineUsersMap.has(user.id);
     const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
@@ -209,29 +152,24 @@ async displayFriends(): Promise<void> {
     return card;
   },
 
-  attachSearchActionListeners(): void {
+  attachDocumentListeners(): void
+  {
     document.querySelectorAll('.add_friend').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const target_id = (e.currentTarget as HTMLElement).getAttribute('data-user-id');
         if (target_id) await this.addFriend(target_id);
+        await this.display();
       });
     });
-    this.attachAvatarClickListeners();
-  },
-
-  attachFriendActionListeners(): void {
     document.querySelectorAll('.remove_friend').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const userId = (e.currentTarget as HTMLElement).getAttribute('data-user-id');
         if (userId) {
             await this.removeFriend(userId);
+        this.display();
         }
       });
     });
-    this.attachAvatarClickListeners();
-  },
-
-  attachAvatarClickListeners(): void {
     document.querySelectorAll('.avatar-clickable').forEach(avatar => {
       avatar.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -241,44 +179,21 @@ async displayFriends(): Promise<void> {
         }
       });
     });
+    const searchInput = document.getElementById('user-search-input') as HTMLInputElement;
+    const searchBtn = document.getElementById('user-search-btn');
+    searchBtn?.addEventListener('click', () => {
+      this.display();
+    });
+    searchInput?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        this.display();
+      }
+    });
   },
-
 
   async addFriend(targetId: string): Promise<void> {
     try {
-      const token = sessionStorage.getItem('authToken');
-      if (!token) {
-        console.log('Not authenticated');
-        return;
-      }
-
-      console.log('[FRIENDS] Adding friend:', targetId);
-      const response = await fetch('/user/addFriend', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ friendId: targetId })
-      });
-
-      console.log('[FRIENDS] Add friend response status:', response.status);
-
-      if (!response.ok) {
-        const result = await response.json();
-        console.error('[FRIENDS] Failed to add friend:', result);
-        alert(result.message || 'Failed to add friend');
-        return;
-      }
-
-      const result = await response.json();
-      console.log('[FRIENDS] Friend added successfully:', result);
-
-      // Update App maps if friend data is returned
-      if (result && result.id) {
-        App.addFriendToMaps(result as UserPublic);
-        this.display();
-      }
+      await SocialCommands.addFriend(targetId);
     } catch (error) {
       console.error('[FRIENDS] Error adding friend:', error);
       alert('Error adding friend');
@@ -287,36 +202,9 @@ async displayFriends(): Promise<void> {
 
   async removeFriend(friendId: string): Promise<void> {
     try {
-      const token = sessionStorage.getItem('authToken');
-      if (!token) {
-        console.log('Not authenticated');
-        return;
-      }
-
-      const response = await fetch('/user/rmFriend', {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ friendId })
-      });
-
-      if (!response.ok) {
-        const result = await response.json();
-        console.log(result.message || 'Failed to remove friend');
-        return;
-      }
-
-      const result = await response.json();
-      console.log('[FRIENDS] Friend removed successfully:', result);
-
-      // Update App maps
-      App.removeFriendFromMaps(friendId);
-      this.display();
+      await SocialCommands.removeFriend(friendId);
     } catch (error) {
       console.error('[FRIENDS] Error removing friend:', error);
-      console.log('Error removing friend');
     }
   },
 

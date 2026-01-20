@@ -32,7 +32,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     `
         CREATE TABLE IF NOT EXISTS channel (
             id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
+            name TEXT,
             type TEXT CHECK( type IN ('public','private') ) NOT NULL,
             created_by TEXT REFERENCES users(id),
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -385,7 +385,7 @@ export function getFriends( req: FastifyRequest, reply: FastifyReply )
     const { user_id } = req.query as any;
 
     if (!user_id) {
-        return [];
+        return reply.send([]);
     }
 
     // Get all friend IDs for the user
@@ -394,7 +394,7 @@ export function getFriends( req: FastifyRequest, reply: FastifyReply )
     ).all(user_id) as {friend_id: string}[];
 
     if (!friendIds || friendIds.length === 0) {
-        return [];
+        return reply.send([]);
     }
 
     // Get full user info for each friend
@@ -414,7 +414,7 @@ export function getFriends( req: FastifyRequest, reply: FastifyReply )
         return null;
     }).filter(f => f !== null);
 
-    return friends;
+    return reply.send(friends);
 }
 
 export function postFriend( req: FastifyRequest, reply: FastifyReply )

@@ -118,14 +118,27 @@ export type LoginResponse = Static<typeof LoginResponseSchema>;
 
 // WebSocket Social Event Types
 export const SocialEventTypeSchema = Type.Union([
+  // Server → Client events (broadcasts)
   Type.Literal('connected'),
-  Type.Literal('auth'),
-  Type.Literal('auth_success'),
-  Type.Literal('auth_failed'),
+  Type.Literal('users_online'),
   Type.Literal('user_online'),
   Type.Literal('user_offline'),
+  Type.Literal('user_update'),
+  Type.Literal('channel_update'),
   Type.Literal('message_new'),
+  Type.Literal('friend_add'),
+  Type.Literal('friend_remove'),
   Type.Literal('error'),
+  // Client → Server commands
+  Type.Literal('add_friend'),
+  Type.Literal('remove_friend'),
+  Type.Literal('send_message'),
+  Type.Literal('block_user'),
+  Type.Literal('unblock_user'),
+  Type.Literal('mark_read'),
+  // Server → Client command responses
+  Type.Literal('command_success'),
+  Type.Literal('command_error'),
 ]);
 export type SocialEventType = Static<typeof SocialEventTypeSchema>;
 
@@ -150,3 +163,51 @@ export const UserStatusDataSchema = Type.Object({
   status: Type.Union([Type.Literal('online'), Type.Literal('offline')]),
 });
 export type UserStatusData = Static<typeof UserStatusDataSchema>;
+
+// Command payloads (Client → Server)
+export const AddFriendCommandSchema = Type.Object({
+  friendId: Type.String(),
+  commandId: Type.Optional(Type.String()),
+});
+export type AddFriendCommand = Static<typeof AddFriendCommandSchema>;
+
+export const RemoveFriendCommandSchema = Type.Object({
+  friendId: Type.String(),
+  commandId: Type.Optional(Type.String()),
+});
+export type RemoveFriendCommand = Static<typeof RemoveFriendCommandSchema>;
+
+export const SendMessageCommandSchema = Type.Object({
+  channelId: Type.String(),
+  content: Type.String(),
+  commandId: Type.Optional(Type.String()),
+});
+export type SendMessageCommand = Static<typeof SendMessageCommandSchema>;
+
+export const BlockUserCommandSchema = Type.Object({
+  userId: Type.String(),
+  commandId: Type.Optional(Type.String()),
+});
+export type BlockUserCommand = Static<typeof BlockUserCommandSchema>;
+
+export const UnblockUserCommandSchema = Type.Object({
+  userId: Type.String(),
+  commandId: Type.Optional(Type.String()),
+});
+export type UnblockUserCommand = Static<typeof UnblockUserCommandSchema>;
+
+export const MarkReadCommandSchema = Type.Object({
+  channelId: Type.String(),
+  commandId: Type.Optional(Type.String()),
+});
+export type MarkReadCommand = Static<typeof MarkReadCommandSchema>;
+
+// Command response (Server → Client)
+export const CommandResponseSchema = Type.Object({
+  commandId: Type.Optional(Type.String()),
+  originalType: Type.String(),
+  success: Type.Boolean(),
+  message: Type.Optional(Type.String()),
+  data: Type.Optional(Type.Any()),
+});
+export type CommandResponse = Static<typeof CommandResponseSchema>;
