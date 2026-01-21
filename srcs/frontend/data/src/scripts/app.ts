@@ -219,6 +219,10 @@ const App = {
 
     this.appContainer = document.getElementById('app');
 
+    // Check if this is an OAuth callback (token in URL)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isOAuthCallback = urlParams.has('token');
+
     await this.wasIAlreadyLogged();
 
     // Load auth modal
@@ -229,9 +233,13 @@ const App = {
     Accessibility.init();
     I18n.refresh();
 
-    // Load intro animation
+    // Load intro animation (skip if OAuth callback)
     await this.loadIntro();
-    Intro.init();
+    if (isOAuthCallback) {
+      Intro.hide();
+    } else {
+      Intro.init();
+    }
 
     AuthModal.init();
     AuthModal.onLoginSuccess = async (loginResponse: LoginResponse) => await this.onLogin(loginResponse);

@@ -13,8 +13,9 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL UNIQUE,
             email TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            avatar TEXT
+            password_hash TEXT DEFAULT NULL,
+            avatar TEXT,
+            ft_id TEXT UNIQUE DEFAULT NULL
         );
     `).run();
     db.prepare(
@@ -120,7 +121,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
 }
 export function getUser(req, reply): User[] {
     // Accept both querystring (preferred) and path params as input filters
-    const query = (req.query || req.params || {}) as User;
+    const query = (req.query || req.params || {}) as User & { ft_id?: string };
 
     const conditions: string[] = [];
     const values: Array<string> = [];
@@ -137,11 +138,15 @@ export function getUser(req, reply): User[] {
         conditions.push('name = ?');
         values.push(query.name);
     }
+    if (query.ft_id) {
+        conditions.push('ft_id = ?');
+        values.push(query.ft_id);
+    }
 
     const whereClause = conditions.length ? conditions.join(' AND ') : '1=1';
 
     const users = db.prepare(
-        `SELECT id, name, email, avatar FROM users WHERE ${whereClause}`
+        `SELECT id, name, email, avatar, ft_id FROM users WHERE ${whereClause}`
     ).all(...values) as User[];
 
     return users;
@@ -167,6 +172,10 @@ export function updateUser(req, reply): boolean | string {
         fields.push('password_hash = ?');
         values.push(req.body.password);
     }
+    if (req.body.ft_id !== undefined) {
+        fields.push('ft_id = ?');
+        values.push(req.body.ft_id);
+    }
 
     if (fields.length === 0) {
         return "no fields to update";
@@ -184,8 +193,15 @@ export function updateUser(req, reply): boolean | string {
 }
 
 export function createUser(req, reply): string | null {
-    const request = db.prepare('INSERT INTO users (id, name, email, password_hash, avatar) VALUES (?, ?, ?, ?, ?)');
-    const result = request.run(req.body.id, req.body.name, req.body.email, req.body.password, req.body.avatar);
+    const request = db.prepare('INSERT INTO users (id, name, email, password_hash, avatar, ft_id) VALUES (?, ?, ?, ?, ?, ?)');
+    const result = request.run(
+        req.body.id,
+        req.body.name,
+        req.body.email,
+        req.body.password || null,  // Allow null password for OAuth users
+        req.body.avatar,
+        req.body.ft_id || null
+    );
     if (result.changes === 0)
         return null;
     return req.body.id;

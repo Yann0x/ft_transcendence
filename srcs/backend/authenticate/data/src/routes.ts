@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify'
-import { buildCheckJwtHandler, buildGetJwtHandler, hashPassword, validHashPassword } from './authenticate_methods'
+import { buildCheckJwtHandler, buildGetJwtHandler, hashPassword, validHashPassword, buildOAuth42UrlHandler, buildOAuth42CallbackHandler } from './authenticate_methods'
 import { ErrorResponseSchema, UserSchema } from './shared/with_front/types'
 import { Type } from '@sinclair/typebox'
 
@@ -66,4 +66,8 @@ export function authenticateRoutes(server: FastifyInstance) {
   server.post('/check_jwt', checkJwtSchema, buildCheckJwtHandler(server))
   server.post('/hash_pass', hashPassSchema, hashPassword(server))
   server.post('/check_pass_match', checkPassSchema, validHashPassword(server))
+
+  // OAuth 2.0 with 42 API
+  server.get('/authenticate/oauth/42', buildOAuth42UrlHandler(server))
+  server.get('/authenticate/oauth/42/callback', buildOAuth42CallbackHandler(server))
 }
