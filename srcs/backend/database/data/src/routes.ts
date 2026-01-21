@@ -131,7 +131,13 @@ const dbPostMessageSchema = {
 
 const dbPutMessageSchema = {
   schema: {
-    body: MessageSchema,
+    body: Type.Object({
+      id: Type.Number(),
+      content: Type.Optional(Type.String()),
+      read_at: Type.Optional(Type.String()),
+      type: Type.Optional(Type.String()),
+      metadata: Type.Optional(Type.String())
+    }),
     response: {
       200: Type.Pick(MessageSchema, ['id'])
     },
