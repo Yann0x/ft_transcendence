@@ -22,11 +22,12 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     `
         CREATE TABLE IF NOT EXISTS match (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tournament_id REFERENCES tournament(id) DEFAULT NULL,
+            tournament_id TEXT DEFAULT NULL,
             score1 INTEGER,
             score2 INTEGER,
-            player1_id REFERENCES users(id),
-            player2_id REFERENCES users(id)
+            player1_id TEXT REFERENCES users(id),
+            player2_id TEXT REFERENCES users(id),
+            played_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     `).run();
     db.prepare(
@@ -659,6 +660,121 @@ export function postGameInvitation(req: FastifyRequest, reply: FastifyReply) {
     } catch (error: any) {
         console.error('[DATABASE] postGameInvitation error:', error);
         return reply.status(500).send({ error: 'Failed to create game invitation' });
+    }
+}
+
+export function postMatch(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const {
+            player1_id,
+            player2_id,
+            score1,
+            score2,
+            tournament_id
+        } = req.body as {
+            player1_id: string;
+            player2_id: string;
+            score1: number;
+            score2: number;
+            tournament_id?: string;
+        };
+
+        if (!player1_id || !player2_id || score1 === undefined || score2 === undefined) {
+            return reply.status(400).send({ error: 'player1_id, player2_id, score1, and score2 are required' });
+        }
+
+        const stmt = db.prepare(`
+            INSERT INTO match (player1_id, player2_id, score1, score2, tournament_id)
+            VALUES (?, ?, ?, ?, ?)
+        `);
+
+        const result = stmt.run(
+            player1_id,
+            player2_id,
+            score1,
+            score2,
+            tournament_id || null
+        );
+
+        console.log(`[DATABASE] Match created: ${player1_id} vs ${player2_id}, score: ${score1}-${score2}`);
+        return reply.status(200).send({ id: result.lastInsertRowid });
+    } catch (error: any) {
+        console.error('[DATABASE] postMatch error:', error);
+        return reply.status(500).send({ error: 'Failed to create match' });
+    }
+}
+
+export function getUserStats(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const { user_id } = req.query as { user_id: string };
+
+        if (!user_id) {
+            return reply.status(400).send({ error: 'user_id is required' });
+        }
+
+        // Count games played (as player1 or player2)
+        const gamesPlayedResult = db.prepare(`
+            SELECT COUNT(*) as count FROM match 
+            WHERE player1_id = ? OR player2_id = ?
+        `).get(user_id, user_id) as { count: number };
+
+        // Count games won
+        const gamesWonResult = db.prepare(`
+            SELECT COUNT(*) as count FROM match 
+            WHERE (player1_id = ? AND score1 > score2) 
+               OR (player2_id = ? AND score2 > score1)
+        `).get(user_id, user_id) as { count: number };
+
+        const games_played = gamesPlayedResult.count;
+        const games_won = gamesWonResult.count;
+        const games_lost = games_played - games_won;
+        const win_rate = games_played > 0 ? Math.round((games_won / games_played) * 100) : 0;
+
+        return reply.status(200).send({
+            user_id,
+            games_played,
+            games_won,
+            games_lost,
+            win_rate
+        });
+    } catch (error: any) {
+        console.error('[DATABASE] getUserStats error:', error);
+        return reply.status(500).send({ error: 'Failed to get user stats' });
+    }
+}
+
+export function getMatchHistory(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const { user_id, limit } = req.query as { user_id: string; limit?: string };
+
+        if (!user_id) {
+            return reply.status(400).send({ error: 'user_id is required' });
+        }
+
+        const maxResults = limit ? parseInt(limit, 10) : 20;
+
+        const matches = db.prepare(`
+            SELECT 
+                m.id,
+                m.player1_id,
+                m.player2_id,
+                m.score1,
+                m.score2,
+                m.tournament_id,
+                u1.name as player1_name,
+                u2.name as player2_name
+            FROM match m
+            LEFT JOIN users u1 ON m.player1_id = u1.id
+            LEFT JOIN users u2 ON m.player2_id = u2.id
+            WHERE m.player1_id = ? OR m.player2_id = ?
+            ORDER BY m.id DESC
+            LIMIT ?
+        `).all(user_id, user_id, maxResults);
+
+        return reply.status(200).send(matches);
+    } catch (error: any) {
+        console.error('[DATABASE] getMatchHistory error:', error);
+        return reply.status(500).send({ error: 'Failed to get match history' });
     }
 }
 

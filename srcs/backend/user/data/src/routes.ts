@@ -221,4 +221,10 @@ export function userRoutes(server: FastifyInstance) {
   server.delete('/user/unblock', handlers.unblockUserHandler);
   server.get('/user/blocked', handlers.getBlockedUsersHandler);
   server.get('/user/:userId/blocked-users', handlers.getBlockedUsersByIdHandler);
+
+  // Stats and match history endpoints
+  server.get('/user/stats', handlers.getUserStatsHandler);
+  server.get('/user/:userId/stats', handlers.getUserStatsHandler);
+  server.get('/user/match-history', handlers.getMatchHistoryHandler);
+  server.get('/user/:userId/match-history', handlers.getMatchHistoryHandler);
 }

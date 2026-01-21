@@ -9,6 +9,7 @@ import { bindKeyboard, unbindKeyboard, getInput, getInputP1, getInputP2 } from '
 import { Network, type AIDifficulty, type TournamentMatchInfo } from './network';
 import Router from '../scripts/router';
 import { I18n } from '../scripts/i18n';
+import { StatsService } from '../scripts/stats-service';
 
 let running = false;
 let lastInputSent = { up: false, down: false };
@@ -102,6 +103,9 @@ export function init(): void {
     }
   }
 
+  // Load user stats for the home page
+  loadHomeStats();
+
   // Default: auto-connect in solo mode (normal)
   gameMode = 'solo';
   localMode = false;
@@ -114,6 +118,14 @@ export function init(): void {
 
   running = true;
   requestAnimationFrame(gameLoop);
+}
+
+/**
+ * Load and display user stats on the home page
+ */
+async function loadHomeStats(): Promise<void> {
+  const stats = await StatsService.fetchStats();
+  StatsService.updateHomeStats(stats);
 }
 
 export function cleanup(): void {

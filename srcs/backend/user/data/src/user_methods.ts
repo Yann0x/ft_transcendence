@@ -1,6 +1,6 @@
 import { FastifyReply, FastifyRequest } from "fastify";
 import { randomUUID } from "crypto";
-import { User, UserPublic, Message, LoginResponse } from "./shared/with_front/types";
+import { User, UserPublic, Message, LoginResponse, Stats } from "./shared/with_front/types";
 import customFetch from "./shared/utils/fetch";
 import { userManager } from "./user_manager.js";
 
@@ -8,13 +8,36 @@ async function fillUser(user : User): Promise<User>
 {
       user.tournaments = [];
       user.matches = [];
-      user.stats = {
-        user_id: user.id!,
-        games_played: 0,
-        games_won: 0,
-        games_lost: 0,
-        win_rate: 0
-      };
+      
+      // Fetch real stats from database
+      try {
+        const statsResponse = await customFetch(
+          `http://database:3000/database/stats?user_id=${user.id}`,
+          { method: 'GET' }
+        );
+        
+        if (statsResponse && !statsResponse.error) {
+          user.stats = statsResponse as Stats;
+        } else {
+          // Fallback to zero stats if fetch fails
+          user.stats = {
+            user_id: user.id!,
+            games_played: 0,
+            games_won: 0,
+            games_lost: 0,
+            win_rate: 0
+          };
+        }
+      } catch (error) {
+        console.error('[USER] Failed to fetch stats for user:', user.id, error);
+        user.stats = {
+          user_id: user.id!,
+          games_played: 0,
+          games_won: 0,
+          games_lost: 0,
+          win_rate: 0
+        };
+      }
 
       return user;
 }
@@ -857,5 +880,53 @@ export async function getUserChannels(request: FastifyRequest, reply: FastifyRep
   } catch (error: any) {
     console.error('[USER] getUserChannels error:', error);
     return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to load channels' });
+  }
+}
+
+export async function getUserStatsHandler(request: FastifyRequest, reply: FastifyReply) {
+  const userId = request.headers['x-sender-id'] as string;
+  const { userId: targetUserId } = request.params as { userId?: string };
+  
+  const userIdToFetch = targetUserId || userId;
+  
+  if (!userIdToFetch) {
+    return reply.status(400).send({ error: 'Bad Request', message: 'User ID required' });
+  }
+
+  try {
+    const stats = await customFetch(
+      `http://database:3000/database/stats?user_id=${userIdToFetch}`,
+      'GET'
+    );
+
+    return reply.send(stats);
+  } catch (error: any) {
+    console.error('[USER] getUserStats error:', error);
+    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to load stats' });
+  }
+}
+
+export async function getMatchHistoryHandler(request: FastifyRequest, reply: FastifyReply) {
+  const userId = request.headers['x-sender-id'] as string;
+  const { userId: targetUserId } = request.params as { userId?: string };
+  const { limit } = request.query as { limit?: string };
+  
+  const userIdToFetch = targetUserId || userId;
+  
+  if (!userIdToFetch) {
+    return reply.status(400).send({ error: 'Bad Request', message: 'User ID required' });
+  }
+
+  try {
+    const limitParam = limit ? `&limit=${limit}` : '';
+    const matches = await customFetch(
+      `http://database:3000/database/match_history?user_id=${userIdToFetch}${limitParam}`,
+      'GET'
+    );
+
+    return reply.send(matches);
+  } catch (error: any) {
+    console.error('[USER] getMatchHistory error:', error);
+    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to load match history' });
   }
 }

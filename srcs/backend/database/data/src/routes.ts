@@ -196,4 +196,11 @@ export function databaseRoutes(server: FastifyInstance) {
   server.post('/database/game_invitation', db.postGameInvitation)
 
   server.put('/database/game_invitation', db.putGameInvitation)
+
+  // Match & Stats endpoints
+  server.post('/database/match', db.postMatch)
+
+  server.get('/database/stats', db.getUserStats)
+
+  server.get('/database/match_history', db.getMatchHistory)
 }
