@@ -14,19 +14,19 @@
     <!-- Global Stats -->
     <div class="grid grid-cols-4 gap-4 mb-8">
       <div class="stat-card">
-        <div class="stat-value text-blue-400">-</div>
+        <div class="stat-value text-blue-400" id="stat-games-played">-</div>
         <div class="stat-label" data-i18n="stats.games_played">Parties jouées</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value text-emerald-400">-</div>
+        <div class="stat-value text-emerald-400" id="stat-win-rate">-</div>
         <div class="stat-label" data-i18n="stats.win_rate">Taux de victoire</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value text-amber-400">-</div>
+        <div class="stat-value text-amber-400" id="stat-global-rank">-</div>
         <div class="stat-label" data-i18n="stats.global_rank">Classement global</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value text-purple-400">-</div>
+        <div class="stat-value text-purple-400" id="stat-tournaments-won">-</div>
         <div class="stat-label" data-i18n="stats.tournaments_won">Tournois gagnés</div>
       </div>
     </div>
@@ -35,51 +35,51 @@
     <div class="grid grid-cols-2 gap-6 mb-8">
       
       <!-- Games Stats -->
-      <div class="card">
+      <div class="card" id="game-stats-card">
         <div class="card-header">
           <h3 class="text-lg font-bold" data-i18n="stats.game_stats_title">Statistiques de jeu</h3>
         </div>
         <div class="card-body p-6 space-y-4">
           <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
             <span class="text-neutral-400" data-i18n="stats.wins">Victoires</span>
-            <span class="font-bold text-emerald-400">-</span>
+            <span class="font-bold text-emerald-400" id="stat-wins">-</span>
           </div>
           <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
             <span class="text-neutral-400" data-i18n="stats.losses">Défaites</span>
-            <span class="font-bold text-red-400">-</span>
+            <span class="font-bold text-red-400" id="stat-losses">-</span>
           </div>
           <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
             <span class="text-neutral-400" data-i18n="stats.points_scored">Points marqués</span>
-            <span class="font-bold">-</span>
+            <span class="font-bold" id="stat-points-scored">-</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-neutral-400" data-i18n="stats.points_allowed">Points encaissés</span>
-            <span class="font-bold">-</span>
+            <span class="font-bold" id="stat-points-allowed">-</span>
           </div>
         </div>
       </div>
 
       <!-- Performance Stats -->
-      <div class="card">
+      <div class="card" id="performance-stats-card">
         <div class="card-header">
           <h3 class="text-lg font-bold" data-i18n="stats.performance_title">Performances</h3>
         </div>
         <div class="card-body p-6 space-y-4">
           <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
             <span class="text-neutral-400" data-i18n="stats.best_score">Meilleur score</span>
-            <span class="font-bold text-purple-400">-</span>
+            <span class="font-bold text-purple-400" id="stat-best-score">-</span>
           </div>
           <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
             <span class="text-neutral-400" data-i18n="stats.worst_score">Pire score</span>
-            <span class="font-bold text-red-400">-</span>
+            <span class="font-bold text-red-400" id="stat-worst-score">-</span>
           </div>
           <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
             <span class="text-neutral-400" data-i18n="stats.streak">Série de victoires</span>
-            <span class="font-bold text-emerald-400">-</span>
+            <span class="font-bold text-emerald-400" id="stat-win-streak">-</span>
           </div>
           <div class="flex justify-between items-center">
             <span class="text-neutral-400" data-i18n="stats.elo">ELO</span>
-            <span class="font-bold text-amber-400">-</span>
+            <span class="font-bold text-amber-400" id="stat-elo">-</span>
           </div>
         </div>
       </div>

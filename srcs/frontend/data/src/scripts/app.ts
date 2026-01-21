@@ -14,6 +14,7 @@ import { I18n } from './i18n'
 import { Accessibility } from './accessibility'
 import { PongGame } from '../game'
 import { Tournaments } from './tournaments'
+import { Stats } from './stats'
 
 /**
  * Application principale
@@ -338,6 +339,9 @@ const App = {
         break
       case "tournaments":
         Tournaments.init();
+        break
+      case "stats":
+        Stats.init();
         break
     }
   },

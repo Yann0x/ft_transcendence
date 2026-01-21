@@ -6,6 +6,7 @@ import { User } from '../shared/types';
 import { App } from './app';
 import { Router } from './router';
 import * as SocialCommands from './social/social-commands';
+import { StatsService } from './stats-service';
 
 export const ProfileModal = {
   modal: null as HTMLElement | null,
@@ -75,7 +76,7 @@ export const ProfileModal = {
       const user = users[0] as User;
 
       // Populate and show modal
-      this.populateProfile(user);
+      await this.populateProfile(user);
       this.setupActionButtons(user);
       this.modal.classList.remove('hidden');
 
@@ -87,16 +88,11 @@ export const ProfileModal = {
   /**
    * Populate modal with user data
    */
-  populateProfile(user: User): void {
+  async populateProfile(user: User): Promise<void> {
     const avatarEl = document.getElementById('profile-avatar') as HTMLImageElement;
     const nameEl = document.getElementById('profile-name');
     const statusEl = document.getElementById('profile-status');
     const statusDot = document.getElementById('profile-status-dot');
-
-    const gamesPlayedEl = document.getElementById('profile-games-played');
-    const winRateEl = document.getElementById('profile-win-rate');
-    const gamesWonEl = document.getElementById('profile-games-won');
-    const gamesLostEl = document.getElementById('profile-games-lost');
 
     // Set avatar
     if (avatarEl) {
@@ -120,20 +116,9 @@ export const ProfileModal = {
         : 'absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-neutral-900 bg-neutral-500';
     }
 
-    // Set stats
-    const stats = user.stats;
-    if (gamesPlayedEl) {
-      gamesPlayedEl.textContent = String(stats?.games_played ?? 0);
-    }
-    if (winRateEl) {
-      winRateEl.textContent = `${Math.round(stats?.win_rate ?? 0)}%`;
-    }
-    if (gamesWonEl) {
-      gamesWonEl.textContent = String(stats?.games_won ?? 0);
-    }
-    if (gamesLostEl) {
-      gamesLostEl.textContent = String(stats?.games_lost ?? 0);
-    }
+    // Fetch fresh stats from API
+    const stats = await StatsService.fetchStats(user.id);
+    StatsService.updateProfileStats(stats);
   },
 
   /**

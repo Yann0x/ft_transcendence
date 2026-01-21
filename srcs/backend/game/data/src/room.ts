@@ -415,6 +415,80 @@ export function startGameLoop(room: Room): void {
         }).catch(err => {
           console.error('[ROOM] Failed to notify invitation completion:', err);
         });
+
+        // Save match to database for stats tracking
+        fetch('http://database:3000/database/match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            player1_id: inviterId,
+            player2_id: invitedId,
+            score1: score.left,
+            score2: score.right
+          })
+        }).then(res => {
+          if (res.ok) {
+            console.log(`[ROOM] Match saved to database: ${inviterId} vs ${invitedId}`);
+          } else {
+            console.error('[ROOM] Failed to save match to database:', res.status);
+          }
+        }).catch(err => {
+          console.error('[ROOM] Failed to save match to database:', err);
+        });
+      }
+
+      // Save PvP matches (non-invitation, non-tournament) to database
+      if (room.isPvP && !room.invitationInfo && !room.tournamentInfo && room.players.length === 2) {
+        const player1 = room.players.find(p => p.side === 'left');
+        const player2 = room.players.find(p => p.side === 'right');
+        
+        if (player1 && player2) {
+          const { score } = room.state;
+          fetch('http://database:3000/database/match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              player1_id: player1.id,
+              player2_id: player2.id,
+              score1: score.left,
+              score2: score.right
+            })
+          }).then(res => {
+            if (res.ok) {
+              console.log(`[ROOM] PvP match saved: ${player1.id} vs ${player2.id}`);
+            } else {
+              console.error('[ROOM] Failed to save PvP match:', res.status);
+            }
+          }).catch(err => {
+            console.error('[ROOM] Failed to save PvP match:', err);
+          });
+        }
+      }
+
+      // Save AI (solo) matches to database
+      if (room.ai && room.players.length === 1) {
+        const player = room.players[0];
+        const { score } = room.state;
+        const aiPlayerId = `AI_${room.aiDifficulty}`; // e.g., "AI_easy", "AI_normal", "AI_hard"
+        
+        fetch('http://database:3000/database/match', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            player1_id: player.id,
+            player2_id: aiPlayerId,
+            score1: score.left,
+            score2: score.right
+          })
+        }).then(res => {
+          if (res.ok) {
+            console.log(`[ROOM] AI match saved: ${player.id} vs ${aiPlayerId}, score: ${score.left}-${score.right}`);
+          } else {
+            console.error('[ROOM] Failed to save AI match:', res.status);
+          }
+        }).catch(err => {
+          console.error('[ROOM] Failed to save AI match:', err);
+        });
       }
     }
   }, TICK_INTERVAL);
