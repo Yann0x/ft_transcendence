@@ -13,7 +13,7 @@ import { I18n } from '../scripts/i18n';
 let running = false;
 let lastInputSent = { up: false, down: false };
 let lastInputSentP2 = { up: false, down: false };
-let gameMode: 'solo' | 'pvp' | 'tournament' | null = null;
+let gameMode: 'solo' | 'pvp' | 'tournament' | 'invitation' | null = null;
 let localMode = false; // true = PvP local (2 joueurs meme clavier), false = vs AI
 let currentDifficulty: AIDifficulty = 'normal';
 let pollInterval: number | null = null;
@@ -39,11 +39,37 @@ export function init(): void {
   bindKeys();
   bindModeButtons();
 
+  // Check for game invitation mode
+  const invitationData = sessionStorage.getItem('game_invitation');
+  if (invitationData) {
+    try {
+      const { invitationId, gameRoomId } = JSON.parse(invitationData);
+      gameMode = 'invitation';
+      localMode = false;
+
+      clearModeSelection();
+      setOnlineStatus(true);
+
+      connectToInvitationGame(invitationId, gameRoomId);
+      sessionStorage.removeItem('game_invitation');
+
+      pollPvPStats();
+      pollInterval = window.setInterval(pollPvPStats, 3000);
+
+      running = true;
+      requestAnimationFrame(gameLoop);
+      return;
+    } catch (e) {
+      console.error('[GAME] Invalid invitation data:', e);
+      sessionStorage.removeItem('game_invitation');
+    }
+  }
+
   // Check for tournament mode in URL
   const urlParams = new URLSearchParams(window.location.search);
   const tournamentId = urlParams.get('tournament');
   const matchId = urlParams.get('match');
-  
+
   if (tournamentId && matchId) {
     // Tournament mode - get match info from session storage
     const savedMatchInfo = sessionStorage.getItem('tournament_match');
@@ -53,19 +79,19 @@ export function init(): void {
         if (tournamentMatchInfo) {
           gameMode = 'tournament';
           localMode = false;
-          
+
           // Clear mode button selection for tournament mode
           clearModeSelection();
-          
+
           // Set online status for tournament mode (like PvP)
           setOnlineStatus(true);
-          
+
           connectToServerTournament(tournamentMatchInfo);
-          
+
           // Start polling PvP stats
           pollPvPStats();
           pollInterval = window.setInterval(pollPvPStats, 3000);
-          
+
           running = true;
           requestAnimationFrame(gameLoop);
           return;
@@ -374,6 +400,43 @@ async function connectToServerTournament(matchInfo: TournamentMatchInfo): Promis
       sessionStorage.setItem('view_tournament_after_match', tournamentMatchInfo.tournamentId);
     }
     Router.navigate('/tournaments');
+  }
+}
+
+async function connectToInvitationGame(invitationId: string, gameRoomId: string): Promise<void> {
+  try {
+    isChangingMode = true;
+
+    // Register callbacks BEFORE connecting
+    Network.onStateUpdate((data) => {
+      applyServerState(data as ServerState);
+
+      // Check if game ended - redirect to social hub
+      const serverState = data as ServerState;
+      if (serverState.phase === 'ended') {
+        setTimeout(() => {
+          Router.navigate('/social_hub');
+        }, 3000);
+      }
+    });
+
+    Network.onDisconnected(() => {
+      if (!isChangingMode) {
+        gameMode = null;
+        setPhase('waiting');
+        Router.navigate('/social_hub');
+      }
+    });
+
+    // Connect with invitation parameters
+    await Network.connectInvitation(invitationId, gameRoomId);
+    isChangingMode = false;
+    setPhase('waiting');
+  } catch (err) {
+    console.error('[GAME] Invitation connection failed:', err);
+    isChangingMode = false;
+    gameMode = null;
+    Router.navigate('/social_hub');
   }
 }
 

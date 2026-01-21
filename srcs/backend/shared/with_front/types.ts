@@ -81,11 +81,50 @@ export const StatsSchema = Type.Object({
 })
 export type Stats = Static<typeof StatsSchema>;
 
+// Message type enum
+export const MessageTypeSchema = Type.Union([
+  Type.Literal('text'),
+  Type.Literal('game_invitation'),
+  Type.Literal('game_result')
+]);
+export type MessageType = Static<typeof MessageTypeSchema>;
+
+// Game invitation metadata
+export const GameInvitationDataSchema = Type.Object({
+  invitationId: Type.String(),
+  inviterId: Type.String(),
+  invitedId: Type.String(),
+  status: Type.Union([
+    Type.Literal('pending'),
+    Type.Literal('accepted'),
+    Type.Literal('declined'),
+    Type.Literal('expired')
+  ]),
+  gameRoomId: Type.Optional(Type.String()),
+  expiresAt: Type.String({ format: 'date-time' }),
+  createdAt: Type.String({ format: 'date-time' })
+});
+export type GameInvitationData = Static<typeof GameInvitationDataSchema>;
+
+// Game result metadata
+export const GameResultDataSchema = Type.Object({
+  invitationId: Type.String(),
+  matchId: Type.Optional(Type.String()),
+  winnerId: Type.String(),
+  loserId: Type.String(),
+  score1: Type.Number(),
+  score2: Type.Number(),
+  completedAt: Type.String({ format: 'date-time' })
+});
+export type GameResultData = Static<typeof GameResultDataSchema>;
+
 export const MessageSchema = Type.Object({
   id:           Type.Number(),
   channel_id:   Type.String(),
   sender_id:    Type.String(),
   content:      Type.String(),
+  type:         Type.Optional(MessageTypeSchema), // Default: 'text'
+  metadata:     Type.Optional(Type.Any()),        // JSON metadata for special types
   sent_at:      Type.String({ format: 'date-time' }),
   read_at:      Type.Optional(Type.Union([Type.String({ format: 'date-time' }), Type.Null()])),
 })
@@ -180,6 +219,12 @@ export const SocialEventTypeSchema = Type.Union([
   Type.Literal('block_user'),
   Type.Literal('unblock_user'),
   Type.Literal('mark_read'),
+  // Game invitation commands
+  Type.Literal('game_invitation_send'),
+  Type.Literal('game_invitation_accept'),
+  Type.Literal('game_invitation_decline'),
+  Type.Literal('game_invitation_update'),
+  Type.Literal('game_result_update'),
   // Server → Client command responses
   Type.Literal('command_success'),
   Type.Literal('command_error'),
@@ -245,6 +290,21 @@ export const MarkReadCommandSchema = Type.Object({
   commandId: Type.Optional(Type.String()),
 });
 export type MarkReadCommand = Static<typeof MarkReadCommandSchema>;
+
+// Game invitation commands
+export const SendGameInvitationCommandSchema = Type.Object({
+  channelId: Type.String(),
+  invitedUserId: Type.String(),
+  commandId: Type.Optional(Type.String()),
+});
+export type SendGameInvitationCommand = Static<typeof SendGameInvitationCommandSchema>;
+
+export const RespondGameInvitationCommandSchema = Type.Object({
+  invitationId: Type.String(),
+  accept: Type.Boolean(),
+  commandId: Type.Optional(Type.String()),
+});
+export type RespondGameInvitationCommand = Static<typeof RespondGameInvitationCommandSchema>;
 
 // Command response (Server → Client)
 export const CommandResponseSchema = Type.Object({

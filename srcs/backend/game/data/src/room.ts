@@ -20,6 +20,12 @@ export interface TournamentInfo {
   lastScore: { left: number; right: number };
 }
 
+export interface InvitationInfo {
+  invitationId: string;
+  inviterId: string;    // User ID of inviter (left player)
+  invitedId: string;    // User ID of invited player (right player)
+}
+
 export interface Room {
   id: string;
   players: Player[];
@@ -30,6 +36,7 @@ export interface Room {
   allowAI: boolean;
   aiDifficulty: AIDifficulty;
   tournamentInfo?: TournamentInfo; // Set if this is a tournament match
+  invitationInfo?: InvitationInfo; // Set if this is an invitation match
 }
 
 export interface TournamentCallbacks {
@@ -46,6 +53,7 @@ export function setTournamentCallbacks(callbacks: TournamentCallbacks): void {
 
 const rooms = new Map<string, Room>();
 const tournamentRooms = new Map<string, Room>(); // matchId -> Room for tournament matches
+const invitationRooms = new Map<string, Room>(); // invitationId -> Room for invitation matches
 let roomCounter = 0;
 
 export function createRoom(isPvP: boolean = false, allowAI: boolean = true, aiDifficulty: AIDifficulty = 'hard'): Room {
@@ -118,6 +126,44 @@ export function createTournamentRoom(
   return room;
 }
 
+/**
+ * Create a room for a game invitation
+ */
+export function createInvitationRoom(
+  invitationId: string,
+  inviterId: string,
+  invitedId: string
+): Room {
+  const id = `invitation_${invitationId}`;
+  const room: Room = {
+    id,
+    players: [],
+    state: createGameState(),
+    intervalId: null,
+    ai: null,
+    isPvP: true,
+    allowAI: false,
+    aiDifficulty: 'hard',
+    invitationInfo: {
+      invitationId,
+      inviterId,
+      invitedId
+    }
+  };
+
+  rooms.set(id, room);
+  invitationRooms.set(invitationId, room);
+  console.log(`[INVITATION] Created room ${id} for invitation ${invitationId}: ${inviterId} vs ${invitedId}`);
+  return room;
+}
+
+/**
+ * Get invitation room by invitation ID
+ */
+export function getInvitationRoom(invitationId: string): Room | undefined {
+  return invitationRooms.get(invitationId);
+}
+
 export function addPlayer(room: Room, socket: WebSocket, playerId: string, tournamentPlayerId?: string): Player | null {
   // Check if this player is already in the room (prevent duplicate joins)
   if (room.tournamentInfo && tournamentPlayerId) {
@@ -128,6 +174,38 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
       existingPlayer.socket = socket;
       return existingPlayer;
     }
+  }
+
+
+  // Verify invitation player authorization
+  if (room.invitationInfo) {
+    const { inviterId, invitedId } = room.invitationInfo;
+    if (playerId !== inviterId && playerId !== invitedId) {
+      console.log(`[ROOM] Rejected ${playerId} - not authorized for this invitation match (expected: ${inviterId} or ${invitedId})`);
+      return null;
+    }
+
+    // Prevent duplicate join
+    if (room.players.some(p => p.id === playerId)) {
+      console.log(`[ROOM] Player ${playerId} already in room ${room.id}, updating socket`);
+      room.players.find(p => p.id === playerId)!.socket = socket;
+      return room.players.find(p => p.id === playerId)!;
+    }
+
+    let side: 'left' | 'right';
+    if (playerId === inviterId) side = 'left';
+    else side = 'right';
+
+    if (room.players.some(p => p.side === side)) {
+      console.log(`[ROOM] Side ${side} already taken in room ${room.id}`);
+      return null;
+    }
+
+    const player: Player = { id: playerId, socket, side };
+    room.players.push(player);
+    console.log(`[ROOM] ${playerId} joined ${room.id} as ${side}`);
+    // ...rest of your logic...
+    return player;
   }
 
   if (room.players.length >= 2) return null;
@@ -142,12 +220,12 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
     // Allow if this player ID matches either slot, or if the slot is empty (will be filled)
     const isPlayer1 = tournamentPlayerId === player1Id || (player1Id === '' && player2Id !== tournamentPlayerId);
     const isPlayer2 = tournamentPlayerId === player2Id || (player2Id === '' && player1Id !== tournamentPlayerId);
-    
+
     if (!isPlayer1 && !isPlayer2) {
       console.log(`[ROOM] Rejected ${playerId} - not authorized for this tournament match (expected: ${player1Id} or ${player2Id}, got: ${tournamentPlayerId})`);
       return null;
     }
-    
+
     // Fill in empty slot if needed
     if (isPlayer1 && player1Id === '') {
       room.tournamentInfo.player1Id = tournamentPlayerId;
@@ -196,6 +274,9 @@ export function removePlayer(room: Room, playerId: string): void {
     rooms.delete(room.id);
     if (room.tournamentInfo) {
       tournamentRooms.delete(room.tournamentInfo.matchId);
+    }
+    if (room.invitationInfo) {
+      invitationRooms.delete(room.invitationInfo.invitationId);
     }
     console.log(`[ROOM] Deleted ${room.id}`);
     return;
@@ -294,7 +375,7 @@ export function startGameLoop(room: Room): void {
 
     if (room.state.phase === 'ended') {
       stopGameLoop(room);
-      
+
       // Notify tournament service of match end
       if (room.tournamentInfo && tournamentCallbacks) {
         tournamentCallbacks.onMatchEnd(
@@ -303,6 +384,30 @@ export function startGameLoop(room: Room): void {
           room.state.score.left,
           room.state.score.right
         );
+      }
+
+      // Notify social service of invitation match end
+      if (room.invitationInfo) {
+        const { invitationId, inviterId, invitedId } = room.invitationInfo;
+        const { score } = room.state;
+
+        const winnerId = score.left > score.right ? inviterId : invitedId;
+        const loserId = winnerId === inviterId ? invitedId : inviterId;
+
+        // Call social service to update the invitation
+        fetch('http://social:3000/social/game-invitation/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            invitationId,
+            winnerId,
+            loserId,
+            score1: score.left,
+            score2: score.right
+          })
+        }).catch(err => {
+          console.error('[ROOM] Failed to notify invitation completion:', err);
+        });
       }
     }
   }, TICK_INTERVAL);

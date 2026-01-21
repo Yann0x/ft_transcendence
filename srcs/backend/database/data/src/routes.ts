@@ -184,4 +184,10 @@ export function databaseRoutes(server: FastifyInstance) {
   server.delete('/database/friends', db.deleteFriend)
 
   server.put('/database/channel/mark-read', db.markChannelRead)
+
+  server.get('/database/game_invitation', db.getGameInvitation)
+
+  server.post('/database/game_invitation', db.postGameInvitation)
+
+  server.put('/database/game_invitation', db.putGameInvitation)
 }
