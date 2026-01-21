@@ -220,8 +220,86 @@ export function getSide(): 'left' | 'right' | null {
   return state.side;
 }
 
+/**
+ * Connect to an invitation game room
+ * @param invitationId - Invitation ID
+ * @param gameRoomId - Game room ID
+ */
+export function connectInvitation(invitationId: string, gameRoomId: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Disconnect if already connected
+    if (state.socket) {
+      state.socket.onopen = null;
+      state.socket.onclose = null;
+      state.socket.onerror = null;
+      state.socket.onmessage = null;
+      state.socket.close();
+    }
+
+    // Reset state
+    state.socket = null;
+    state.connected = false;
+    state.side = null;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    let url = `${protocol}//${window.location.host}/api/game/ws?mode=invitation&invitationId=${encodeURIComponent(invitationId)}&roomId=${encodeURIComponent(gameRoomId)}`;
+
+    // Add JWT token as query param for authentication
+    const token = sessionStorage.getItem('authToken');
+    if (token) {
+      url += `&token=${encodeURIComponent(token)}`;
+    }
+
+    console.log('[NETWORK] Connecting to invitation game');
+    const newSocket = new WebSocket(url);
+
+    newSocket.onopen = () => {
+      console.log('[NETWORK] Connected to invitation game');
+      state.socket = newSocket;
+      state.connected = true;
+      resolve();
+    };
+
+    newSocket.onclose = () => {
+      if (state.socket === newSocket) {
+        console.log('[NETWORK] Disconnected from invitation game');
+        state.connected = false;
+        state.side = null;
+        if (state.onDisconnected) {
+          state.onDisconnected();
+        }
+      }
+    };
+
+    newSocket.onerror = (err) => {
+      console.error('[NETWORK] WebSocket error:', err);
+      reject(new Error('Invitation game connection failed'));
+    };
+
+    newSocket.onmessage = (event) => {
+      if (state.socket !== newSocket) return;
+
+      try {
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === 'connected') {
+          console.log('[NETWORK] Invitation game connected:', msg.data);
+          state.side = msg.data.side;
+        } else if (msg.type === 'state' && state.onStateUpdate) {
+          state.onStateUpdate(msg.data);
+        } else if (msg.type === 'error') {
+          console.error('[NETWORK] Server error:', msg.message);
+        }
+      } catch (err) {
+        console.error('[NETWORK] Parse error:', err);
+      }
+    };
+  });
+}
+
 export const Network = {
   connect,
+  connectInvitation,
   disconnect,
   sendInput,
   sendInputBoth,

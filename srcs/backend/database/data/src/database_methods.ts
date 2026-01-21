@@ -55,6 +55,8 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             channel_id TEXT REFERENCES channel(id),
             sender_id TEXT REFERENCES users(id),
             content TEXT NOT NULL,
+            type TEXT DEFAULT 'text',
+            metadata TEXT DEFAULT NULL,
             sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             read_at DATETIME DEFAULT NULL
         );
@@ -77,6 +79,43 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             PRIMARY KEY (user_id, friend_id)
         );
     `).run();
+    db.prepare(
+    `
+        CREATE TABLE IF NOT EXISTS game_invitation (
+            id TEXT PRIMARY KEY,
+            channel_id TEXT REFERENCES channel(id),
+            message_id INTEGER REFERENCES message(id),
+            inviter_id TEXT REFERENCES users(id),
+            invited_id TEXT REFERENCES users(id),
+            status TEXT CHECK(status IN ('pending','accepted','declined','expired')),
+            game_room_id TEXT DEFAULT NULL,
+            expires_at DATETIME NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+    `).run();
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_invitation_status ON game_invitation(status)`).run();
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_invitation_invited ON game_invitation(invited_id)`).run();
+
+    // Add type and metadata columns to existing message tables (if they don't exist)
+    try {
+        db.prepare(`ALTER TABLE message ADD COLUMN type TEXT DEFAULT 'text'`).run();
+    } catch (error: any) {
+        // Column already exists, ignore error
+        if (!error.message?.includes('duplicate column name')) {
+            console.error('[DATABASE] Error adding type column:', error);
+        }
+    }
+
+    try {
+        db.prepare(`ALTER TABLE message ADD COLUMN metadata TEXT DEFAULT NULL`).run();
+    } catch (error: any) {
+        // Column already exists, ignore error
+        if (!error.message?.includes('duplicate column name')) {
+            console.error('[DATABASE] Error adding metadata column:', error);
+        }
+    }
+
     return db;
 }
 export function getUser(req, reply): User[] {
@@ -182,7 +221,7 @@ export function getChannel(req: FastifyRequest, reply: FastifyReply): Channel | 
     }
 
     channel.messages = db.prepare(
-      `SELECT id, channel_id, sender_id, content, sent_at, read_at FROM message
+      `SELECT id, channel_id, sender_id, content, type, metadata, sent_at, read_at FROM message
        WHERE channel_id = ?
        ORDER BY sent_at ASC`
     ).all(
@@ -244,8 +283,18 @@ export function getMessage(req, reply)
 export function postMessage( req, reply )
 {
     const message = req.body;
-    const request = db.prepare(`INSERT INTO message (channel_id, sender_id, content, sent_at) VALUES (?, ?, ?, ?)`)
-    const result = request.run(message.channel_id, message.sender_id, message.content, message.sent_at)
+    const request = db.prepare(`
+        INSERT INTO message (channel_id, sender_id, content, type, metadata, sent_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `)
+    const result = request.run(
+        message.channel_id,
+        message.sender_id,
+        message.content,
+        message.type || 'text',
+        message.metadata || null,
+        message.sent_at
+    )
     if (result.changes === 0)
         return false
     return String(result.lastInsertRowid)
@@ -255,8 +304,39 @@ export function postMessage( req, reply )
 export function putMessage( req, reply )
 {
     const message = req.body;
-    const request = db.prepare(`UPDATE message SET content = ? , read_at = ? WHERE id = ?`)
-    const result = request.run(message.content, message.read_at, message.id)
+
+    // Build dynamic UPDATE query based on provided fields
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (message.content !== undefined) {
+        updates.push('content = ?');
+        values.push(message.content);
+    }
+
+    if (message.read_at !== undefined) {
+        updates.push('read_at = ?');
+        values.push(message.read_at);
+    }
+
+    if (message.type !== undefined) {
+        updates.push('type = ?');
+        values.push(message.type);
+    }
+
+    if (message.metadata !== undefined) {
+        updates.push('metadata = ?');
+        values.push(message.metadata);
+    }
+
+    if (updates.length === 0) {
+        return false;
+    }
+
+    values.push(message.id);
+
+    const request = db.prepare(`UPDATE message SET ${updates.join(', ')} WHERE id = ?`)
+    const result = request.run(...values)
     if (result.changes === 0)
         return false
     return String(result.lastInsertRowid)
@@ -488,5 +568,137 @@ export function markChannelRead( req: FastifyRequest, reply: FastifyReply )
     } catch (error: any) {
         console.error('[DATABASE] markChannelRead error:', error);
         return reply.status(500).send({ error: 'Failed to mark channel as read' });
+    }
+}
+
+// Game invitation methods
+export function getGameInvitation(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const { id } = req.query as { id: string };
+
+        if (!id) {
+            return reply.status(400).send({ error: 'id is required' });
+        }
+
+        const stmt = db.prepare(`
+            SELECT * FROM game_invitation WHERE id = ?
+        `);
+
+        const result = stmt.get(id);
+        return reply.status(200).send(result);
+    } catch (error: any) {
+        console.error('[DATABASE] getGameInvitation error:', error);
+        return reply.status(500).send({ error: 'Failed to get game invitation' });
+    }
+}
+
+export function postGameInvitation(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const {
+            id,
+            channel_id,
+            message_id,
+            inviter_id,
+            invited_id,
+            status,
+            game_room_id,
+            expires_at,
+            created_at
+        } = req.body as {
+            id: string;
+            channel_id: string;
+            message_id: number;
+            inviter_id: string;
+            invited_id: string;
+            status: string;
+            game_room_id?: string;
+            expires_at: string;
+            created_at: string;
+        };
+
+        if (!id || !channel_id || !message_id || !inviter_id || !invited_id || !status || !expires_at) {
+            return reply.status(400).send({ error: 'Missing required fields' });
+        }
+
+        const stmt = db.prepare(`
+            INSERT INTO game_invitation (
+                id, channel_id, message_id, inviter_id, invited_id,
+                status, game_room_id, expires_at, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+
+        stmt.run(
+            id,
+            channel_id,
+            message_id,
+            inviter_id,
+            invited_id,
+            status,
+            game_room_id || null,
+            expires_at,
+            created_at || new Date().toISOString()
+        );
+
+        return reply.status(200).send({ id });
+    } catch (error: any) {
+        console.error('[DATABASE] postGameInvitation error:', error);
+        return reply.status(500).send({ error: 'Failed to create game invitation' });
+    }
+}
+
+export function putGameInvitation(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const {
+            id,
+            status,
+            game_room_id
+        } = req.body as {
+            id: string;
+            status?: string;
+            game_room_id?: string;
+        };
+
+        if (!id) {
+            return reply.status(400).send({ error: 'id is required' });
+        }
+
+        const updates: string[] = [];
+        const values: any[] = [];
+
+        if (status) {
+            updates.push('status = ?');
+            values.push(status);
+        }
+
+        if (game_room_id !== undefined) {
+            updates.push('game_room_id = ?');
+            values.push(game_room_id);
+        }
+
+        if (updates.length === 0) {
+            return reply.status(400).send({ error: 'No fields to update' });
+        }
+
+        updates.push('updated_at = ?');
+        values.push(new Date().toISOString());
+
+        values.push(id);
+
+        const stmt = db.prepare(`
+            UPDATE game_invitation
+            SET ${updates.join(', ')}
+            WHERE id = ?
+        `);
+
+        const result = stmt.run(...values);
+
+        if (result.changes === 0) {
+            return reply.status(404).send({ error: 'Game invitation not found' });
+        }
+
+        return reply.status(200).send({ id });
+    } catch (error: any) {
+        console.error('[DATABASE] putGameInvitation error:', error);
+        return reply.status(500).send({ error: 'Failed to update game invitation' });
     }
 }

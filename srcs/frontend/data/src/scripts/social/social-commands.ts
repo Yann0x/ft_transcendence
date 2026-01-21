@@ -69,3 +69,15 @@ export async function unblockUser(blockedId: string): Promise<void> {
 export async function markRead(channelId: string): Promise<void> {
   return sendCommand('mark_read', { channelId });
 }
+
+export async function sendGameInvitation(channelId: string, invitedUserId: string): Promise<{ invitationId: string }> {
+  return sendCommand('game_invitation_send', { channelId, invitedUserId });
+}
+
+export async function acceptGameInvitation(invitationId: string): Promise<{ gameRoomId: string }> {
+  return sendCommand('game_invitation_accept', { invitationId, accept: true });
+}
+
+export async function declineGameInvitation(invitationId: string): Promise<void> {
+  return sendCommand('game_invitation_decline', { invitationId, accept: false });
+}

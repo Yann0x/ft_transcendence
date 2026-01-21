@@ -76,6 +76,15 @@ function setSocketListeners(user: User, socket: WebSocket){
         case 'mark_read':
           await commandHandlers.handleMarkRead(user, socket, event.data);
           break;
+        case 'game_invitation_send':
+          await commandHandlers.handleSendGameInvitation(user, socket, event.data);
+          break;
+        case 'game_invitation_accept':
+          await commandHandlers.handleAcceptGameInvitation(user, socket, event.data);
+          break;
+        case 'game_invitation_decline':
+          await commandHandlers.handleDeclineGameInvitation(user, socket, event.data);
+          break;
         default:
           console.log(`[SOCIAL] Unknown event type: ${event.type}`);
           socket.send(JSON.stringify({
@@ -252,4 +261,81 @@ export async function notifyFriendRemove(request: FastifyRequest, reply: Fastify
   });
 
   return reply.status(200).send({ success: true });
+}
+
+export async function notifyGameInvitationComplete(request: FastifyRequest, reply: FastifyReply) {
+  const { invitationId, winnerId, loserId, score1, score2 } = request.body as {
+    invitationId: string;
+    winnerId: string;
+    loserId: string;
+    score1: number;
+    score2: number;
+  };
+
+  if (!invitationId || !winnerId || !loserId || score1 === undefined || score2 === undefined) {
+    return reply.status(400).send({ success: false, message: 'Missing required fields' });
+  }
+
+  console.log(`[SOCIAL] Game invitation ${invitationId} completed: ${winnerId} defeated ${loserId} ${score1}-${score2}`);
+
+  try {
+    const invitation = connexionManager.getInvitation(invitationId);
+    if (!invitation) {
+      return reply.status(404).send({ success: false, message: 'Invitation not found' });
+    }
+
+    // Get winner user info
+    const winnerUsers = await customFetch('http://database:3000/database/user', 'GET', { id: winnerId }) as any[];
+    const winnerUser = winnerUsers && winnerUsers.length > 0 ? winnerUsers[0] : null;
+    const winnerName = winnerUser?.name || 'Player';
+
+    const loserUsers = await customFetch('http://database:3000/database/user', 'GET', { id: loserId }) as any[];
+    const loserUser = loserUsers && loserUsers.length > 0 ? loserUsers[0] : null;
+    const loserName = loserUser?.name || 'Player';
+
+    // Update message to game_result type
+    const resultMetadata = {
+      invitationId,
+      winnerId,
+      loserId,
+      score1,
+      score2,
+      completedAt: new Date().toISOString()
+    };
+
+    await customFetch('http://database:3000/database/message', 'PUT', {
+      id: invitation.messageId,
+      type: 'game_result',
+      content: `${winnerName} defeated ${loserName}!`,
+      metadata: JSON.stringify(resultMetadata)
+    });
+
+    // Broadcast result to channel members
+    const channels = await customFetch('http://database:3000/database/channel', 'GET',
+      { id: invitation.channelId }) as any;
+    const channel = Array.isArray(channels) ? channels[0] : channels;
+
+    if (channel && channel.members) {
+      const resultEvent: SocialEvent = {
+        type: 'game_result_update',
+        data: { invitationId, winnerId, winnerName, loserId, loserName, score1, score2 },
+        timestamp: new Date().toISOString()
+      };
+
+      channel.members.forEach((memberId: string) => {
+        connexionManager.sendToUser(memberId, resultEvent);
+      });
+    }
+
+    // Clean up invitation from memory
+    if (invitation.expirationTimer) {
+      clearTimeout(invitation.expirationTimer);
+    }
+    connexionManager.invitations.delete(invitationId);
+
+    return reply.status(200).send({ success: true });
+  } catch (error) {
+    console.error('[SOCIAL] Error processing game invitation complete:', error);
+    return reply.status(500).send({ success: false, message: 'Internal server error' });
+  }
 }

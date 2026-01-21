@@ -19,4 +19,7 @@ export function socialRoutes(server: FastifyInstance) {
 
   // REST endpoint for friend remove notifications
   server.post('/social/notify/friend_remove', handlers.notifyFriendRemove);
+
+  // REST endpoint for game invitation completion (called by game service)
+  server.post('/social/game-invitation/complete', handlers.notifyGameInvitationComplete);
 }

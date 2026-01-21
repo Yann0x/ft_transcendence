@@ -1,5 +1,5 @@
 import {App} from '../app.ts'
-import {Message, Channel, SocialEvent, UserPublic} from '../shared/types'
+import {Message, Channel, SocialEvent, UserPublic, GameInvitationData, GameResultData} from '../shared/types'
 import {ProfileModal} from '../profile-modal.ts'
 import {Router} from '../router.ts'
 import * as SocialCommands from './social-commands';
@@ -61,6 +61,11 @@ export const Chat =
         }
         channel.messages.push(message);
         this.displayChannels();
+
+        // If this is the currently open channel, re-render messages to show the new message
+        if (this.currentChannel && this.currentChannel.id === message.channel_id) {
+            this.displayMessages(this.currentChannel);
+        }
     },
 
     updateChannel(channel: Channel){
@@ -133,6 +138,21 @@ export const Chat =
     {
         const form = document.getElementById('message-form');
         form?.addEventListener('submit', (e) => this.handleSendMessage(e));
+
+        // Attach invitation button listeners
+        document.querySelectorAll('.invitation-accept').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const invitationId = (e.target as HTMLElement).dataset.invitationId;
+                if (invitationId) await this.handleAcceptInvitation(invitationId);
+            });
+        });
+
+        document.querySelectorAll('.invitation-decline').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const invitationId = (e.target as HTMLElement).dataset.invitationId;
+                if (invitationId) await this.handleDeclineInvitation(invitationId);
+            });
+        });
     },
 
     attachChatHeaderListeners(): void
@@ -321,6 +341,34 @@ export const Chat =
         }
 
         headerActions.style.display = 'flex';
+        headerActions.innerHTML = ''; // Clear existing buttons
+
+        // Add "Invite to Play" button for online friends in private channels
+        if (channel.type === 'private') {
+            const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
+            const isOnline = otherUserId && App.onlineUsersMap.has(otherUserId);
+            const isFriend = otherUserId && App.isFriend(otherUserId);
+
+            if (isFriend && isOnline) {
+                const inviteBtn = `
+                    <button
+                        id="chat-invite-game"
+                        class="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition text-sm flex items-center gap-1"
+                        title="Invite to play">
+                        <span>⚔️</span>
+                        <span>Duel</span>
+                    </button>
+                `;
+                headerActions.insertAdjacentHTML('beforeend', inviteBtn);
+
+                const inviteButton = document.getElementById('chat-invite-game');
+                if (inviteButton && otherUserId) {
+                    inviteButton.addEventListener('click', () => {
+                        this.handleInviteToGame(otherUserId);
+                    });
+                }
+            }
+        }
 
         this.attachChatHeaderListeners();
     },
@@ -407,6 +455,14 @@ export const Chat =
 
     createMessageCard(message: Message)
     {
+        // Handle special message types
+        if (message.type === 'game_invitation') {
+            return this.createInvitationCard(message);
+        } else if (message.type === 'game_result') {
+            return this.createResultCard(message);
+        }
+
+        // Default text message
         const timestamp = new Date(message.sent_at).toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit'
@@ -429,5 +485,156 @@ export const Chat =
             </div>
         `;
         return card;
+    },
+
+    createInvitationCard(message: Message) {
+        if (!message.metadata) return '';
+
+        const metadata = typeof message.metadata === 'string'
+            ? JSON.parse(message.metadata) as GameInvitationData
+            : message.metadata as GameInvitationData;
+
+        const { invitationId, inviterId, status } = metadata;
+
+        const inviterUser = App.cachedUsers.get(inviterId);
+        const inviterName = inviterUser?.name || 'Someone';
+
+        const isInviter = inviterId === App.me.id;
+        const canRespond = !isInviter && status === 'pending';
+
+        const timestamp = new Date(message.sent_at).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        let statusDisplay = '';
+        let actionsHtml = '';
+
+        switch (status) {
+            case 'pending':
+                if (canRespond) {
+                    actionsHtml = `
+                        <div class="flex gap-2 mt-3">
+                            <button
+                                class="invitation-accept flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
+                                data-invitation-id="${invitationId}">
+                                ⚔️ Accept
+                            </button>
+                            <button
+                                class="invitation-decline flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
+                                data-invitation-id="${invitationId}">
+                                ❌ Decline
+                            </button>
+                        </div>
+                    `;
+                    statusDisplay = '<p class="text-yellow-400 text-sm mt-2">⏳ Waiting for your response...</p>';
+                } else {
+                    statusDisplay = '<p class="text-yellow-400 text-sm mt-2">⏳ Waiting for response...</p>';
+                }
+                break;
+            case 'accepted':
+                statusDisplay = '<p class="text-green-400 text-sm mt-2">✓ Accepted - Starting game...</p>';
+                break;
+            case 'declined':
+                statusDisplay = '<p class="text-red-400 text-sm mt-2">✗ Declined</p>';
+                break;
+            case 'expired':
+                statusDisplay = '<p class="text-gray-400 text-sm mt-2">⌛ Expired</p>';
+                break;
+        }
+
+        return `
+            <div class="invitation-card p-4 bg-gradient-to-r from-purple-900 to-purple-800 rounded-lg border-2 border-purple-600 shadow-lg"
+                 data-message-id="${message.id}"
+                 data-invitation-id="${invitationId}">
+                <div class="flex items-start gap-3">
+                    <span class="text-3xl">⚔️</span>
+                    <div class="flex-1">
+                        <p class="text-white font-semibold text-lg">${inviterName} challenges you to a duel!</p>
+                        ${statusDisplay}
+                    </div>
+                </div>
+                ${actionsHtml}
+                <div class="text-xs text-neutral-300 mt-2">${timestamp}</div>
+            </div>
+        `;
+    },
+
+    createResultCard(message: Message) {
+        if (!message.metadata) return '';
+
+        const metadata = typeof message.metadata === 'string'
+            ? JSON.parse(message.metadata) as GameResultData
+            : message.metadata as GameResultData;
+
+        const { winnerId, loserId, score1, score2 } = metadata;
+
+        const winnerUser = App.cachedUsers.get(winnerId);
+        const loserUser = App.cachedUsers.get(loserId);
+        const winnerName = winnerUser?.name || 'Player';
+        const loserName = loserUser?.name || 'Player';
+
+        const isWinner = winnerId === App.me.id;
+        const bgColor = isWinner
+            ? 'from-green-900 to-green-800 border-green-600'
+            : 'from-neutral-900 to-neutral-800 border-neutral-700';
+
+        const timestamp = new Date(message.sent_at).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        return `
+            <div class="result-card p-4 bg-gradient-to-r ${bgColor} rounded-lg border-2 shadow-lg"
+                 data-message-id="${message.id}">
+                <div class="flex items-start gap-3">
+                    <span class="text-3xl">🏆</span>
+                    <div class="flex-1">
+                        <p class="text-white font-semibold text-lg">${winnerName} defeated ${loserName}!</p>
+                        <p class="text-neutral-300 text-sm mt-1">Final Score: ${score1} - ${score2}</p>
+                    </div>
+                </div>
+                <div class="text-xs text-neutral-300 mt-2">${timestamp}</div>
+            </div>
+        `;
+    },
+
+    async handleInviteToGame(invitedUserId: string): Promise<void> {
+        if (!this.currentChannel) return;
+
+        try {
+            console.log('[CHAT] Sending game invitation to:', invitedUserId);
+            await SocialCommands.sendGameInvitation(this.currentChannel.id, invitedUserId);
+        } catch (error) {
+            console.error('[CHAT] Failed to send invitation:', error);
+            alert('Failed to send invitation');
+        }
+    },
+
+    async handleAcceptInvitation(invitationId: string): Promise<void> {
+        try {
+            console.log('[CHAT] Accepting invitation:', invitationId);
+            const result = await SocialCommands.acceptGameInvitation(invitationId);
+
+            sessionStorage.setItem('game_invitation', JSON.stringify({
+                invitationId,
+                gameRoomId: result.gameRoomId
+            }));
+
+            Router.navigate('/game');
+        } catch (error) {
+            console.error('[CHAT] Failed to accept invitation:', error);
+            alert('Failed to accept invitation');
+        }
+    },
+
+    async handleDeclineInvitation(invitationId: string): Promise<void> {
+        try {
+            console.log('[CHAT] Declining invitation:', invitationId);
+            await SocialCommands.declineGameInvitation(invitationId);
+        } catch (error) {
+            console.error('[CHAT] Failed to decline invitation:', error);
+            alert('Failed to decline invitation');
+        }
     },
 }

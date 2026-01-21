@@ -31,7 +31,7 @@ export function buildCheckJwtHandler(server: FastifyInstance) {
 export  function hashPassword(server: FastifyInstance)
 {
   return async (req: FastifyRequest, rep: FastifyReply) => {
-    const toHash = req.body;
+    const toHash = req.body as string;
     if (!toHash)
       rep.status(401).send({error: 'No pass to Hash', statusCode:401, service : 'authenticate'});
     const newHash = server.bcrypt.hash(toHash);
@@ -39,11 +39,16 @@ export  function hashPassword(server: FastifyInstance)
   }
 };
 
+type validHashBody = {
+  to_check: string,
+  valid: string
+}
+
 export  function validHashPassword(server: FastifyInstance)
 {
-  return async (req: FastifyRequest, rep: FastifyReply) => {
-    const toCheck = req.body?.to_check as String;
-    const realHash = req.body?.valid as String;
+  return async (req: FastifyRequest<{Body: validHashBody}>, rep: FastifyReply) => {
+    const toCheck = req.body?.to_check as string;
+    const realHash = req.body?.valid as string;
     if (!toCheck || !realHash)
       return rep.status(401).send({error: 'Missing pass', statusCode: 401, service:  'authenticate'});
    const result = await server.bcrypt.compare(toCheck, realHash);

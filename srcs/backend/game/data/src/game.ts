@@ -15,6 +15,8 @@ import {
   resumeGame,
   restartGame,
   createTournamentRoom,
+  createInvitationRoom,
+  getInvitationRoom,
   setTournamentCallbacks,
   type TournamentCallbacks
 } from './room.js';
@@ -71,23 +73,90 @@ async function start() {
     return getPvPStats();
   });
 
-  server.get('/game/ws', { websocket: true }, (socket: WebSocket, request: FastifyRequest) => {
-    const playerId = `player_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  // Endpoint to create an invitation room (called by social service)
+  server.post('/game/invitation-room', async (request, reply) => {
+    const { invitationId, inviterId, invitedId } = request.body as {
+      invitationId: string;
+      inviterId: string;
+      invitedId: string;
+    };
+
+    if (!invitationId || !inviterId || !invitedId) {
+      return reply.status(400).send({ error: 'Missing required fields' });
+    }
+
+    try {
+      const room = createInvitationRoom(invitationId, inviterId, invitedId);
+      return reply.status(200).send({ gameRoomId: room.id });
+    } catch (error) {
+      console.error('[GAME] Error creating invitation room:', error);
+      return reply.status(500).send({ error: 'Failed to create invitation room' });
+    }
+  });
+
+  server.get('/game/ws', { websocket: true }, async (socket: WebSocket, request: FastifyRequest) => {
+    // Get user ID from headers (set by auth middleware)
+    let userId = request.headers['x-sender-id'] as string | undefined;
+    
+    // If no user ID from headers, try to extract and validate JWT from query param
+    if (!userId) {
+      const url = new URL(request.url, `http://${request.headers.host}`);
+      const token = url.searchParams.get('token');
+      
+      if (token) {
+        try {
+          const response = await fetch('http://authenticate:3000/check_jwt', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            const sender = await response.json() as { id?: string; name?: string; email?: string } | undefined;
+            if (sender && sender.id) {
+              userId = sender.id;
+              console.log(`[WS] JWT validated from query param, user: ${userId}`);
+            }
+          } else {
+            console.log('[WS] JWT validation failed');
+          }
+        } catch (error) {
+          console.error('[WS] JWT validation error:', error);
+        }
+      }
+    }
+    
+    const playerId = userId || `player_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     const url = new URL(request.url, `http://${request.headers.host}`);
-    const mode = url.searchParams.get('mode') as 'solo' | 'local' | 'pvp' | 'tournament' || 'solo';
+    const mode = url.searchParams.get('mode') as 'solo' | 'local' | 'pvp' | 'tournament' | 'invitation' || 'solo';
     const difficulty = url.searchParams.get('difficulty') as 'easy' | 'normal' | 'hard' || 'hard';
-    
+
     // Tournament mode parameters
     const tournamentId = url.searchParams.get('tournamentId');
     const matchId = url.searchParams.get('matchId');
     const tournamentPlayerId = url.searchParams.get('playerId'); // Tournament player ID
     const isPlayer1 = url.searchParams.get('isPlayer1') === 'true';
 
+    // Invitation mode parameters
+    const invitationId = url.searchParams.get('invitationId');
+    const roomId = url.searchParams.get('roomId');
+
     console.log(`[WS] Connected: ${playerId}, mode=${mode}, difficulty=${difficulty}`);
 
     let room;
-    if (mode === 'tournament' && tournamentId && matchId && tournamentPlayerId) {
+    if (mode === 'invitation' && invitationId && roomId) {
+      // Invitation mode - find existing invitation room
+      room = getInvitationRoom(invitationId);
+      if (!room || room.id !== roomId) {
+        console.error(`[WS] Invalid invitation room: ${invitationId}, ${roomId}`);
+        socket.send(JSON.stringify({ type: 'error', message: 'Invalid invitation room' }));
+        socket.close();
+        return;
+      }
+      console.log(`[WS] Invitation match: ${invitationId}, room: ${roomId}`);
+    } else if (mode === 'tournament' && tournamentId && matchId && tournamentPlayerId) {
       // Tournament mode - create or join tournament match room
       room = createTournamentRoom(tournamentId, matchId, tournamentPlayerId, isPlayer1);
       console.log(`[WS] Tournament match: ${tournamentId}/${matchId}, player: ${tournamentPlayerId}, isPlayer1: ${isPlayer1}`);

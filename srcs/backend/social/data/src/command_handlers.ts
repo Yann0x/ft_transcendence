@@ -8,6 +8,8 @@ import {
   BlockUserCommand,
   UnblockUserCommand,
   MarkReadCommand,
+  SendGameInvitationCommand,
+  RespondGameInvitationCommand,
   Channel,
   Message
 } from './shared/with_front/types';
@@ -513,5 +515,301 @@ export async function handleMarkRead(user: SocketUser, socket: WebSocket, data: 
   } catch (error) {
     console.error('[COMMAND] handleMarkRead error:', error);
     sendError(socket, 'mark_read', 'Internal server error', commandId);
+  }
+}
+
+/**
+ * Handle game_invitation_send command
+ */
+export async function handleSendGameInvitation(
+  user: SocketUser,
+  socket: WebSocket,
+  data: SendGameInvitationCommand
+): Promise<void> {
+  const { channelId, invitedUserId, commandId } = data;
+  const inviterId = user.id;
+
+  console.log(`[COMMAND] game_invitation_send: ${inviterId} -> ${invitedUserId}`);
+
+  // Validations
+  if (inviterId === invitedUserId) {
+    return sendError(socket, 'game_invitation_send', 'Cannot invite yourself', commandId);
+  }
+
+  if (!channelId || !invitedUserId) {
+    return sendError(socket, 'game_invitation_send', 'channelId and invitedUserId are required', commandId);
+  }
+
+  try {
+    // Check if both are friends
+    const friends = await customFetch('http://database:3000/database/friends', 'GET',
+      { user_id: inviterId }) as any[];
+    if (!friends || !friends.some((f: any) => f.id === invitedUserId)) {
+      return sendError(socket, 'game_invitation_send', 'Can only invite friends', commandId);
+    }
+
+    // Check blocking
+    if (await areUsersBlocked(inviterId, invitedUserId)) {
+      return sendError(socket, 'game_invitation_send', 'Cannot invite blocked user', commandId);
+    }
+
+    // Check for duplicate pending invitation
+    if (connexionManager.hasActiveInvitationInChannel(channelId)) {
+      return sendError(socket, 'game_invitation_send', 'Invitation already pending in this channel', commandId);
+    }
+
+    // Create invitation
+    const invitationId = randomUUID();
+    const inviterUser = await getUserPublic(inviterId);
+    const messageContent = `${inviterUser?.name || 'Someone'} challenges you to a duel!`;
+
+    const invitationMetadata = {
+      invitationId,
+      inviterId,
+      invitedId: invitedUserId,
+      status: 'pending',
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      createdAt: new Date().toISOString()
+    };
+
+    // Save message to database
+    const messageData = {
+      channel_id: channelId,
+      sender_id: inviterId,
+      content: messageContent,
+      type: 'game_invitation',
+      metadata: JSON.stringify(invitationMetadata),
+      sent_at: new Date().toISOString(),
+      read_at: null
+    };
+
+    const messageId = await customFetch('http://database:3000/database/message', 'POST',
+      messageData) as number;
+
+    if (!messageId) {
+      return sendError(socket, 'game_invitation_send', 'Failed to create invitation message', commandId);
+    }
+
+    // Track invitation in memory
+    connexionManager.createInvitation(invitationId, inviterId, invitedUserId,
+      channelId, messageId);
+
+    // Save to database
+    await customFetch('http://database:3000/database/game_invitation', 'POST', {
+      id: invitationId,
+      channel_id: channelId,
+      message_id: messageId,
+      inviter_id: inviterId,
+      invited_id: invitedUserId,
+      status: 'pending',
+      expires_at: invitationMetadata.expiresAt,
+      created_at: invitationMetadata.createdAt
+    });
+
+    // Broadcast message to channel members
+    const channel = await customFetch('http://database:3000/database/channel', 'GET',
+      { id: channelId }) as Channel;
+
+    if (!channel) {
+      return sendError(socket, 'game_invitation_send', 'Channel not found', commandId);
+    }
+
+    const messageNewEvent: SocialEvent = {
+      type: 'message_new',
+      data: { ...messageData, id: messageId },
+      timestamp: new Date().toISOString()
+    };
+
+    channel.members.forEach((memberId: string) => {
+      connexionManager.sendToUser(memberId, messageNewEvent);
+    });
+
+    console.log(`[COMMAND] Game invitation ${invitationId} sent successfully`);
+    sendSuccess(socket, 'game_invitation_send', { invitationId }, commandId);
+
+  } catch (error) {
+    console.error('[COMMAND] handleSendGameInvitation error:', error);
+    sendError(socket, 'game_invitation_send', 'Internal server error', commandId);
+  }
+}
+
+/**
+ * Handle game_invitation_accept command
+ */
+export async function handleAcceptGameInvitation(
+  user: SocketUser,
+  socket: WebSocket,
+  data: RespondGameInvitationCommand
+): Promise<void> {
+  const { invitationId, commandId } = data;
+  const userId = user.id;
+
+  console.log(`[COMMAND] game_invitation_accept: ${userId} -> ${invitationId}`);
+
+  if (!invitationId) {
+    return sendError(socket, 'game_invitation_accept', 'invitationId is required', commandId);
+  }
+
+  try {
+    const invitation = connexionManager.getInvitation(invitationId);
+    if (!invitation) {
+      return sendError(socket, 'game_invitation_accept', 'Invitation not found', commandId);
+    }
+
+    if (invitation.invitedId !== userId) {
+      return sendError(socket, 'game_invitation_accept', 'Not authorized to accept this invitation', commandId);
+    }
+
+    if (invitation.status !== 'pending') {
+      return sendError(socket, 'game_invitation_accept', `Invitation is ${invitation.status}`, commandId);
+    }
+
+    if (invitation.expiresAt < new Date()) {
+      await connexionManager.expireInvitation(invitationId);
+      return sendError(socket, 'game_invitation_accept', 'Invitation expired', commandId);
+    }
+
+    // Request game room creation from game service
+    const gameRoomResponse = await fetch('http://game:3000/game/invitation-room', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        invitationId,
+        inviterId: invitation.inviterId,
+        invitedId: invitation.invitedId
+      })
+    });
+
+    if (!gameRoomResponse.ok) {
+      const errorText = await gameRoomResponse.text();
+      console.error('[COMMAND] Failed to create game room:', errorText);
+      return sendError(socket, 'game_invitation_accept', 'Failed to create game room', commandId);
+    }
+
+    const { gameRoomId } = await gameRoomResponse.json();
+
+    // Update invitation
+    connexionManager.acceptInvitation(invitationId, gameRoomId);
+
+    // Update database
+    await customFetch('http://database:3000/database/game_invitation', 'PUT', {
+      id: invitationId,
+      status: 'accepted',
+      game_room_id: gameRoomId
+    });
+
+    // Fetch the full message first
+    const [message] = await customFetch('http://database:3000/database/message', 'GET', {
+      channel_id: invitation.channelId,
+      id: invitation.messageId
+    }) as Message[];
+
+    if (!message) {
+      return sendError(socket, 'game_invitation_accept', 'Message not found', commandId);
+    }
+
+    // Update message metadata and status
+    await customFetch('http://database:3000/database/message', 'PUT', {
+      ...message,
+      metadata: JSON.stringify({ ...invitation, status: 'accepted', gameRoomId })
+    });
+
+    // Broadcast to both users
+    const updateEvent: SocialEvent = {
+      type: 'game_invitation_update',
+      data: { invitationId, status: 'accepted', gameRoomId },
+      timestamp: new Date().toISOString()
+    };
+
+    connexionManager.sendToUser(invitation.inviterId, updateEvent);
+    connexionManager.sendToUser(invitation.invitedId, updateEvent);
+
+    console.log(`[COMMAND] Game invitation ${invitationId} accepted, room: ${gameRoomId}`);
+    sendSuccess(socket, 'game_invitation_accept', { gameRoomId }, commandId);
+
+  } catch (error) {
+    console.error('[COMMAND] handleAcceptGameInvitation error:', error);
+    sendError(socket, 'game_invitation_accept', 'Internal server error', commandId);
+  }
+}
+
+/**
+ * Handle game_invitation_decline command
+ */
+export async function handleDeclineGameInvitation(
+  user: SocketUser,
+  socket: WebSocket,
+  data: RespondGameInvitationCommand
+): Promise<void> {
+  const { invitationId, commandId } = data;
+  const userId = user.id;
+
+  console.log(`[COMMAND] game_invitation_decline: ${userId} -> ${invitationId}`);
+
+  if (!invitationId) {
+    return sendError(socket, 'game_invitation_decline', 'invitationId is required', commandId);
+  }
+
+  try {
+    const invitation = connexionManager.getInvitation(invitationId);
+    if (!invitation) {
+      return sendError(socket, 'game_invitation_decline', 'Invitation not found', commandId);
+    }
+
+    if (invitation.invitedId !== userId) {
+      return sendError(socket, 'game_invitation_decline', 'Not authorized to decline this invitation', commandId);
+    }
+
+    if (invitation.status !== 'pending') {
+      return sendError(socket, 'game_invitation_decline', `Invitation is ${invitation.status}`, commandId);
+    }
+
+    // Update invitation
+    connexionManager.declineInvitation(invitationId);
+
+    // Update database
+    await customFetch('http://database:3000/database/game_invitation', 'PUT', {
+      id: invitationId,
+      status: 'declined'
+    });
+
+    // Fetch the full message first
+    const [message] = await customFetch('http://database:3000/database/message', 'GET', {
+      channel_id: invitation.channelId,
+      id: invitation.messageId
+    }) as Message[];
+
+    if (!message) {
+      return sendError(socket, 'game_invitation_decline', 'Message not found', commandId);
+    }
+
+    // Update message metadata and status
+    await customFetch('http://database:3000/database/message', 'PUT', {
+      ...message,
+      metadata: JSON.stringify({ ...invitation, status: 'declined' })
+    });
+
+    // Broadcast to channel members
+    const channel = await customFetch('http://database:3000/database/channel', 'GET',
+      { id: invitation.channelId }) as Channel;
+
+    if (channel) {
+      const updateEvent: SocialEvent = {
+        type: 'game_invitation_update',
+        data: { invitationId, status: 'declined' },
+        timestamp: new Date().toISOString()
+      };
+
+      channel.members.forEach((memberId: string) => {
+        connexionManager.sendToUser(memberId, updateEvent);
+      });
+    }
+
+    console.log(`[COMMAND] Game invitation ${invitationId} declined`);
+    sendSuccess(socket, 'game_invitation_decline', {}, commandId);
+
+  } catch (error) {
+    console.error('[COMMAND] handleDeclineGameInvitation error:', error);
+    sendError(socket, 'game_invitation_decline', 'Internal server error', commandId);
   }
 }
