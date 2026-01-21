@@ -98,6 +98,9 @@ export const Social = {
         socialClient.on('game_invitation_update', (event: SocialEvent) => {
             const { invitationId, status, gameRoomId, inviterId } = event.data;
 
+            // Update the invitation status in the cached message
+            Chat.updateInvitationStatus(invitationId, status, gameRoomId);
+
             // Re-render channel to update invitation card
             if (Chat.currentChannel) {
                 Chat.displayChannel(Chat.currentChannel.id);
@@ -117,6 +120,11 @@ export const Social = {
         });
 
         socialClient.on('game_result_update', (event: SocialEvent) => {
+            const { invitationId, winnerId, loserId, score1, score2 } = event.data;
+
+            // Update the cached message from invitation to result
+            Chat.updateToGameResult(invitationId, winnerId, loserId, score1, score2);
+
             // Re-render to show result card
             if (Chat.currentChannel) {
                 Chat.displayChannel(Chat.currentChannel.id);

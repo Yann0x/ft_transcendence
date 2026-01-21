@@ -37,6 +37,57 @@ export const Chat =
         }
     },
 
+    updateInvitationStatus(invitationId: string, status: string, gameRoomId?: string): void {
+        // Find and update the message with this invitation in all channels
+        for (const channel of this.cachedChannelsMap.values()) {
+            for (const message of channel.messages) {
+                if (message.type === 'game_invitation' && message.metadata) {
+                    const metadata = typeof message.metadata === 'string' 
+                        ? JSON.parse(message.metadata) 
+                        : message.metadata;
+                    
+                    if (metadata.invitationId === invitationId) {
+                        metadata.status = status;
+                        if (gameRoomId) {
+                            metadata.gameRoomId = gameRoomId;
+                        }
+                        message.metadata = metadata;
+                        console.log(`[CHAT] Updated invitation ${invitationId} status to ${status}`);
+                        return;
+                    }
+                }
+            }
+        }
+    },
+
+    updateToGameResult(invitationId: string, winnerId: string, loserId: string, score1: number, score2: number): void {
+        // Find and update the invitation message to a game result
+        for (const channel of this.cachedChannelsMap.values()) {
+            for (const message of channel.messages) {
+                if (message.type === 'game_invitation' && message.metadata) {
+                    const metadata = typeof message.metadata === 'string' 
+                        ? JSON.parse(message.metadata) 
+                        : message.metadata;
+                    
+                    if (metadata.invitationId === invitationId) {
+                        // Convert to game result
+                        message.type = 'game_result';
+                        message.metadata = {
+                            invitationId,
+                            winnerId,
+                            loserId,
+                            score1,
+                            score2,
+                            completedAt: new Date().toISOString()
+                        };
+                        console.log(`[CHAT] Updated invitation ${invitationId} to game result`);
+                        return;
+                    }
+                }
+            }
+        }
+    },
+
     getChannelLatestDate(channel: Channel): number {
         const lastMsg = channel.messages.at(-1);
         const lastMsgDate = lastMsg ? new Date(lastMsg.sent_at).getTime() : 0;
@@ -457,9 +508,35 @@ export const Chat =
     {
         // Handle special message types
         if (message.type === 'game_invitation') {
-            return this.createInvitationCard(message);
+            const card = this.createInvitationCard(message);
+            // If invitation card creation failed, show a fallback instead of plain text
+            if (!card) {
+                return `
+                    <div class="p-4 bg-purple-900/50 rounded-lg border border-purple-600 text-neutral-400" data-message-id="${message.id}">
+                        <span class="text-2xl">⚔️</span> Game invitation (details unavailable)
+                    </div>
+                `;
+            }
+            return card;
         } else if (message.type === 'game_result') {
-            return this.createResultCard(message);
+            const card = this.createResultCard(message);
+            if (!card) {
+                return `
+                    <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-600 text-neutral-400" data-message-id="${message.id}">
+                        <span class="text-2xl">🏆</span> Game result (details unavailable)
+                    </div>
+                `;
+            }
+            return card;
+        }
+
+        // Check if content looks like a game invitation but type wasn't set properly
+        if (message.content?.includes('challenges you to a duel')) {
+            return `
+                <div class="p-4 bg-purple-900/50 rounded-lg border border-purple-600 text-neutral-400" data-message-id="${message.id}">
+                    <span class="text-2xl">⚔️</span> ${message.content}
+                </div>
+            `;
         }
 
         // Default text message
@@ -574,10 +651,31 @@ export const Chat =
         const winnerName = winnerUser?.name || 'Player';
         const loserName = loserUser?.name || 'Player';
 
-        const isWinner = winnerId === App.me.id;
-        const bgColor = isWinner
-            ? 'from-green-900 to-green-800 border-green-600'
-            : 'from-neutral-900 to-neutral-800 border-neutral-700';
+        const isWinner = winnerId === App.me?.id;
+        const isLoser = loserId === App.me?.id;
+        
+        // Color scheme based on outcome for current user
+        let bgGradient: string;
+        let borderColor: string;
+        let resultEmoji: string;
+        let resultText: string;
+
+        if (isWinner) {
+            bgGradient = 'from-green-900 to-green-800';
+            borderColor = 'border-green-600';
+            resultEmoji = '🏆';
+            resultText = `You defeated ${loserName}!`;
+        } else if (isLoser) {
+            bgGradient = 'from-red-900 to-red-800';
+            borderColor = 'border-red-600';
+            resultEmoji = '💀';
+            resultText = `${winnerName} defeated you!`;
+        } else {
+            bgGradient = 'from-blue-900 to-blue-800';
+            borderColor = 'border-blue-600';
+            resultEmoji = '⚔️';
+            resultText = `${winnerName} defeated ${loserName}!`;
+        }
 
         const timestamp = new Date(message.sent_at).toLocaleTimeString('en-US', {
             hour: '2-digit',
@@ -585,13 +683,24 @@ export const Chat =
         });
 
         return `
-            <div class="result-card p-4 bg-gradient-to-r ${bgColor} rounded-lg border-2 shadow-lg"
+            <div class="result-card p-4 bg-gradient-to-r ${bgGradient} rounded-lg border-2 ${borderColor} shadow-lg"
                  data-message-id="${message.id}">
                 <div class="flex items-start gap-3">
-                    <span class="text-3xl">🏆</span>
+                    <span class="text-3xl">${resultEmoji}</span>
                     <div class="flex-1">
-                        <p class="text-white font-semibold text-lg">${winnerName} defeated ${loserName}!</p>
-                        <p class="text-neutral-300 text-sm mt-1">Final Score: ${score1} - ${score2}</p>
+                        <p class="text-white font-semibold text-lg">Match Complete!</p>
+                        <p class="text-white mt-1">${resultText}</p>
+                        <div class="flex items-center gap-4 mt-2">
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-white">${score1}</p>
+                                <p class="text-xs text-neutral-300">${winnerName}</p>
+                            </div>
+                            <span class="text-neutral-400">vs</span>
+                            <div class="text-center">
+                                <p class="text-2xl font-bold text-white">${score2}</p>
+                                <p class="text-xs text-neutral-300">${loserName}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="text-xs text-neutral-300 mt-2">${timestamp}</div>

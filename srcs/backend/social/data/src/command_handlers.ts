@@ -689,14 +689,28 @@ export async function handleAcceptGameInvitation(
     const { gameRoomId } = await gameRoomResponse.json();
 
     // Update invitation
-    connexionManager.acceptInvitation(invitationId, gameRoomId);
+    const updatedInvitation = connexionManager.acceptInvitation(invitationId, gameRoomId);
 
-    // Update database
+    // Update game_invitation table
     await customFetch('http://database:3000/database/game_invitation', 'PUT', {
       id: invitationId,
       status: 'accepted',
       game_room_id: gameRoomId
     });
+
+    // Update the message metadata with new status
+    if (updatedInvitation?.messageId) {
+      await customFetch('http://database:3000/database/message', 'PUT', {
+        id: updatedInvitation.messageId,
+        metadata: JSON.stringify({
+          invitationId,
+          inviterId: invitation.inviterId,
+          invitedId: invitation.invitedId,
+          status: 'accepted',
+          gameRoomId
+        })
+      });
+    }
 
     // Broadcast to both users (include inviterId so frontend knows who should be prompted)
     const updateEvent: SocialEvent = {
@@ -749,13 +763,26 @@ export async function handleDeclineGameInvitation(
     }
 
     // Update invitation
-    connexionManager.declineInvitation(invitationId);
+    const updatedInvitation = connexionManager.declineInvitation(invitationId);
 
-    // Update database
+    // Update game_invitation table
     await customFetch('http://database:3000/database/game_invitation', 'PUT', {
       id: invitationId,
       status: 'declined'
     });
+
+    // Update the message metadata with new status
+    if (updatedInvitation?.messageId) {
+      await customFetch('http://database:3000/database/message', 'PUT', {
+        id: updatedInvitation.messageId,
+        metadata: JSON.stringify({
+          invitationId,
+          inviterId: invitation.inviterId,
+          invitedId: invitation.invitedId,
+          status: 'declined'
+        })
+      });
+    }
 
     // Broadcast to channel members
     const channel = await customFetch('http://database:3000/database/channel', 'GET',
