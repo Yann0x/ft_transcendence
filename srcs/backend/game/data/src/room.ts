@@ -204,7 +204,14 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
     const player: Player = { id: playerId, socket, side };
     room.players.push(player);
     console.log(`[ROOM] ${playerId} joined ${room.id} as ${side}`);
-    // ...rest of your logic...
+
+    // Check if both players have joined - transition to ready
+    if (room.players.length === 2 && room.state.phase === 'waiting') {
+      room.state.phase = 'ready';
+      broadcastState(room);
+      console.log(`[ROOM] ${room.id} ready - both players joined`);
+    }
+
     return player;
   }
 

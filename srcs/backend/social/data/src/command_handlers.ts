@@ -698,26 +698,10 @@ export async function handleAcceptGameInvitation(
       game_room_id: gameRoomId
     });
 
-    // Fetch the full message first
-    const [message] = await customFetch('http://database:3000/database/message', 'GET', {
-      channel_id: invitation.channelId,
-      id: invitation.messageId
-    }) as Message[];
-
-    if (!message) {
-      return sendError(socket, 'game_invitation_accept', 'Message not found', commandId);
-    }
-
-    // Update message metadata and status
-    await customFetch('http://database:3000/database/message', 'PUT', {
-      ...message,
-      metadata: JSON.stringify({ ...invitation, status: 'accepted', gameRoomId })
-    });
-
-    // Broadcast to both users
+    // Broadcast to both users (include inviterId so frontend knows who should be prompted)
     const updateEvent: SocialEvent = {
       type: 'game_invitation_update',
-      data: { invitationId, status: 'accepted', gameRoomId },
+      data: { invitationId, status: 'accepted', gameRoomId, inviterId: invitation.inviterId },
       timestamp: new Date().toISOString()
     };
 
@@ -771,22 +755,6 @@ export async function handleDeclineGameInvitation(
     await customFetch('http://database:3000/database/game_invitation', 'PUT', {
       id: invitationId,
       status: 'declined'
-    });
-
-    // Fetch the full message first
-    const [message] = await customFetch('http://database:3000/database/message', 'GET', {
-      channel_id: invitation.channelId,
-      id: invitation.messageId
-    }) as Message[];
-
-    if (!message) {
-      return sendError(socket, 'game_invitation_decline', 'Message not found', commandId);
-    }
-
-    // Update message metadata and status
-    await customFetch('http://database:3000/database/message', 'PUT', {
-      ...message,
-      metadata: JSON.stringify({ ...invitation, status: 'declined' })
     });
 
     // Broadcast to channel members

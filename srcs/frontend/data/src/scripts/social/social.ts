@@ -96,15 +96,15 @@ export const Social = {
 
         // Game invitation events
         socialClient.on('game_invitation_update', (event: SocialEvent) => {
-            const { invitationId, status, gameRoomId } = event.data;
+            const { invitationId, status, gameRoomId, inviterId } = event.data;
 
             // Re-render channel to update invitation card
             if (Chat.currentChannel) {
                 Chat.displayChannel(Chat.currentChannel.id);
             }
 
-            // If accepted and we're the inviter, prompt to join
-            if (status === 'accepted' && gameRoomId) {
+            // If accepted and we're the inviter (not the one who accepted), prompt to join
+            if (status === 'accepted' && gameRoomId && inviterId === App.me?.id) {
                 const shouldJoin = confirm('Your invitation was accepted! Join the game now?');
                 if (shouldJoin) {
                     sessionStorage.setItem('game_invitation', JSON.stringify({

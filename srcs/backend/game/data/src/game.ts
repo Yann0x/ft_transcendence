@@ -95,14 +95,17 @@ async function start() {
   });
 
   server.get('/game/ws', { websocket: true }, async (socket: WebSocket, request: FastifyRequest) => {
-    // Get user ID from headers (set by auth middleware)
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    const mode = url.searchParams.get('mode') as 'solo' | 'local' | 'pvp' | 'tournament' | 'invitation' || 'solo';
+    const difficulty = url.searchParams.get('difficulty') as 'easy' | 'normal' | 'hard' || 'hard';
+
+    // Get user ID from headers (set by proxy auth middleware)
     let userId = request.headers['x-sender-id'] as string | undefined;
-    
-    // If no user ID from headers, try to extract and validate JWT from query param
+
+    // Fallback: try to extract and validate JWT from query param
     if (!userId) {
-      const url = new URL(request.url, `http://${request.headers.host}`);
       const token = url.searchParams.get('token');
-      
+
       if (token) {
         try {
           const response = await fetch('http://authenticate:3000/check_jwt', {
@@ -126,12 +129,15 @@ async function start() {
         }
       }
     }
-    
-    const playerId = userId || `player_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    const url = new URL(request.url, `http://${request.headers.host}`);
-    const mode = url.searchParams.get('mode') as 'solo' | 'local' | 'pvp' | 'tournament' | 'invitation' || 'solo';
-    const difficulty = url.searchParams.get('difficulty') as 'easy' | 'normal' | 'hard' || 'hard';
+    // Invitation mode requires authenticated user
+    if (mode === 'invitation' && !userId) {
+      console.error('[WS] Invitation mode requires authenticated user');
+      socket.send(JSON.stringify({ type: 'error', message: 'Authentication required for invitation games' }));
+      socket.close();
+      return;
+    }
+    const playerId = userId || `player_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     // Tournament mode parameters
     const tournamentId = url.searchParams.get('tournamentId');
