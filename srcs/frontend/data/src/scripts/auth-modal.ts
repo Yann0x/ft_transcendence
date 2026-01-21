@@ -17,6 +17,9 @@ export const AuthModal = {
    * Initialize the auth modal
    */
   init(): void {
+    // Handle OAuth callback first - this doesn't need the modal
+    this.handleOAuthCallback();
+
     this.modal = document.getElementById('auth-modal');
     this.loginTab = document.getElementById('auth-login-tab');
     this.signupTab = document.getElementById('auth-signup-tab');
@@ -29,6 +32,7 @@ export const AuthModal = {
     this.setupCloseListeners();
     this.setupSwitchLinks();
     this.setupFormSubmissions();
+    this.setupOAuth42Button();
   },
 
   
@@ -226,5 +230,124 @@ export const AuthModal = {
         alert('An error occurred during signup.');
       }
    });
+  },
+
+  /**
+   * Setup OAuth 42 button click handler
+   */
+  setupOAuth42Button(): void {
+    const oauth42Btn = document.getElementById('auth-oauth-42');
+    oauth42Btn?.addEventListener('click', async () => {
+      try {
+        const response = await fetch('/authenticate/oauth/42');
+        if (!response.ok) {
+          const error = await response.json();
+          alert(`OAuth error: ${error.error || 'Failed to initiate login'}`);
+          return;
+        }
+        const data = await response.json();
+        if (data.url) {
+          // Redirect to 42 authorization page
+          window.location.href = data.url;
+        }
+      } catch (error) {
+        console.error('[AUTH] OAuth 42 error:', error);
+        alert('Failed to connect with 42. Please try again.');
+      }
+    });
+  },
+
+  /**
+   * Handle OAuth callback - check for token or error in URL
+   */
+  handleOAuthCallback(): void {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const oauthError = urlParams.get('oauth_error');
+
+    // Handle OAuth error
+    if (oauthError) {
+      console.error('[AUTH] OAuth error:', oauthError);
+      const errorMessages: Record<string, string> = {
+        'access_denied': 'You cancelled the login.',
+        'invalid_state': 'Security check failed. Please try again.',
+        'token_exchange_failed': 'Failed to authenticate with 42.',
+        'user_fetch_failed': 'Failed to get your 42 profile.',
+        'config_error': 'OAuth is not properly configured.',
+        'internal_error': 'An internal error occurred.',
+        'missing_params': 'Invalid callback parameters.',
+      };
+      alert(errorMessages[oauthError] || `Login failed: ${oauthError}`);
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
+    // Handle successful OAuth - token in URL
+    if (token) {
+      console.log('[AUTH] OAuth token received');
+      sessionStorage.setItem('authToken', token);
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+
+      // Fetch user data with the token and trigger login success
+      this.fetchUserDataWithToken(token);
+    }
+  },
+
+  /**
+   * Fetch user data after OAuth login
+   */
+  async fetchUserDataWithToken(token: string): Promise<void> {
+    try {
+      // Decode the JWT to get the user ID (JWT is base64 encoded)
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const userId = payload.id;
+
+      if (!userId) {
+        console.error('[AUTH] No user ID in JWT token');
+        sessionStorage.removeItem('authToken');
+        alert('Invalid token. Please try again.');
+        return;
+      }
+
+      // Fetch user data using the ID from the JWT
+      const response = await fetch(`/user/find?id=${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const users = await response.json();
+        if (users && users.length > 0) {
+          const user = users[0];
+          const loginResponse: LoginResponse = {
+            user,
+            cachedUsers: [],
+            friendIds: [],
+            blockedIds: [],
+            token
+          };
+
+          if (this.onLoginSuccess) {
+            this.onLoginSuccess(loginResponse);
+          }
+        } else {
+          console.error('[AUTH] User not found after OAuth');
+          sessionStorage.removeItem('authToken');
+          alert('User not found. Please try again.');
+        }
+      } else {
+        console.error('[AUTH] Failed to fetch user data after OAuth');
+        // Token might be invalid, clear it
+        sessionStorage.removeItem('authToken');
+        alert('Failed to complete login. Please try again.');
+      }
+    } catch (error) {
+      console.error('[AUTH] Error fetching user data:', error);
+      sessionStorage.removeItem('authToken');
+      alert('Failed to complete login. Please try again.');
+    }
   },
 };

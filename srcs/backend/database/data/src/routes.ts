@@ -8,7 +8,7 @@ const dbGetUserSchema = {
   schema: {
     querystring: Type.Pick(UserSchema, ['id', 'email', 'name', 'status']),
     response: {
-      200: Type.Array(Type.Pick(UserSchema, ['id', 'name', 'email', 'avatar']))
+      200: Type.Array(Type.Pick(UserSchema, ['id', 'name', 'email', 'avatar', 'ft_id']))
     }
   }
 }
@@ -33,8 +33,8 @@ const dbUpdateUserSchema = {
 const dbCreateUserSchema = {
   schema: {
     body: Type.Object(
-      Type.Pick(UserSchema, ['name', 'email', 'password', 'avatar']).properties,
-      { required: ['name', 'email', 'password'] }
+      Type.Pick(UserSchema, ['id', 'name', 'email', 'password', 'avatar', 'ft_id']).properties,
+      { required: ['id', 'name', 'email'] }
     ),
     response: {
       200: { type: 'string' }
