@@ -15,7 +15,9 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT DEFAULT NULL,
             avatar TEXT,
-            ft_id TEXT UNIQUE DEFAULT NULL
+            ft_id TEXT UNIQUE DEFAULT NULL,
+            twoAuth_secret TEXT DEFAULT NULL,
+            twoAuth_enabled INTEGER DEFAULT 0
         );
     `).run();
     db.prepare(
@@ -118,6 +120,23 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
         }
     }
 
+    // Add 2FA columns to existing users tables (if they don't exist)
+    try {
+        db.prepare(`ALTER TABLE users ADD COLUMN twoAuth_secret TEXT DEFAULT NULL`).run();
+    } catch (error: any) {
+        if (!error.message?.includes('duplicate column name')) {
+            console.error('[DATABASE] Error adding twoAuth_secret column:', error);
+        }
+    }
+
+    try {
+        db.prepare(`ALTER TABLE users ADD COLUMN twoAuth_enabled INTEGER DEFAULT 0`).run();
+    } catch (error: any) {
+        if (!error.message?.includes('duplicate column name')) {
+            console.error('[DATABASE] Error adding twoAuth_enabled column:', error);
+        }
+    }
+
     return db;
 }
 export function getUser(req, reply): User[] {
@@ -147,7 +166,7 @@ export function getUser(req, reply): User[] {
     const whereClause = conditions.length ? conditions.join(' AND ') : '1=1';
 
     const users = db.prepare(
-        `SELECT id, name, email, avatar, ft_id FROM users WHERE ${whereClause}`
+        `SELECT id, name, email, avatar, ft_id, twoAuth_secret, twoAuth_enabled FROM users WHERE ${whereClause}`
     ).all(...values) as User[];
 
     return users;
@@ -177,6 +196,16 @@ export function updateUser(req, reply): boolean | string {
         fields.push('ft_id = ?');
         values.push(req.body.ft_id);
     }
+    if (req.body.twoAuth_secret !== undefined) {
+        fields.push('twoAuth_secret = ?');
+        values.push(req.body.twoAuth_secret);
+        console.log('[DATABASE] Updating twoAuth_secret');
+    }
+    if (req.body.twoAuth_enabled !== undefined) {
+        fields.push('twoAuth_enabled = ?');
+        values.push(req.body.twoAuth_enabled ? 1 : 0);
+        console.log('[DATABASE] Updating twoAuth_enabled to:', req.body.twoAuth_enabled ? 1 : 0);
+    }
 
     if (fields.length === 0) {
         return "no fields to update";
@@ -185,9 +214,11 @@ export function updateUser(req, reply): boolean | string {
     values.push(req.body.id); // id for WHERE clause
 
     const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+    console.log('[DATABASE] SQL:', sql, 'for user:', req.body.id);
     const request = db.prepare(sql);
     const result = request.run(...values);
 
+    console.log('[DATABASE] Update result - changes:', result.changes);
     if (result.changes === 0)
         return "no changes made";
     return true;

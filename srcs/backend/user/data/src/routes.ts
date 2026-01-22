@@ -25,7 +25,6 @@ const loginUserSchema = {
       { required: ['email', 'password'], additionalProperties: false }
     ),
     response: {
-      200: LoginResponseSchema,
       400: ErrorResponseSchema,
       500: ErrorResponseSchema
     }
@@ -197,6 +196,24 @@ export function userRoutes(server: FastifyInstance) {
   server.post('/user/public/register', registerUserSchema, handlers.registerUserHandler);
   server.post('/user/public/login', loginUserSchema, handlers.loginUserHandler);
   server.post('/user/public/logout', logoutUserSchema, handlers.logoutUserHandler);
+  
+  // 2FA login completion (public - called after initial login returns requires2FA)
+  server.post('/user/public/login/2fa', {
+    schema: {
+      description: 'Complete login with 2FA verification',
+      body: Type.Object({
+        userId: Type.String(),
+        code: Type.String()
+      }),
+      response: {
+        200: LoginResponseSchema,
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema
+      }
+    }
+  }, handlers.login2FAHandler);
 
   // Private routes (auth required - handled by proxy)
   server.get('/user/find', findUserSchema, handlers.findUserHandler);
