@@ -276,6 +276,7 @@ export async function findUserHandler(
   try {
     const query = req.query;
     const requestingUserId = req.headers['x-sender-id'] as string;
+    console.log('[USER] findUserHandler - x-sender-id:', requestingUserId, 'query:', JSON.stringify(query));
 
     const users = await customFetch(
       'http://database:3000/database/user',
@@ -288,7 +289,9 @@ export async function findUserHandler(
     }
 
     const result = await Promise.all(users.map(async (user) => {
+      const userWith2FA = user as User & { twoAuth_enabled?: number };
       const isOwnData = requestingUserId && user.id && requestingUserId === user.id;
+      console.log('[USER] findUserHandler - user.id:', user.id, 'isOwnData:', isOwnData, 'twoAuth_enabled:', userWith2FA.twoAuth_enabled);
 
       if (isOwnData) {
         await fillUser(user);

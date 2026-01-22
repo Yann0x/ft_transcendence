@@ -362,6 +362,12 @@ export function build2FAEnableHandler(server: FastifyInstance) {
         return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to enable 2FA' });
       }
 
+      // Verify the database actually updated the user
+      if (responseText !== 'true') {
+        console.error('[2FA] Database did not update user:', responseText);
+        return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to save 2FA settings' });
+      }
+
       console.log('[2FA] 2FA enabled for user:', userId);
       
       return reply.send({ success: true, message: '2FA enabled successfully' });
@@ -417,10 +423,18 @@ export function build2FADisableHandler(server: FastifyInstance) {
         })
       });
 
+      const responseText = await updateResponse.text();
+      console.log('[2FA] Database response for disable:', updateResponse.status, responseText);
+
       if (!updateResponse.ok) {
-        const errorText = await updateResponse.text();
-        console.error('[2FA] Failed to disable 2FA:', errorText);
+        console.error('[2FA] Failed to disable 2FA:', responseText);
         return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to disable 2FA' });
+      }
+
+      // Verify the database actually updated the user
+      if (responseText !== 'true') {
+        console.error('[2FA] Database did not update user:', responseText);
+        return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to save 2FA settings' });
       }
 
       console.log('[2FA] 2FA disabled for user:', userId);
