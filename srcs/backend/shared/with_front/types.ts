@@ -161,6 +161,8 @@ export const UserSchema = Type.Object({
   status:       Type.String({default: 'offline'}),
   password:     Type.Optional(Type.String({minLength:6, maxLength: 128})),
   ft_id:        Type.Optional(Type.String()),
+  twoAuth_enabled: Type.Optional(Type.Union([Type.Number(), Type.Boolean()])),
+  twoAuth_secret:  Type.Optional(Type.String()),
   stats:        Type.Optional(StatsSchema),
   matches:      Type.Optional(Type.Array(MatchSchema)),
   tournaments:  Type.Optional(Type.Array(TournamentSchema)),

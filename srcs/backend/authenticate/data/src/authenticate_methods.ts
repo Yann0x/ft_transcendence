@@ -1,6 +1,8 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { SenderIdentity, User } from './shared/with_front/types'
 import crypto from 'crypto'
+import { authenticator } from '@otplib/preset-default'
+import QRCode from 'qrcode'
 
 // Store pending OAuth states (in-memory for CSRF protection)
 const pendingOAuthStates = new Map<string, { createdAt: number }>()
@@ -255,4 +257,218 @@ async function findOrCreateOAuthUser(ftUser: { id: number; login: string; email:
 
   console.log('[OAUTH] User created successfully with id:', newUser.id);
   return newUser;
+}
+
+// ============================================
+// 2FA (TOTP) Authentication Methods
+// ============================================
+
+/**
+ * Generate a new 2FA secret and QR code for setup
+ */
+export function build2FASetupHandler(server: FastifyInstance) {
+  return async (request: FastifyRequest<{ Body: { userId: string; email: string } }>, reply: FastifyReply) => {
+    const { userId, email } = request.body;
+
+    if (!userId || !email) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'userId and email are required' });
+    }
+
+    try {
+      // Generate a new TOTP secret
+      const secret = authenticator.generateSecret();
+      
+      // Generate the otpauth URL for QR code
+      const serviceName = 'ft_transcendance';
+      const otpauthUrl = authenticator.keyuri(email, serviceName, secret);
+      
+      // Generate QR code as data URL
+      const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
+
+      console.log('[2FA] Generated setup secret for user:', userId);
+      
+      return reply.send({
+        secret,
+        qrCode: qrCodeDataUrl,
+        otpauthUrl
+      });
+    } catch (error) {
+      console.error('[2FA] Error generating setup:', error);
+      return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to generate 2FA setup' });
+    }
+  };
+}
+
+/**
+ * Verify a TOTP code
+ */
+export function build2FAVerifyHandler(server: FastifyInstance) {
+  return async (request: FastifyRequest<{ Body: { secret: string; code: string } }>, reply: FastifyReply) => {
+    const { secret, code } = request.body;
+
+    if (!secret || !code) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'secret and code are required' });
+    }
+
+    try {
+      const isValid = authenticator.verify({ token: code, secret });
+      
+      console.log('[2FA] Code verification result:', isValid);
+      
+      return reply.send({ valid: isValid });
+    } catch (error) {
+      console.error('[2FA] Error verifying code:', error);
+      return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to verify 2FA code' });
+    }
+  };
+}
+
+/**
+ * Enable 2FA for a user (after successful verification)
+ */
+export function build2FAEnableHandler(server: FastifyInstance) {
+  return async (request: FastifyRequest<{ Body: { userId: string; secret: string; code: string } }>, reply: FastifyReply) => {
+    const { userId, secret, code } = request.body;
+
+    if (!userId || !secret || !code) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'userId, secret, and code are required' });
+    }
+
+    try {
+      // Verify the code first
+      const isValid = authenticator.verify({ token: code, secret });
+      
+      if (!isValid) {
+        return reply.status(401).send({ error: 'Unauthorized', message: 'Invalid 2FA code' });
+      }
+
+      // Update user in database with 2FA enabled
+      console.log('[2FA] Sending update to database for user:', userId);
+      const updateResponse = await fetch('http://database:3000/database/user', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: userId,
+          twoAuth_secret: secret,
+          twoAuth_enabled: true
+        })
+      });
+
+      const responseText = await updateResponse.text();
+      console.log('[2FA] Database response:', updateResponse.status, responseText);
+
+      if (!updateResponse.ok) {
+        console.error('[2FA] Failed to enable 2FA:', responseText);
+        return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to enable 2FA' });
+      }
+
+      console.log('[2FA] 2FA enabled for user:', userId);
+      
+      return reply.send({ success: true, message: '2FA enabled successfully' });
+    } catch (error) {
+      console.error('[2FA] Error enabling 2FA:', error);
+      return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to enable 2FA' });
+    }
+  };
+}
+
+/**
+ * Disable 2FA for a user
+ */
+export function build2FADisableHandler(server: FastifyInstance) {
+  return async (request: FastifyRequest<{ Body: { userId: string; code: string } }>, reply: FastifyReply) => {
+    const { userId, code } = request.body;
+
+    if (!userId || !code) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'userId and code are required' });
+    }
+
+    try {
+      // Get user's current secret from database
+      const userResponse = await fetch(`http://database:3000/database/user?id=${userId}`);
+      const users = await userResponse.json() as Array<{ twoAuth_secret: string | null; twoAuth_enabled: number }>;
+      
+      if (!users || users.length === 0) {
+        return reply.status(404).send({ error: 'Not Found', message: 'User not found' });
+      }
+
+      const user = users[0]!;
+      const secret = user.twoAuth_secret;
+      
+      if (!user.twoAuth_enabled || !secret) {
+        return reply.status(400).send({ error: 'Bad Request', message: '2FA is not enabled' });
+      }
+
+      // Verify the code
+      const isValid = authenticator.verify({ token: code, secret });
+      
+      if (!isValid) {
+        return reply.status(401).send({ error: 'Unauthorized', message: 'Invalid 2FA code' });
+      }
+
+      // Disable 2FA in database
+      const updateResponse = await fetch('http://database:3000/database/user', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: userId,
+          twoAuth_secret: null,
+          twoAuth_enabled: false
+        })
+      });
+
+      if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        console.error('[2FA] Failed to disable 2FA:', errorText);
+        return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to disable 2FA' });
+      }
+
+      console.log('[2FA] 2FA disabled for user:', userId);
+      
+      return reply.send({ success: true, message: '2FA disabled successfully' });
+    } catch (error) {
+      console.error('[2FA] Error disabling 2FA:', error);
+      return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to disable 2FA' });
+    }
+  };
+}
+
+/**
+ * Verify 2FA code during login (used by user service)
+ */
+export function build2FALoginVerifyHandler(server: FastifyInstance) {
+  return async (request: FastifyRequest<{ Body: { userId: string; code: string } }>, reply: FastifyReply) => {
+    const { userId, code } = request.body;
+
+    if (!userId || !code) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'userId and code are required' });
+    }
+
+    try {
+      // Get user's secret from database
+      const userResponse = await fetch(`http://database:3000/database/user?id=${userId}`);
+      const users = await userResponse.json() as Array<{ twoAuth_secret: string | null; twoAuth_enabled: number }>;
+      
+      if (!users || users.length === 0) {
+        return reply.status(404).send({ error: 'Not Found', message: 'User not found' });
+      }
+
+      const user = users[0]!;
+      const secret = user.twoAuth_secret;
+      
+      if (!user.twoAuth_enabled || !secret) {
+        return reply.status(400).send({ error: 'Bad Request', message: '2FA is not enabled for this user' });
+      }
+
+      // Verify the code
+      const isValid = authenticator.verify({ token: code, secret });
+      
+      console.log('[2FA] Login verification for user:', userId, 'result:', isValid);
+      
+      return reply.send({ valid: isValid });
+    } catch (error) {
+      console.error('[2FA] Error during login verification:', error);
+      return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to verify 2FA code' });
+    }
+  };
 }
