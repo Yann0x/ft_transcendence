@@ -7,6 +7,8 @@ import {UserPublic, SocialEvent} from '../shared/types'
 
 export const Social = {
 
+    _i18nListenerBound: false,
+
     async init() {
         const token = sessionStorage.getItem('authToken');
         if (!App.me || !token) {
@@ -23,6 +25,12 @@ export const Social = {
 
         socialClient.connect(token);
         this.display();
+        if (!this._i18nListenerBound) {
+            document.addEventListener('i18n:languageChanged', () => {
+                this.display();
+            });
+            this._i18nListenerBound = true;
+        }
     },
 
     async load() {

@@ -1,5 +1,5 @@
 /* ============================================
-   MAIN APP - ft_transcendance
+   MAIN APP - ft_transcendence
    ============================================ */
 
 import { Intro } from './intro'
@@ -216,7 +216,7 @@ const App = {
   },
 
   async init(): Promise<void> {
-    console.log('🏓 ft_transcendance - App initialized');
+    console.log('🏓 ft_transcendence - App initialized');
 
     this.appContainer = document.getElementById('app');
 
@@ -302,7 +302,7 @@ const App = {
     if (this.currentPage === 'home' && name !== 'home') {
       PongGame.cleanup();
     }
-    
+
     // Cleanup des tournois si on quitte la page tournaments
     if (this.currentPage === 'tournaments' && name !== 'tournaments') {
       Tournaments.cleanup();

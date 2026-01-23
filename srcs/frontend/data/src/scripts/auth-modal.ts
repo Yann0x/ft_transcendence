@@ -4,6 +4,7 @@
 
 import { PongGame } from '../game';
 import { LoginResponse } from '../shared/types';
+import { I18n } from './i18n';
 
 export const AuthModal = {
   modal: null as HTMLElement | null,
@@ -35,7 +36,7 @@ export const AuthModal = {
     this.setupOAuth42Button();
   },
 
-  
+
   /**
    * Setup tab switching
    */
@@ -143,6 +144,17 @@ export const AuthModal = {
   },
 
   setupFormSubmissions(): void {
+    function mapServerErrorReason(reason: string): string {
+      if (!reason) return '';
+      // password min length (JSON-schema style)
+      const m = reason.match(/must NOT have fewer than\s*(\d+)\s*characters/);
+      if (m) {
+        const min = m[1];
+        return I18n.translate('auth.error_password_min_length').replace('{min}', min);
+      }
+      // generic fallback: return original reason
+      return reason;
+    }
     const loginFormElement = this.loginForm as HTMLFormElement | null;
     const signupFormElement = this.signupForm as HTMLFormElement | null;
     loginFormElement?.addEventListener('submit', async (e) => {
@@ -206,7 +218,10 @@ export const AuthModal = {
 
         if (!response.ok) {
           const errorData = await response.json();
-          alert(`Signup failed: ${errorData.message}`);
+          const tpl = I18n.translate('auth.signup_failed');
+          const reason = errorData?.message || '';
+          const displayedReason = mapServerErrorReason(reason);
+          alert(tpl.replace('{message}', displayedReason));
           return;
         }
 
@@ -222,7 +237,7 @@ export const AuthModal = {
           this.onLoginSuccess(loginResponse);
         }
 
-        alert('Account created successfully!');
+        alert(I18n.translate('auth.signup_success'));
         // Clear signup form fields
         signupFormElement.reset();
         this.close();

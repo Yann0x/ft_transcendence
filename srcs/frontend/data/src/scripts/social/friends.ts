@@ -2,10 +2,20 @@ import { UserPublic } from '../shared/types';
 import { App } from '../app';
 import { ProfileModal } from '../profile-modal';
 import * as SocialCommands from './social-commands';
+import { I18n } from '../i18n';
+
+let i18nListenerBound = false;
 
 export const Friends = {
 
   async display(): Promise <void> {
+    if (!i18nListenerBound) {
+      document.addEventListener('i18n:languageChanged', () => {
+        Friends.display();
+      });
+      i18nListenerBound = true;
+    }
+
     await this.displaySearchResults();
     await this.displayFriends();
     this.attachDocumentListeners();
@@ -14,7 +24,7 @@ export const Friends = {
 async displayFriends(): Promise<void>
 {
     const friendsList = document.getElementById('friends-list');
-    const friendsCount = document.getElementById('friends-count');
+    const titleWithCount = document.getElementById('friends-title-with-count');
     const emptyState = document.getElementById('friends-empty-state');
 
     if (!friendsList || !App.me) {
@@ -25,19 +35,21 @@ async displayFriends(): Promise<void>
     if (friends.length === 0) {
       emptyState?.classList.remove('hidden');
       friendsList.innerHTML = '';
-      if (friendsCount) {
-        friendsCount.textContent = '0 amis';
+      if (titleWithCount) {
+        titleWithCount.setAttribute('data-i18n-params', JSON.stringify({ count: '0' }));
+        I18n.applyTranslations(titleWithCount);
       }
       return;
     }
     emptyState?.classList.add('hidden');
 
     friendsList.innerHTML = friends.map((friend: UserPublic) => this.createFriendUserCard(friend)).join('');
-    if (friendsCount) {
-      friendsCount.textContent = `${friends.length} ami${friends.length > 1 ? 's' : ''}`;
+    if (titleWithCount) {
+      titleWithCount.setAttribute('data-i18n-params', JSON.stringify({ count: String(friends.length) }));
+      I18n.applyTranslations(titleWithCount);
     }
   },
-  
+
   async displaySearchResults(): Promise<void>
   {
     const resultsContainer = document.getElementById('search-results');

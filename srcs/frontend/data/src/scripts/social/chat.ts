@@ -8,7 +8,7 @@ export const Chat =
 {
   cachedChannelsMap: new Map <string, Channel>(),
   sortedChanelsArray: new Array<Channel>,
-  currentChannel: null as Channel | null, 
+  currentChannel: null as Channel | null,
 
     async loadChannels() {
         const token = sessionStorage.getItem('authToken');
@@ -42,10 +42,10 @@ export const Chat =
         for (const channel of this.cachedChannelsMap.values()) {
             for (const message of channel.messages) {
                 if (message.type === 'game_invitation' && message.metadata) {
-                    const metadata = typeof message.metadata === 'string' 
-                        ? JSON.parse(message.metadata) 
+                    const metadata = typeof message.metadata === 'string'
+                        ? JSON.parse(message.metadata)
                         : message.metadata;
-                    
+
                     if (metadata.invitationId === invitationId) {
                         metadata.status = status;
                         if (gameRoomId) {
@@ -65,10 +65,10 @@ export const Chat =
         for (const channel of this.cachedChannelsMap.values()) {
             for (const message of channel.messages) {
                 if (message.type === 'game_invitation' && message.metadata) {
-                    const metadata = typeof message.metadata === 'string' 
-                        ? JSON.parse(message.metadata) 
+                    const metadata = typeof message.metadata === 'string'
+                        ? JSON.parse(message.metadata)
                         : message.metadata;
-                    
+
                     if (metadata.invitationId === invitationId) {
                         // Convert to game result
                         message.type = 'game_result';
@@ -98,7 +98,7 @@ export const Chat =
     sortChannels()
     {
         this.sortedChanelsArray = Array.from(this.cachedChannelsMap.values());
-        this.sortedChanelsArray.sort((a: Channel, b: Channel) => 
+        this.sortedChanelsArray.sort((a: Channel, b: Channel) =>
             this.getChannelLatestDate(b) - this.getChannelLatestDate(a)
         )
     },
@@ -653,7 +653,7 @@ export const Chat =
 
         const isWinner = winnerId === App.me?.id;
         const isLoser = loserId === App.me?.id;
-        
+
         // Color scheme based on outcome for current user
         let bgGradient: string;
         let borderColor: string;

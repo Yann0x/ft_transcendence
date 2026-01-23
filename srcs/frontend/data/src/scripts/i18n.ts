@@ -8,8 +8,8 @@ type SupportedLang = (typeof SUPPORTED_LANGS)[number];
 const translations: Record<SupportedLang, TranslationMap> = {
   fr: {
     // App
-    'app.title': 'ft_transcendance',
-    
+    'app.title': 'ft_transcendence',
+
     // Navigation
     'nav.play': 'Jouer',
     'nav.tournaments': 'Tournois',
@@ -21,13 +21,13 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'nav.language': 'Langue',
     'nav.contrast': 'Contraste élevé',
     'nav.social': 'Social',
-    
+
     // Footer
-    'footer.copy': '© 2025 ft_transcendence - École 42',
+    'footer.copy': '© 2025 ft_transcendence - 42 Paris',
     'footer.about': 'À propos',
     'footer.rules': 'Règles',
     'footer.contact': 'Contact',
-    
+
     // Auth
     'auth.login': 'Connexion',
     'auth.signup': 'Inscription',
@@ -47,7 +47,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'auth.email_placeholder': 'votre@email.com',
     'auth.password_placeholder': '••••••••',
     'auth.username_placeholder': 'votre_username',
-    
+    'auth.signup_success': "Compte créé avec succès !",
+    'auth.signup_failed': "Échec de l'inscription : {message}",
+    'auth.error_password_min_length': "Le mot de passe doit contenir au moins {min} caractères",
+
     // Home
     'home.game_title': 'Pong Arena',
     'home.status_online': 'En ligne',
@@ -71,7 +74,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'home.difficulty_easy': 'Facile',
     'home.difficulty_normal': 'Normal',
     'home.difficulty_hard': 'Difficile',
-    
+
     // Game messages
     'game.choose_mode': 'Choisissez Solo ou PvP pour jouer',
     'game.waiting_opponent': 'En attente d\'un adversaire...',
@@ -89,7 +92,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'game.press_space_restart': 'Appuyez sur ESPACE pour recommencer',
     'game.left_wins': 'Gauche gagne !',
     'game.right_wins': 'Droite gagne !',
-    
+
     // Stats
     'stats.title': 'Mes Statistiques',
     'stats.subtitle': 'Retrouvez ici vos statistiques de jeu et votre progression',
@@ -113,9 +116,11 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'stats.table_result': 'Résultat',
     'stats.table_date': 'Date',
     'stats.no_data': 'Aucune donnée pour le moment',
-    
+
     // Friends
     'friends.title': 'Mes Amis',
+    'friends.title_upper': 'MES AMIS',
+    'friends.title_with_count': 'MES AMIS ({count} amis)',
     'friends.subtitle': 'Gérez vos amis et consultez leur profil',
     'friends.list_title': 'Liste des amis',
     'friends.empty_title': "Vous n'avez pas encore d'amis",
@@ -126,7 +131,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'friends.my_friends': 'Mes amis',
     'friends.no_friends': "Pas encore d'amis",
     'friends.search_to_add': 'Cherchez des utilisateurs pour en ajouter !',
-    
+    'friends.search_none': 'Aucun utilisateur trouvé',
+
     // Chat / Social
     'chat.direct': 'Direct',
     'chat.tournaments': 'Tournois',
@@ -154,7 +160,9 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'chat.type_message': 'Tapez un message...',
     'chat.search_users': 'Chercher des utilisateurs...',
     'chat.search_results': 'RÉSULTATS DE RECHERCHE',
-    
+	'chat.empty_title': 'Aucune conversation',
+	'chat.empty_subtitle': 'Ajoutez des amis pour commencer à discuter !',
+
     // Tournaments
     'tournaments.title': 'Tournois',
     'tournaments.create': '+ Créer un tournoi',
@@ -209,10 +217,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'tournaments.alert_not_in_tournament': 'Vous n\'êtes pas dans ce tournoi',
     'tournaments.alert_error': 'Erreur',
     'tournaments.alert_not_found': 'Tournoi non trouvé',
-    
+
     // Intro
     'intro.tagline': 'Le Pong nouvelle génération',
-    
+
     // Settings
     'settings': 'Paramètres',
     'settings.title': 'Paramètres du compte',
@@ -230,7 +238,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'settings.delete_account': 'Supprimer mon compte',
     'settings.delete_warning': 'Cette action est irréversible. Toutes vos données seront supprimées.',
     'settings.unblock': 'Débloquer',
-    
+
     // Profile
     'profile.offline': 'Hors ligne',
     'profile.online': 'En ligne',
@@ -243,7 +251,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'profile.remove_friend': 'Retirer des amis',
     'profile.send_message': 'Envoyer un message',
     'profile.block': 'Bloquer',
-    
+
     // Accessibility
     'accessibility.title': 'Accessibilité',
     'accessibility.close': 'Fermer',
@@ -267,15 +275,15 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'accessibility.motion_enabled': 'Animations activées',
     'accessibility.focus_enabled': 'Surbrillance du focus activée',
     'accessibility.focus_disabled': 'Surbrillance du focus désactivée',
-    
+
     // Logout
     'logout': 'Déconnexion',
   },
-  
+
   en: {
     // App
-    'app.title': 'ft_transcendance',
-    
+    'app.title': 'ft_transcendence',
+
     // Navigation
     'nav.play': 'Play',
     'nav.tournaments': 'Tournaments',
@@ -287,13 +295,13 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'nav.language': 'Language',
     'nav.contrast': 'High contrast',
     'nav.social': 'Social',
-    
+
     // Footer
-    'footer.copy': '© 2025 ft_transcendence - Ecole 42',
+    'footer.copy': '© 2025 ft_transcendence - 42 Paris',
     'footer.about': 'About',
     'footer.rules': 'Rules',
     'footer.contact': 'Contact',
-    
+
     // Auth
     'auth.login': 'Log in',
     'auth.signup': 'Sign up',
@@ -313,7 +321,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'auth.email_placeholder': 'you@email.com',
     'auth.password_placeholder': '••••••••',
     'auth.username_placeholder': 'your_username',
-    
+    'auth.signup_success': 'Account created successfully!',
+    'auth.signup_failed': 'Signup failed: {message}',
+    'auth.error_password_min_length': 'Password must be at least {min} characters',
+
     // Home
     'home.game_title': 'Pong Arena',
     'home.status_online': 'Online',
@@ -337,7 +348,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'home.difficulty_easy': 'Easy',
     'home.difficulty_normal': 'Normal',
     'home.difficulty_hard': 'Hard',
-    
+
     // Game messages
     'game.choose_mode': 'Choose a game mode',
     'game.waiting_opponent': 'Waiting for opponent...',
@@ -349,7 +360,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'game.defeat': 'Defeated',
     'game.left_wins': 'Left wins!',
     'game.right_wins': 'Right wins!',
-    
+
     // Stats
     'stats.title': 'My Stats',
     'stats.subtitle': 'Track your game stats and progression',
@@ -373,9 +384,11 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'stats.table_result': 'Result',
     'stats.table_date': 'Date',
     'stats.no_data': 'No data yet',
-    
+
     // Friends
     'friends.title': 'My Friends',
+    'friends.title_upper': 'MY FRIENDS',
+    'friends.title_with_count': 'MY FRIENDS ({count} friends)',
     'friends.subtitle': 'Manage your friends and view their profiles',
     'friends.list_title': 'Friends list',
     'friends.empty_title': "You don't have friends yet",
@@ -386,7 +399,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'friends.my_friends': 'My friends',
     'friends.no_friends': 'No friends yet',
     'friends.search_to_add': 'Search users to add friends!',
-    
+    'friends.search_none': 'No users found',
+
     // Chat / Social
     'chat.direct': 'Direct',
     'chat.tournaments': 'Tournaments',
@@ -414,7 +428,9 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'chat.type_message': 'Type a message...',
     'chat.search_users': 'Search users...',
     'chat.search_results': 'SEARCH RESULTS',
-    
+	'chat.empty_title': 'No conversations',
+	'chat.empty_subtitle': 'Add friends to start chatting!',
+
     // Tournaments
     'tournaments.title': 'Tournaments',
     'tournaments.create': '+ Create a tournament',
@@ -469,10 +485,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'tournaments.alert_not_in_tournament': 'You are not in this tournament',
     'tournaments.alert_error': 'Error',
     'tournaments.alert_not_found': 'Tournament not found',
-    
+
     // Intro
     'intro.tagline': 'The next-gen Pong',
-    
+
     // Settings
     'settings': 'Settings',
     'settings.title': 'Account settings',
@@ -490,7 +506,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'settings.delete_account': 'Delete my account',
     'settings.delete_warning': 'This action is irreversible. All your data will be deleted.',
     'settings.unblock': 'Unblock',
-    
+
     // Profile
     'profile.offline': 'Offline',
     'profile.online': 'Online',
@@ -503,7 +519,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'profile.remove_friend': 'Remove friend',
     'profile.send_message': 'Send message',
     'profile.block': 'Block',
-    
+
     // Accessibility
     'accessibility.title': 'Accessibility',
     'accessibility.close': 'Close',
@@ -527,15 +543,15 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'accessibility.motion_enabled': 'Animations enabled',
     'accessibility.focus_enabled': 'Focus highlight enabled',
     'accessibility.focus_disabled': 'Focus highlight disabled',
-    
+
     // Logout
     'logout': 'Log out',
   },
-  
+
   es: {
     // App
-    'app.title': 'ft_transcendance',
-    
+    'app.title': 'ft_transcendence',
+
     // Navigation
     'nav.play': 'Jugar',
     'nav.tournaments': 'Torneos',
@@ -547,13 +563,13 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'nav.language': 'Idioma',
     'nav.contrast': 'Alto contraste',
     'nav.social': 'Social',
-    
+
     // Footer
-    'footer.copy': '© 2025 ft_transcendence - Ecole 42',
+    'footer.copy': '© 2025 ft_transcendence - 42 Paris',
     'footer.about': 'Acerca de',
     'footer.rules': 'Reglas',
     'footer.contact': 'Contacto',
-    
+
     // Auth
     'auth.login': 'Iniciar sesión',
     'auth.signup': 'Registrarse',
@@ -573,7 +589,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'auth.email_placeholder': 'tu@email.com',
     'auth.password_placeholder': '••••••••',
     'auth.username_placeholder': 'tu_usuario',
-    
+    'auth.signup_success': '¡Cuenta creada con éxito!',
+    'auth.signup_failed': 'Error al registrarse: {message}',
+    'auth.error_password_min_length': 'La contraseña debe tener al menos {min} caracteres',
+
     // Home
     'home.game_title': 'Pong Arena',
     'home.status_online': 'En línea',
@@ -597,7 +616,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'home.difficulty_easy': 'Fácil',
     'home.difficulty_normal': 'Normal',
     'home.difficulty_hard': 'Difícil',
-    
+
     // Game messages
     'game.choose_mode': 'Elige un modo de juego',
     'game.waiting_opponent': 'Esperando oponente...',
@@ -609,7 +628,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'game.defeat': 'Derrotado',
     'game.left_wins': '¡Izquierda gana!',
     'game.right_wins': '¡Derecha gana!',
-    
+
     // Stats
     'stats.title': 'Mis Estadísticas',
     'stats.subtitle': 'Consulta tus estadísticas de juego y tu progreso',
@@ -633,9 +652,11 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'stats.table_result': 'Resultado',
     'stats.table_date': 'Fecha',
     'stats.no_data': 'Sin datos por el momento',
-    
+
     // Friends
     'friends.title': 'Mis Amigos',
+    'friends.title_upper': 'MIS AMIGOS',
+    'friends.title_with_count': 'MIS AMIGOS ({count} amigos)',
     'friends.subtitle': 'Gestiona tus amigos y consulta sus perfiles',
     'friends.list_title': 'Lista de amigos',
     'friends.empty_title': 'Aún no tienes amigos',
@@ -646,7 +667,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'friends.my_friends': 'Mis amigos',
     'friends.no_friends': 'Sin amigos aún',
     'friends.search_to_add': '¡Busca usuarios para añadir amigos!',
-    
+    'friends.search_none': 'No se encontraron usuarios',
+
     // Chat / Social
     'chat.direct': 'Directo',
     'chat.tournaments': 'Torneos',
@@ -674,7 +696,9 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'chat.type_message': 'Escribe un mensaje...',
     'chat.search_users': 'Buscar usuarios...',
     'chat.search_results': 'RESULTADOS DE BÚSQUEDA',
-    
+	'chat.empty_title': 'No hay conversaciones',
+	'chat.empty_subtitle': '¡Añade amigos para empezar a chatear!',
+
     // Tournaments
     'tournaments.title': 'Torneos',
     'tournaments.create': '+ Crear un torneo',
@@ -729,10 +753,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'tournaments.alert_not_in_tournament': 'No estás en este torneo',
     'tournaments.alert_error': 'Error',
     'tournaments.alert_not_found': 'Torneo no encontrado',
-    
+
     // Intro
     'intro.tagline': 'El Pong de nueva generación',
-    
+
     // Settings
     'settings': 'Configuración',
     'settings.title': 'Configuración de la cuenta',
@@ -750,7 +774,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'settings.delete_account': 'Eliminar mi cuenta',
     'settings.delete_warning': 'Esta acción es irreversible. Todos tus datos serán eliminados.',
     'settings.unblock': 'Desbloquear',
-    
+
     // Profile
     'profile.offline': 'Desconectado',
     'profile.online': 'En línea',
@@ -763,7 +787,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'profile.remove_friend': 'Eliminar amigo',
     'profile.send_message': 'Enviar mensaje',
     'profile.block': 'Bloquear',
-    
+
     // Accessibility
     'accessibility.title': 'Accesibilidad',
     'accessibility.close': 'Cerrar',
@@ -787,7 +811,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'accessibility.motion_enabled': 'Animaciones activadas',
     'accessibility.focus_enabled': 'Resaltado del foco activado',
     'accessibility.focus_disabled': 'Resaltado del foco desactivado',
-    
+
     // Logout
     'logout': 'Cerrar sesión',
   }
@@ -807,11 +831,35 @@ function translate(key: string): string {
 }
 
 function applyTranslations(root: ParentNode = document): void {
-  root.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+  const processElement = (el: HTMLElement) => {
     const key = el.getAttribute('data-i18n');
-    if (key) {
-      el.textContent = translate(key);
+    if (!key) return;
+    let text = translate(key);
+    // If element defines params for replacement, apply them
+    const paramsAttr = el.getAttribute('data-i18n-params');
+    if (paramsAttr) {
+      try {
+        const params = JSON.parse(paramsAttr) as Record<string, string>;
+        for (const p in params) {
+          const re = new RegExp('\\{' + p + '\\}', 'g');
+          text = text.replace(re, params[p]);
+        }
+      } catch (e) {
+        // ignore JSON parse errors
+      }
     }
+    el.textContent = text;
+  };
+
+  // If root itself has data-i18n, process it too
+  if (root instanceof HTMLElement && root.hasAttribute('data-i18n')) {
+    processElement(root as HTMLElement);
+  }
+
+  root.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+    // skip the root if it was already processed
+    if (el === root) return;
+    processElement(el);
   });
 
   root.querySelectorAll<HTMLElement>('[data-i18n-placeholder]').forEach((el) => {
@@ -856,6 +904,12 @@ function setLanguage(lang: string, persist = true): void {
   }
   applyTranslations(document);
   updateFlagSelection();
+    // Notify listeners that language changed so modules can refresh dynamic views
+    try {
+      document.dispatchEvent(new CustomEvent('i18n:languageChanged', { detail: currentLang }));
+    } catch (e) {
+      // ignore if dispatch fails in some environments
+    }
 }
 
 function getLanguage(): string {
@@ -873,14 +927,14 @@ function bindControls(): void {
       }
     };
   });
-  
+
   // Legacy select support (if still present)
   const select = document.getElementById('lang-select') as HTMLSelectElement | null;
   if (select) {
     select.value = currentLang;
     select.onchange = () => setLanguage(select.value);
   }
-  
+
   updateFlagSelection();
 }
 
@@ -888,13 +942,13 @@ function init(): void {
   const stored = localStorage.getItem(STORAGE_KEY);
   const browserLang = navigator.language?.toLowerCase();
   let inferred: SupportedLang = 'en';
-  
+
   if (browserLang?.startsWith('fr')) {
     inferred = 'fr';
   } else if (browserLang?.startsWith('es')) {
     inferred = 'es';
   }
-  
+
   const initial = resolveLanguage(stored || inferred);
   setLanguage(initial, false);
   bindControls();

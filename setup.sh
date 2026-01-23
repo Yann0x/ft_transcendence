@@ -1,13 +1,13 @@
 #!/bin/bash
-# Script de setup automatique pour ft_transcendance
+# Script de setup automatique pour ft_transcendence
 # Usage: ./setup.sh ou bash setup.sh
 
 set -e
 
-echo "🚀 Initialisation de ft_transcendance..."
+echo "🚀 Initialisation de ft_transcendence..."
 
 # Creation .env si necessaire
-if [ ! -f srcs/.env ]; then 
+if [ ! -f srcs/.env ]; then
     cat << eof > srcs/.env
 DISP_ORANGE="\e[38;2;200;30;30m"
 DISP_BOLD="\e[1m"

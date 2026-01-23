@@ -1,5 +1,5 @@
 /* ============================================
-   INTRO ANIMATION - ft_transcendance
+   INTRO ANIMATION - ft_transcendence
    ============================================ */
 
 /**
@@ -8,7 +8,7 @@
 const Intro = {
   // Durée de l'animation en ms
   DURATION: 3500,
-  
+
   // Élément DOM de l'intro
   introElement: null as HTMLElement | null,
 
@@ -17,7 +17,7 @@ const Intro = {
    */
   init(): void {
     this.introElement = document.getElementById('intro');
-    
+
     if (this.introElement) {
       this.scheduleRemoval();
       this.setupSkip();
