@@ -89,6 +89,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'game.press_space_restart': 'Appuyez sur ESPACE pour recommencer',
     'game.left_wins': 'Gauche gagne !',
     'game.right_wins': 'Droite gagne !',
+    'game.wins': 'gagne',
     
     // Stats
     'stats.title': 'Mes Statistiques',
@@ -189,7 +190,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'tournaments.join_btn': 'Rejoindre',
     'tournaments.view_btn': 'Voir',
     'tournaments.leave_btn': 'Quitter',
-    'tournaments.play_match': '🎮 Jouer mon match',
+    'tournaments.play_match': '🎮 Jouer le match',
     'tournaments.created_by': 'Créé par',
     'tournaments.status_waiting': 'En attente',
     'tournaments.status_in_progress': 'En cours',
@@ -209,6 +210,18 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'tournaments.alert_not_in_tournament': 'Vous n\'êtes pas dans ce tournoi',
     'tournaments.alert_error': 'Erreur',
     'tournaments.alert_not_found': 'Tournoi non trouvé',
+    // Local tournaments
+    'tournaments.mode_label': 'Mode de jeu',
+    'tournaments.mode_online': 'En ligne',
+    'tournaments.mode_local': 'Local',
+    'tournaments.local_hint': '⚠️ Tous les joueurs joueront sur cet appareil (W/S vs ↑/↓)',
+    'tournaments.aliases_title': 'Pseudos des joueurs',
+    'tournaments.aliases_subtitle': 'Entrez le pseudo de chaque participant',
+    'tournaments.player': 'Joueur',
+    'tournaments.start_local_tournament': 'Lancer le tournoi',
+    'tournaments.alert_invalid_aliases': 'Pseudos invalides',
+    'tournaments.match_in_progress': 'Match en cours...',
+    'tournaments.returning': 'Retour au tournoi...',
     
     // Intro
     'intro.tagline': 'Le Pong nouvelle génération',
@@ -349,6 +362,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'game.defeat': 'Defeated',
     'game.left_wins': 'Left wins!',
     'game.right_wins': 'Right wins!',
+    'game.wins': 'wins',
     
     // Stats
     'stats.title': 'My Stats',
@@ -449,7 +463,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'tournaments.join_btn': 'Join',
     'tournaments.view_btn': 'View',
     'tournaments.leave_btn': 'Leave',
-    'tournaments.play_match': '🎮 Play my match',
+    'tournaments.play_match': '🎮 Play match',
     'tournaments.created_by': 'Created by',
     'tournaments.status_waiting': 'Waiting',
     'tournaments.status_in_progress': 'In progress',
@@ -469,6 +483,18 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'tournaments.alert_not_in_tournament': 'You are not in this tournament',
     'tournaments.alert_error': 'Error',
     'tournaments.alert_not_found': 'Tournament not found',
+    // Local tournaments
+    'tournaments.mode_label': 'Game mode',
+    'tournaments.mode_online': 'Online',
+    'tournaments.mode_local': 'Local',
+    'tournaments.local_hint': '⚠️ All players will play on this device (W/S vs ↑/↓)',
+    'tournaments.aliases_title': 'Player aliases',
+    'tournaments.aliases_subtitle': 'Enter each participant\'s alias',
+    'tournaments.player': 'Player',
+    'tournaments.start_local_tournament': 'Start tournament',
+    'tournaments.alert_invalid_aliases': 'Invalid aliases',
+    'tournaments.match_in_progress': 'Match in progress...',
+    'tournaments.returning': 'Returning to tournament...',
     
     // Intro
     'intro.tagline': 'The next-gen Pong',
@@ -609,6 +635,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'game.defeat': 'Derrotado',
     'game.left_wins': '¡Izquierda gana!',
     'game.right_wins': '¡Derecha gana!',
+    'game.wins': 'gana',
     
     // Stats
     'stats.title': 'Mis Estadísticas',
@@ -729,6 +756,18 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'tournaments.alert_not_in_tournament': 'No estás en este torneo',
     'tournaments.alert_error': 'Error',
     'tournaments.alert_not_found': 'Torneo no encontrado',
+    // Local tournaments
+    'tournaments.mode_label': 'Modo de juego',
+    'tournaments.mode_online': 'En línea',
+    'tournaments.mode_local': 'Local',
+    'tournaments.local_hint': '⚠️ Todos los jugadores jugarán en este dispositivo (W/S vs ↑/↓)',
+    'tournaments.aliases_title': 'Alias de los jugadores',
+    'tournaments.aliases_subtitle': 'Ingresa el alias de cada participante',
+    'tournaments.player': 'Jugador',
+    'tournaments.start_local_tournament': 'Iniciar torneo',
+    'tournaments.alert_invalid_aliases': 'Alias inválidos',
+    'tournaments.match_in_progress': 'Partido en curso...',
+    'tournaments.returning': 'Volviendo al torneo...',
     
     // Intro
     'intro.tagline': 'El Pong de nueva generación',
