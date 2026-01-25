@@ -3,6 +3,7 @@ import {Message, Channel, SocialEvent, UserPublic, GameInvitationData, GameResul
 import {ProfileModal} from '../profile-modal.ts'
 import {Router} from '../router.ts'
 import * as SocialCommands from './social-commands';
+import { I18n } from '../i18n';
 
 export const Chat =
 {
@@ -318,11 +319,13 @@ export const Chat =
                         type="text"
                         id="message-content-input"
                         placeholder="Type a message..."
+                        data-i18n-placeholder="chat.type_message"
                         class="flex-1 px-4 py-2 bg-neutral-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
                         autocomplete="off"
                     />
                     <button
                         type="submit"
+                        data-i18n="chat.send"
                         class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                     >
                         Send
@@ -332,6 +335,12 @@ export const Chat =
 
             const input = document.getElementById('message-content-input') as HTMLInputElement;
             input?.focus();
+
+            // Apply translations to the newly created elements
+            const messageForm = document.getElementById('message-form');
+            if (messageForm) {
+                I18n.applyTranslations(messageForm);
+            }
 
             this.attachMessageFormListener();
         }

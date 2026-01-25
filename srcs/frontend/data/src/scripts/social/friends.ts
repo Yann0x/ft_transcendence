@@ -27,7 +27,17 @@ async displayFriends(): Promise<void>
     const titleWithCount = document.getElementById('friends-title-with-count');
     const emptyState = document.getElementById('friends-empty-state');
 
-    if (!friendsList || !App.me) {
+    if (!friendsList) {
+      return;
+    }
+
+    if (!App.me) {
+      emptyState?.classList.remove('hidden');
+      friendsList.innerHTML = '';
+      if (titleWithCount) {
+        titleWithCount.setAttribute('data-i18n-params', JSON.stringify({ count: '0' }));
+        I18n.applyTranslations(titleWithCount);
+      }
       return;
     }
 
