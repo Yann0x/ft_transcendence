@@ -9,7 +9,7 @@ const Intro = {
   // init the intro
   init(): void {
     this.introElement = document.getElementById('intro');
-    
+
     if (this.introElement) {
       this.scheduleRemoval();
       this.setupSkip();

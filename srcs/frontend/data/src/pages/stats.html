@@ -1,32 +1,48 @@
 <!-- Stats Page -->
-<main class="flex-1 flex items-center justify-center p-8">
-  <div class="w-full max-w-6xl">
-    
+<main class="flex-1 px-6 py-10">
+  <div class="w-full max-w-6xl mx-auto">
+
     <!-- Page Header -->
-    <div class="mb-8">
-      <div class="flex items-center gap-3 mb-4">
-        <span class="text-4xl">📊</span>
-        <h1 class="text-3xl font-bold" data-i18n="stats.title">Mes Statistiques</h1>
-      </div>
-      <p class="text-neutral-400" data-i18n="stats.subtitle">Retrouvez ici vos statistiques de jeu et votre progression</p>
+    <div class="page-header">
+      <h1 class="page-title" data-i18n="stats.title">Statistiques</h1>
+      <p class="page-subtitle" data-i18n="stats.subtitle">Retrouvez ici vos statistiques de jeu et votre progression</p>
     </div>
 
+    <!-- Login Required State (hidden by default) -->
+    <div id="stats-login-required" class="hidden">
+      <div class="card">
+        <div class="card-body p-12 text-center">
+          <svg class="w-20 h-20 mx-auto mb-6 text-neutral-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+          </svg>
+          <h3 class="text-2xl font-bold text-primary mb-3" data-i18n="stats.login_required_title">Connexion requise</h3>
+          <p class="text-neutral-400 mb-6 max-w-md mx-auto" data-i18n="stats.login_required_desc">Connectez-vous pour accéder à vos statistiques détaillées et suivre votre progression.</p>
+          <button class="btn btn-primary" data-auth="login">
+            <span data-i18n="nav.login">Se connecter</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Content (visible when logged in) -->
+    <div id="stats-content">
+
     <!-- Global Stats -->
-    <div class="grid grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       <div class="stat-card">
-        <div class="stat-value text-blue-400" id="stat-games-played">-</div>
+        <div class="stat-value text-blue-400" id="stat-games-played">—</div>
         <div class="stat-label" data-i18n="stats.games_played">Parties jouées</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value text-emerald-400" id="stat-win-rate">-</div>
+        <div class="stat-value text-emerald-400" id="stat-win-rate">—</div>
         <div class="stat-label" data-i18n="stats.win_rate">Taux de victoire</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value text-amber-400" id="stat-global-rank">-</div>
+        <div class="stat-value text-amber-400" id="stat-global-rank">—</div>
         <div class="stat-label" data-i18n="stats.global_rank">Classement global</div>
       </div>
       <div class="stat-card">
-        <div class="stat-value text-purple-400" id="stat-tournaments-won">-</div>
+        <div class="stat-value text-purple-400" id="stat-tournaments-won">—</div>
         <div class="stat-label" data-i18n="stats.tournaments_won">Tournois gagnés</div>
       </div>
     </div>
@@ -37,24 +53,24 @@
       <!-- Games Stats -->
       <div class="card" id="game-stats-card">
         <div class="card-header">
-          <h3 class="text-lg font-bold" data-i18n="stats.game_stats_title">Statistiques de jeu</h3>
+          <h3 class="text-lg font-bold text-primary" data-i18n="stats.game_stats_title">Statistiques de jeu</h3>
         </div>
-        <div class="card-body p-6 space-y-4">
-          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
-            <span class="text-neutral-400" data-i18n="stats.wins">Victoires</span>
-            <span class="font-bold text-emerald-400" id="stat-wins">-</span>
+        <div class="card-body space-y-4 divide-y divide-neutral-800">
+          <div class="flex justify-between items-center pt-3 first:pt-0">
+            <span class="text-secondary" data-i18n="stats.wins">Victoires</span>
+            <span class="font-bold text-emerald-400" id="stat-wins">—</span>
           </div>
-          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
-            <span class="text-neutral-400" data-i18n="stats.losses">Défaites</span>
-            <span class="font-bold text-red-400" id="stat-losses">-</span>
+          <div class="flex justify-between items-center pt-3">
+            <span class="text-secondary" data-i18n="stats.losses">Défaites</span>
+            <span class="font-bold text-red-400" id="stat-losses">—</span>
           </div>
-          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
-            <span class="text-neutral-400" data-i18n="stats.points_scored">Points marqués</span>
-            <span class="font-bold" id="stat-points-scored">-</span>
+          <div class="flex justify-between items-center pt-3">
+            <span class="text-secondary" data-i18n="stats.points_scored">Points marqués</span>
+            <span class="font-bold text-primary" id="stat-points-scored">—</span>
           </div>
-          <div class="flex justify-between items-center">
-            <span class="text-neutral-400" data-i18n="stats.points_allowed">Points encaissés</span>
-            <span class="font-bold" id="stat-points-allowed">-</span>
+          <div class="flex justify-between items-center pt-3">
+            <span class="text-secondary" data-i18n="stats.points_allowed">Points encaissés</span>
+            <span class="font-bold text-primary" id="stat-points-allowed">—</span>
           </div>
         </div>
       </div>
@@ -62,20 +78,20 @@
       <!-- Performance Stats -->
       <div class="card" id="performance-stats-card">
         <div class="card-header">
-          <h3 class="text-lg font-bold" data-i18n="stats.performance_title">Performances</h3>
+          <h3 class="text-lg font-bold text-primary" data-i18n="stats.performance_title">Performances</h3>
         </div>
-        <div class="card-body p-6 space-y-4">
-          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
-            <span class="text-neutral-400" data-i18n="stats.best_score">Meilleur score</span>
-            <span class="font-bold text-purple-400" id="stat-best-score">-</span>
+        <div class="card-body space-y-4 divide-y divide-neutral-800">
+          <div class="flex justify-between items-center pt-3 first:pt-0">
+            <span class="text-secondary" data-i18n="stats.best_score">Meilleur score</span>
+            <span class="font-bold text-purple-400" id="stat-best-score">—</span>
           </div>
-          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
-            <span class="text-neutral-400" data-i18n="stats.worst_score">Pire score</span>
-            <span class="font-bold text-red-400" id="stat-worst-score">-</span>
+          <div class="flex justify-between items-center pt-3">
+            <span class="text-secondary" data-i18n="stats.worst_score">Pire score</span>
+            <span class="font-bold text-red-400" id="stat-worst-score">—</span>
           </div>
-          <div class="flex justify-between items-center">
-            <span class="text-neutral-400" data-i18n="stats.streak">Série de victoires</span>
-            <span class="font-bold text-emerald-400" id="stat-win-streak">-</span>
+          <div class="flex justify-between items-center pt-3">
+            <span class="text-secondary" data-i18n="stats.streak">Série de victoires</span>
+            <span class="font-bold text-emerald-400" id="stat-win-streak">—</span>
           </div>
         </div>
       </div>
@@ -85,7 +101,7 @@
     <!-- Winrate Graph -->
     <div class="card mb-8">
       <div class="card-header">
-        <h3 class="text-lg font-bold" data-i18n="stats.winrate_evolution">Évolution du winrate</h3>
+        <h3 class="text-lg font-bold text-primary" data-i18n="stats.winrate_evolution">Évolution du winrate</h3>
       </div>
       <div class="card-body p-6">
         <canvas id="winrate-graph" class="w-full" height="200"></canvas>
@@ -96,29 +112,40 @@
     <!-- Recent Games -->
     <div class="card">
       <div class="card-header">
-        <h3 class="text-lg font-bold" data-i18n="stats.recent_games">Dernières parties</h3>
+        <h3 class="text-lg font-bold text-primary" data-i18n="stats.recent_games">Dernières parties</h3>
       </div>
       <div class="card-body">
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="border-b border-neutral-800">
-              <tr class="text-neutral-400">
-                <th class="text-left py-3 px-4" data-i18n="stats.table_type">Type</th>
-                <th class="text-left py-3 px-4" data-i18n="stats.table_opponent">Adversaire</th>
-                <th class="text-center py-3 px-4" data-i18n="stats.table_score">Score</th>
-                <th class="text-center py-3 px-4" data-i18n="stats.table_result">Résultat</th>
-                <th class="text-right py-3 px-4" data-i18n="stats.table_date">Date</th>
+          <table class="table text-sm">
+            <thead>
+              <tr>
+                <th class="table-th" data-i18n="stats.table_type">Type</th>
+                <th class="table-th" data-i18n="stats.table_opponent">Adversaire</th>
+                <th class="table-th text-center" data-i18n="stats.table_score">Score</th>
+                <th class="table-th text-center" data-i18n="stats.table_result">Résultat</th>
+                <th class="table-th text-right" data-i18n="stats.table_date">Date</th>
               </tr>
             </thead>
-            <tbody>
-              <tr class="hover:bg-neutral-800/50 transition">
-                <td class="py-3 px-4 text-neutral-500" colspan="5" data-i18n="stats.no_data">Aucune donnée pour le moment</td>
+            <tbody id="recent-games-tbody">
+              <tr>
+                <td colspan="5" class="p-0">
+                  <div class="empty-state-compact">
+                    <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p class="empty-state-title" data-i18n="stats.no_games">Aucune partie jouée</p>
+                    <p class="empty-state-text">Jouez votre première partie pour voir vos stats ici</p>
+                    <a href="/play" class="btn btn-primary">Jouer maintenant</a>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
+
+    </div><!-- End stats-content -->
 
   </div>
 </main>
