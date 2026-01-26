@@ -305,11 +305,11 @@ function updatePvPStatsDisplay(stats: { waitingPlayers: number; activeGames: num
   const el = document.getElementById('pvp-queue-count');
   if (el) {
     if (stats.waitingPlayers > 0) {
-      el.textContent = `${stats.waitingPlayers} en attente`;
+      el.textContent = `${stats.waitingPlayers}`;
       el.classList.remove('text-neutral-400');
       el.classList.add('text-emerald-400');
     } else {
-      el.textContent = '0 en attente';
+      el.textContent = '0';
       el.classList.remove('text-emerald-400');
       el.classList.add('text-neutral-400');
     }
