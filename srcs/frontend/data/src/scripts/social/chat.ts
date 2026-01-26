@@ -289,6 +289,11 @@ export const Chat =
         this.updateChatHeader(channel);
         let messagesHTML = channel.messages.map((message: Message) => this.createMessageCard(message)).join('');
         const isBlocked = (channel as any).isBlocked || false;
+        
+        // Remove centering classes and add flex-col for vertical message layout
+        messageList.classList.remove('items-center', 'justify-center', 'flex');
+        messageList.classList.add('flex', 'flex-col');
+        
         messageList.innerHTML = messagesHTML;
         requestAnimationFrame(() => {
             messageList.scrollTop = messageList.scrollHeight;
