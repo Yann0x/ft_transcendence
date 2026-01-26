@@ -8,7 +8,7 @@ const dbGetUserSchema = {
   schema: {
     querystring: Type.Pick(UserSchema, ['id', 'email', 'name', 'status']),
     response: {
-      200: Type.Array(Type.Pick(UserSchema, ['id', 'name', 'email', 'avatar', 'ft_id']))
+      200: Type.Array(Type.Pick(UserSchema, ['id', 'name', 'email', 'avatar', 'ft_id', 'twoAuth_enabled', 'twoAuth_secret']))
     }
   }
 }
