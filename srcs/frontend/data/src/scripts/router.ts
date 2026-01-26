@@ -1,15 +1,9 @@
-/* ============================================
-   ROUTER - SPA Navigation System
-   ============================================ */
-
 export interface Route {
   path: string;
   page: string;
 }
 
-/**
- * Gestionnaire de navigation SPA
- */
+// SPA navigation handler
 const Router = {
   routes: [
     { path: '/play', page: 'home' },
@@ -21,9 +15,7 @@ const Router = {
   currentPath: '/',
   app: null as any,
 
-  /**
-   * Initialise le routeur
-   */
+  // initialize the router
   init(app: any): void {
     this.app = app;
     this.setupPopStateListener();
@@ -31,18 +23,14 @@ const Router = {
     this.routeToCurrentPath();
   },
 
-  /**
-   * Configure l'écouteur pour les changements d'URL
-   */
+  // set up listener for URL changes
   setupPopStateListener(): void {
     window.addEventListener('popstate', () => {
       this.routeToCurrentPath();
     });
   },
 
-  /**
-   * Configure les clics sur les liens de navigation
-   */
+  // set up click handling for nav links
   setupLinkListeners(): void {
     document.addEventListener('click', (e: Event) => {
       const target = e.target as HTMLElement;
@@ -58,22 +46,18 @@ const Router = {
     });
   },
 
-  /**
-   * Navigue vers une route
-   */
+  // navigate to a route
   navigate(path: string): void {
     this.currentPath = path;
     window.history.pushState({ path }, '', path);
     this.routeToCurrentPath();
   },
 
-  /**
-   * Route vers le chemin actuel
-   */
+  // route to the current path
   async routeToCurrentPath(): Promise<void> {
     const path = window.location.pathname;
     
-    // Redirection vers /play si on est à la racine
+    // redirect to /play if we're at root
     if (path === '/') {
       window.history.replaceState({ path: '/play' }, '', '/play');
       return this.routeToCurrentPath();
@@ -85,16 +69,14 @@ const Router = {
       await this.app.loadPage(route.page);
       this.updateActiveNavLink();
     } else {
-      // Route par défaut -> rediriger vers /play
+      // default route -> redirect to /play
       window.history.replaceState({ path: '/play' }, '', '/play');
       await this.app.loadPage('home');
       this.updateActiveNavLink();
     }
   },
 
-  /**
-   * Met à jour le lien actif dans la navbar
-   */
+  // update the active link in navbar
   updateActiveNavLink(): void {
     const allLinks = document.querySelectorAll('.nav-link');
     allLinks.forEach(link => {

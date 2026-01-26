@@ -1,20 +1,12 @@
-/* ============================================
-   INTRO ANIMATION - ft_transcendance
-   ============================================ */
-
-/**
- * Module de gestion de l'animation d'intro
- */
+// module for intro animation management
 const Intro = {
-  // Durée de l'animation en ms
+  // animation duration in ms
   DURATION: 3500,
   
-  // Élément DOM de l'intro
+  // DOM element for intro
   introElement: null as HTMLElement | null,
 
-  /**
-   * Initialise l'intro
-   */
+  // init the intro
   init(): void {
     this.introElement = document.getElementById('intro');
     
@@ -24,27 +16,27 @@ const Intro = {
     }
   },
 
-  /**
-   * Programme la suppression de l'intro après l'animation
-   */
+  //
+  // schedule intro removal after animation
+
   scheduleRemoval(): void {
     setTimeout(() => {
       this.hide();
     }, this.DURATION);
   },
 
-  /**
-   * Permet de skip l'intro en cliquant
-   */
+  //
+  // Allows skipping the intro by clicking
+
   setupSkip(): void {
     this.introElement?.addEventListener('click', () => {
       this.hide();
     });
   },
 
-  /**
-   * Cache l'écran d'intro
-   */
+  //
+  // Hides the intro screen
+
   hide(): void {
     if (this.introElement) {
       this.introElement.style.display = 'none';
@@ -52,7 +44,7 @@ const Intro = {
   }
 };
 
-// Initialisation au chargement du DOM
+// Initialize on DOM load
 document.addEventListener('DOMContentLoaded', () => {
   Intro.init();
 });

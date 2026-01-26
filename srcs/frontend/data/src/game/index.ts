@@ -15,7 +15,7 @@ let running = false;
 let lastInputSent = { up: false, down: false };
 let lastInputSentP2 = { up: false, down: false };
 let gameMode: 'solo' | 'pvp' | 'tournament' | 'invitation' | 'local_tournament' | null = null;
-let localMode = false; // true = PvP local (2 joueurs meme clavier), false = vs AI
+let localMode = false; // true = local PvP (2 players same keyboard), false = vs AI
 let currentDifficulty: AIDifficulty = 'normal';
 let pollInterval: number | null = null;
 let tournamentMatchInfo: TournamentMatchInfo | null = null;
@@ -37,7 +37,7 @@ export function init(): void {
     return;
   }
 
-  // Si deja running, cleanup d'abord
+  // if already running, cleanup first
   if (running) {
     cleanup();
   }
@@ -167,9 +167,7 @@ export function init(): void {
   requestAnimationFrame(gameLoop);
 }
 
-/**
- * Load and display user stats on the home page
- */
+// load and display user stats on the home page
 async function loadHomeStats(): Promise<void> {
   const stats = await StatsService.fetchStats();
   StatsService.updateHomeStats(stats);
@@ -179,19 +177,19 @@ export function cleanup(): void {
   console.log('[GAME] Cleanup');
   running = false;
 
-  // Arrêter le polling
+  // stop polling
   if (pollInterval !== null) {
     clearInterval(pollInterval);
     pollInterval = null;
   }
 
-  // Retirer les listeners clavier
+  // remove keyboard listeners
   unbindKeyboard();
 
-  // Déconnecter du serveur
+  // disconnect from server
   Network.disconnect();
 
-  // Réinitialiser l'état
+  // reset state
   gameMode = null;
   localMode = false;
   tournamentMatchInfo = null;
@@ -395,14 +393,14 @@ async function connectToServer(mode: 'solo' | 'local' | 'pvp', difficulty: AIDif
     });
 
     Network.onDisconnected(() => {
-      // Ne pas reset si on change juste de mode
+      // Don't reset if we're just changing mode
       if (!isChangingMode) {
         gameMode = null;
         setPhase('waiting');
       }
     });
 
-    // Chaque mode est distinct sur le serveur
+    // Each mode is distinct on the server
     await Network.connect(mode, difficulty);
     isChangingMode = false;
     setPhase('waiting');
@@ -410,6 +408,7 @@ async function connectToServer(mode: 'solo' | 'local' | 'pvp', difficulty: AIDif
     console.error('[GAME] Connection failed:', err);
     isChangingMode = false;
     gameMode = null;
+    setPhase('waiting'); // Reset to waiting state to show menu instead of stuck "Connecting..."
   }
 }
 
@@ -501,9 +500,7 @@ async function connectToInvitationGame(invitationId: string, gameRoomId: string)
   }
 }
 
-/**
- * Connect to server for local tournament match (uses local PvP mode)
- */
+// connect to server for local tournament match (uses local PvP mode)
 async function connectToServerLocalTournament(): Promise<void> {
   if (!localTournamentMatchInfo) {
     console.error('[GAME] No local tournament match info');
@@ -622,7 +619,7 @@ function gameLoop(): void {
 
 function sendInputsToServer(): void {
   if (localMode) {
-    // Mode local (PvP local ou tournoi local): envoyer les inputs des deux joueurs
+    // Local mode (local PvP or local tournament): send both players' inputs
     const p1 = getInputP1();
     const p2 = getInputP2();
 
@@ -633,7 +630,7 @@ function sendInputsToServer(): void {
       lastInputSentP2 = { ...p2 };
     }
   } else {
-    // Mode normal: envoyer uniquement ses propres inputs
+    // Normal mode: send only own inputs
     const input = getInput();
 
     if (input.up !== lastInputSent.up || input.down !== lastInputSent.down) {

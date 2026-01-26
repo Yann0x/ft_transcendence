@@ -1,19 +1,17 @@
-// CANVAS avec support DPR
+// CANVAS with DPR support
 
-let canvas: HTMLCanvasElement | null = null; // element canvas HTML
-let ctx: CanvasRenderingContext2D | null = null; // contexte 2D pour dessiner
-let width = 0; // largeur pixels
-let height = 0; // hauteur pixels
+let canvas: HTMLCanvasElement | null = null; // HTML canvas element
+let ctx: CanvasRenderingContext2D | null = null; // 2D context for drawing
+let width = 0; // pixel width
+let height = 0; // pixel height
 
-/*
- * Redimensionne le canvas en tenant compte du DPR
- * DPR = devicePixelRatio
- */
+// resize canvas taking DPR into account
+// DPR = devicePixelRatio
 function resize(container: HTMLElement): void {
   if (!canvas || !ctx) return;
 
-  const dpr = window.devicePixelRatio || 1; // ratio pixels physiques / logiques
-  const rect = container.getBoundingClientRect(); // dimensions du conteneur
+  const dpr = window.devicePixelRatio || 1; // physical/logical pixel ratio
+  const rect = container.getBoundingClientRect(); // container dimensions
 
   width = rect.width;
   height = rect.height;
@@ -22,9 +20,7 @@ function resize(container: HTMLElement): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-/*
- * Cree le canvas et l'insere dans le conteneur
- */
+// create canvas and insert into container
 export function createCanvas(container: HTMLElement): void {
   canvas = document.createElement('canvas');
   canvas.style.display = 'block';
@@ -33,7 +29,7 @@ export function createCanvas(container: HTMLElement): void {
 
   ctx = canvas.getContext('2d');
   if (!ctx) {
-    console.error('Impossible de creer le contexte 2D');
+    console.error('Failed to create 2D context');
     return;
   }
 

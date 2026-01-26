@@ -1,4 +1,4 @@
-// DEBUG - Outils de debug pour le developpement
+// DEBUG - debug tools for development
 
 import { drawText } from './render';
 
@@ -13,10 +13,8 @@ let frameCount = 0;
 let lastFpsUpdate = 0;
 let currentFps = 0;
 
-/*
- * Met a jour le compteur FPS
- * Appeler a chaque frame avec le timestamp actuel
- */
+// update FPS counter
+// call each frame with the current timestamp
 export function updateFps(now: number): void {
   frameCount++;
   if (now - lastFpsUpdate >= 1000) {
@@ -26,9 +24,7 @@ export function updateFps(now: number): void {
   }
 }
 
-/*
- * Affiche le FPS en haut a gauche
- */
+// display FPS in top left corner
 export function drawFps(): void {
   if (!showFPS) return;
   drawText(`${currentFps} FPS`, 10, 20, {
@@ -51,7 +47,7 @@ export function toggleHitboxes(): void {
   console.log(`Debug: showHitboxes = ${showHitboxes}`);
 }
 
-// Export groupe
+// export group
 export const Debug = {
   showFPS,
   showHitboxes,

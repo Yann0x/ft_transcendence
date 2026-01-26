@@ -1,7 +1,3 @@
-/* ============================================
-   AUTH MODAL - Authentication Modal Management
-   ============================================ */
-
 import { PongGame } from '../game';
 import { LoginResponse } from '../shared/types';
 
@@ -13,11 +9,9 @@ export const AuthModal = {
   signupForm: null as HTMLElement | null,
   onLoginSuccess: null as ((loginResponse: LoginResponse) => void) | null,
 
-  /**
-   * Initialize the auth modal
-   */
+  // init the auth modal
   init(): void {
-    // Handle OAuth callback first - this doesn't need the modal
+    // handle oauth callback first - doesn't need the modal
     this.handleOAuthCallback();
 
     this.modal = document.getElementById('auth-modal');
@@ -36,9 +30,7 @@ export const AuthModal = {
   },
 
   
-  /**
-   * Setup tab switching
-   */
+  // set up tab switching
   setupTabListeners(): void {
     this.loginTab?.addEventListener('click', () => {
       this.showLogin();
@@ -49,9 +41,7 @@ export const AuthModal = {
     });
   },
 
-  /**
-   * Setup close button and background click
-   */
+  // set up close button and background click
   setupCloseListeners(): void {
     const closeBtn = document.getElementById('auth-modal-close');
     closeBtn?.addEventListener('click', () => {
@@ -65,9 +55,7 @@ export const AuthModal = {
     });
   },
 
-  /**
-   * Setup switch between login and signup
-   */
+  // set up switch between login and signup
   setupSwitchLinks(): void {
     document.getElementById('auth-switch-signup')?.addEventListener('click', () => {
       this.showSignup();
@@ -78,9 +66,7 @@ export const AuthModal = {
     });
   },
 
-  /**
-   * Show login form
-   */
+  // show login form
   showLogin(): void {
     this.loginTab?.classList.add('border-blue-500', 'text-white');
     this.loginTab?.classList.remove('border-transparent', 'text-neutral-400');
@@ -95,9 +81,7 @@ export const AuthModal = {
     }, 100);
   },
 
-  /**
-   * Show signup form
-   */
+  // show signup form
   showSignup(): void {
     this.signupTab?.classList.add('border-blue-500', 'text-white');
     this.signupTab?.classList.remove('border-transparent', 'text-neutral-400');
@@ -116,30 +100,24 @@ export const AuthModal = {
     }, 100);
   },
 
-  /**
-   * Open the modal
-   */
+  // open the modal
   open(): void {
     this.modal?.classList.remove('hidden');
     this.showLogin(); // Always show login by default
-    PongGame.pauseGame(); // Mettre le jeu en pause
+    PongGame.pauseGame(); // pause the game
   },
 
-  /**
-   * Open the modal on signup form
-   */
+  // open the modal on signup form
   openSignup(): void {
     this.modal?.classList.remove('hidden');
     this.showSignup(); // Show signup form
-    PongGame.pauseGame(); // Mettre le jeu en pause
+    PongGame.pauseGame(); // pause the game
   },
 
-  /**
-   * Close the modal
-   */
+  // close the modal
   close(): void {
     this.modal?.classList.add('hidden');
-    PongGame.resumeGame(); // Reprendre le jeu
+    PongGame.resumeGame(); // resume the game
   },
 
   setupFormSubmissions(): void {
@@ -232,9 +210,7 @@ export const AuthModal = {
    });
   },
 
-  /**
-   * Setup OAuth 42 button click handler
-   */
+  // set up OAuth 42 button click handler
   setupOAuth42Button(): void {
     const oauth42Btn = document.getElementById('auth-oauth-42');
     oauth42Btn?.addEventListener('click', async () => {
@@ -257,9 +233,7 @@ export const AuthModal = {
     });
   },
 
-  /**
-   * Handle OAuth callback - check for token or error in URL
-   */
+  // handle oauth callback - check for token or error in URL
   handleOAuthCallback(): void {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -295,12 +269,10 @@ export const AuthModal = {
     }
   },
 
-  /**
-   * Fetch user data after OAuth login
-   */
+  // fetch user data after oauth login
   async fetchUserDataWithToken(token: string): Promise<void> {
     try {
-      // Decode the JWT to get the user ID (JWT is base64 encoded)
+      // decode JWT to get user id
       const payload = JSON.parse(atob(token.split('.')[1]));
       const userId = payload.id;
 

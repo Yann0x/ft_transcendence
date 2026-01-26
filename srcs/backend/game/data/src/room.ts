@@ -275,7 +275,7 @@ export function removePlayer(room: Room, playerId: string): void {
     console.log(`[ROOM] ${playerId} left ${room.id}`);
   }
 
-  // Gestion selon le mode et la phase
+  // Handle according to mode and phase
   if (room.players.length === 0) {
     stopGameLoop(room);
     rooms.delete(room.id);
@@ -289,10 +289,10 @@ export function removePlayer(room: Room, playerId: string): void {
     return;
   }
 
-  // Si mode PvP ou Tournament et qu'il reste 1 joueur
+  // If PvP or Tournament mode and only 1 player remains
   if ((room.isPvP || room.tournamentInfo) && room.players.length === 1) {
     if (room.state.phase === 'playing' || room.state.phase === 'paused') {
-      // Donner la victoire au joueur restant
+      // Give victory to the remaining player
       const remainingPlayer = room.players[0];
       if (!remainingPlayer) return;
 
@@ -330,7 +330,7 @@ export function removePlayer(room: Room, playerId: string): void {
 export function startGameLoop(room: Room): void {
   if (room.intervalId) return;
 
-  // Activer l'IA si un seul joueur et mode solo
+  // Enable AI if single player and solo mode
   if (room.players.length === 1 && room.allowAI) {
     room.ai = createAIState(room.aiDifficulty);
     console.log(`[ROOM] AI enabled for ${room.id} (${room.aiDifficulty})`);
@@ -383,6 +383,9 @@ export function startGameLoop(room: Room): void {
     if (room.state.phase === 'ended') {
       stopGameLoop(room);
 
+      // Debug: log room state for match saving
+      console.log(`[ROOM] Match ended in ${room.id}: isPvP=${room.isPvP}, hasAI=${!!room.ai}, allowAI=${room.allowAI}, players=${room.players.length}, hasInvitation=${!!room.invitationInfo}, hasTournament=${!!room.tournamentInfo}`);
+
       // Notify tournament service of match end
       if (room.tournamentInfo && tournamentCallbacks) {
         tournamentCallbacks.onMatchEnd(
@@ -416,7 +419,7 @@ export function startGameLoop(room: Room): void {
           console.error('[ROOM] Failed to notify invitation completion:', err);
         });
 
-        // Save match to database for stats tracking
+        // Save duel match to database
         fetch('http://database:3000/database/match', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -424,21 +427,21 @@ export function startGameLoop(room: Room): void {
             player1_id: inviterId,
             player2_id: invitedId,
             score1: score.left,
-            score2: score.right
+            score2: score.right,
+            match_type: 'duel'
           })
         }).then(res => {
           if (res.ok) {
-            console.log(`[ROOM] Match saved to database: ${inviterId} vs ${invitedId}`);
+            console.log(`[ROOM] Duel match saved: ${inviterId} vs ${invitedId}`);
           } else {
-            console.error('[ROOM] Failed to save match to database:', res.status);
+            console.error('[ROOM] Failed to save duel match:', res.status);
           }
         }).catch(err => {
-          console.error('[ROOM] Failed to save match to database:', err);
+          console.error('[ROOM] Failed to save duel match:', err);
         });
       }
-
-      // Save PvP matches (non-invitation, non-tournament) to database
-      if (room.isPvP && !room.invitationInfo && !room.tournamentInfo && room.players.length === 2) {
+      // Save tournament matches to database
+      else if (room.tournamentInfo) {
         const player1 = room.players.find(p => p.side === 'left');
         const player2 = room.players.find(p => p.side === 'right');
         
@@ -451,7 +454,37 @@ export function startGameLoop(room: Room): void {
               player1_id: player1.id,
               player2_id: player2.id,
               score1: score.left,
-              score2: score.right
+              score2: score.right,
+              tournament_id: room.tournamentInfo.tournamentId,
+              match_type: 'tournament'
+            })
+          }).then(res => {
+            if (res.ok) {
+              console.log(`[ROOM] Tournament match saved: ${player1.id} vs ${player2.id}`);
+            } else {
+              console.error('[ROOM] Failed to save tournament match:', res.status);
+            }
+          }).catch(err => {
+            console.error('[ROOM] Failed to save tournament match:', err);
+          });
+        }
+      }
+      // Save PvP matches (matchmaking online) to database
+      else if (room.isPvP && room.players.length === 2) {
+        const player1 = room.players.find(p => p.side === 'left');
+        const player2 = room.players.find(p => p.side === 'right');
+        
+        if (player1 && player2) {
+          const { score } = room.state;
+          fetch('http://database:3000/database/match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              player1_id: player1.id,
+              player2_id: player2.id,
+              score1: score.left,
+              score2: score.right,
+              match_type: 'pvp'
             })
           }).then(res => {
             if (res.ok) {
@@ -464,31 +497,37 @@ export function startGameLoop(room: Room): void {
           });
         }
       }
-
-      // Save AI (solo) matches to database
-      if (room.ai && room.players.length === 1) {
+      // Save AI (solo) matches to database - check allowAI flag as room.ai may be cleared
+      else if (room.allowAI && room.players.length === 1) {
         const player = room.players[0];
-        const { score } = room.state;
-        const aiPlayerId = `AI_${room.aiDifficulty}`; // e.g., "AI_easy", "AI_normal", "AI_hard"
-        
-        fetch('http://database:3000/database/match', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            player1_id: player.id,
-            player2_id: aiPlayerId,
-            score1: score.left,
-            score2: score.right
-          })
-        }).then(res => {
-          if (res.ok) {
-            console.log(`[ROOM] AI match saved: ${player.id} vs ${aiPlayerId}, score: ${score.left}-${score.right}`);
-          } else {
-            console.error('[ROOM] Failed to save AI match:', res.status);
-          }
-        }).catch(err => {
-          console.error('[ROOM] Failed to save AI match:', err);
-        });
+        console.log(`[ROOM] AI match checking player: id=${player.id}, isAnonymous=${player.id.startsWith('player_')}`);
+        // Only save if player has a real user ID (not anonymous)
+        if (player.id && !player.id.startsWith('player_')) {
+          const { score } = room.state;
+          const aiPlayerId = `AI_${room.aiDifficulty}`;
+          
+          fetch('http://database:3000/database/match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              player1_id: player.id,
+              player2_id: aiPlayerId,
+              score1: score.left,
+              score2: score.right,
+              match_type: 'ai'
+            })
+          }).then(res => {
+            if (res.ok) {
+              console.log(`[ROOM] AI match saved: ${player.id} vs ${aiPlayerId}`);
+            } else {
+              console.error('[ROOM] Failed to save AI match:', res.status);
+            }
+          }).catch(err => {
+            console.error('[ROOM] Failed to save AI match:', err);
+          });
+        } else {
+          console.log(`[ROOM] AI match not saved: player ${player.id} is anonymous (no account)`);
+        }
       }
     }
   }, TICK_INTERVAL);
@@ -568,7 +607,7 @@ function broadcastState(room: Room): void {
   }
 }
 
-// Matchmaking PvP: rejoindre une room en attente ou en creer une nouvelle
+// PvP Matchmaking: join a waiting room or create a new one
 export function findOrCreateRoom(): Room {
   for (const room of rooms.values()) {
     // Skip tournament rooms - they should only be joined through tournament flow

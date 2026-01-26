@@ -118,6 +118,61 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
         }
     }
 
+    // Add match_type column to match table (ai, pvp, duel, tournament)
+    try {
+        db.prepare(`ALTER TABLE match ADD COLUMN match_type TEXT DEFAULT 'pvp'`).run();
+    } catch (error: any) {
+        if (!error.message?.includes('duplicate column name')) {
+            console.error('[DATABASE] Error adding match_type column:', error);
+        }
+    }
+
+    // Migration: Remove FK to allow ai and guests
+    try {
+        // Check if migration is needed
+        const testStmt = db.prepare(`INSERT INTO match (player1_id, player2_id, score1, score2, match_type) VALUES ('test_migration_check', 'AI_test', 0, 0, 'ai')`);
+        try {
+            testStmt.run();
+            // If successful, delete
+            db.prepare(`DELETE FROM match WHERE player1_id = 'test_migration_check'`).run();
+            console.log('[DATABASE] Match table already supports non-user IDs');
+        } catch (fkError: any) {
+            if (fkError.message?.includes('FOREIGN KEY constraint failed')) {
+                console.log('[DATABASE] Migrating match table to remove FK constraints...');
+                
+                // Create new table without FK
+                db.prepare(`
+                    CREATE TABLE IF NOT EXISTS match_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        tournament_id TEXT DEFAULT NULL,
+                        score1 INTEGER,
+                        score2 INTEGER,
+                        player1_id TEXT,
+                        player2_id TEXT,
+                        played_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        match_type TEXT DEFAULT 'pvp'
+                    )
+                `).run();
+                
+                // Copy data from old table
+                db.prepare(`
+                    INSERT INTO match_new (id, tournament_id, score1, score2, player1_id, player2_id, played_at, match_type)
+                    SELECT id, tournament_id, score1, score2, player1_id, player2_id, played_at, match_type FROM match
+                `).run();
+                
+                // Drop old table and rename new one
+                db.prepare(`DROP TABLE match`).run();
+                db.prepare(`ALTER TABLE match_new RENAME TO match`).run();
+                
+                console.log('[DATABASE] Match table migration completed - FK constraints removed');
+            } else {
+                throw fkError;
+            }
+        }
+    } catch (error: any) {
+        console.error('[DATABASE] Error during match table migration:', error);
+    }
+
     return db;
 }
 export function getUser(req, reply): User[] {
@@ -670,13 +725,15 @@ export function postMatch(req: FastifyRequest, reply: FastifyReply) {
             player2_id,
             score1,
             score2,
-            tournament_id
+            tournament_id,
+            match_type
         } = req.body as {
             player1_id: string;
             player2_id: string;
             score1: number;
             score2: number;
             tournament_id?: string;
+            match_type?: string; // ai, pvp, duel, tournament
         };
 
         if (!player1_id || !player2_id || score1 === undefined || score2 === undefined) {
@@ -684,8 +741,8 @@ export function postMatch(req: FastifyRequest, reply: FastifyReply) {
         }
 
         const stmt = db.prepare(`
-            INSERT INTO match (player1_id, player2_id, score1, score2, tournament_id)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO match (player1_id, player2_id, score1, score2, tournament_id, match_type)
+            VALUES (?, ?, ?, ?, ?, ?)
         `);
 
         const result = stmt.run(
@@ -693,10 +750,11 @@ export function postMatch(req: FastifyRequest, reply: FastifyReply) {
             player2_id,
             score1,
             score2,
-            tournament_id || null
+            tournament_id || null,
+            match_type || 'pvp'
         );
 
-        console.log(`[DATABASE] Match created: ${player1_id} vs ${player2_id}, score: ${score1}-${score2}`);
+        console.log(`[DATABASE] Match created: ${player1_id} vs ${player2_id}, score: ${score1}-${score2}, type: ${match_type || 'pvp'}`);
         return reply.status(200).send({ id: result.lastInsertRowid });
     } catch (error: any) {
         console.error('[DATABASE] postMatch error:', error);
@@ -725,6 +783,59 @@ export function getUserStats(req: FastifyRequest, reply: FastifyReply) {
                OR (player2_id = ? AND score2 > score1)
         `).get(user_id, user_id) as { count: number };
 
+        // Count tournaments won (matches where tournament_id is set and user won the final)
+        // A tournament win is when a user wins a tournament match (match_type = 'tournament')
+        // We need to check the tournament table for completed tournaments where user is winner
+        let tournaments_won = 0;
+        try {
+            const tournamentsWonResult = db.prepare(`
+                SELECT COUNT(DISTINCT tournament_id) as count FROM match 
+                WHERE match_type = 'tournament' 
+                AND tournament_id IS NOT NULL
+                AND (
+                    (player1_id = ? AND score1 > score2)
+                    OR (player2_id = ? AND score2 > score1)
+                )
+            `).get(user_id, user_id) as { count: number };
+            // This counts tournament matches won, not tournaments won
+            // For a proper count, we need to track tournament finals
+            // For now, approximate by counting distinct tournaments where user won at least one match
+            tournaments_won = tournamentsWonResult?.count || 0;
+        } catch (e) {
+            // Table might not exist or query failed
+            tournaments_won = 0;
+        }
+
+        // Calculate global rank based on win rate and games played
+        // Get all users with their win rates
+        const allUsersStats = db.prepare(`
+            SELECT 
+                u.id,
+                COUNT(m.id) as games_played,
+                SUM(CASE 
+                    WHEN (m.player1_id = u.id AND m.score1 > m.score2) 
+                      OR (m.player2_id = u.id AND m.score2 > m.score1) 
+                    THEN 1 ELSE 0 
+                END) as games_won
+            FROM users u
+            LEFT JOIN match m ON m.player1_id = u.id OR m.player2_id = u.id
+            GROUP BY u.id
+            HAVING games_played > 0
+            ORDER BY 
+                (CAST(games_won AS REAL) / games_played) DESC,
+                games_won DESC,
+                games_played DESC
+        `).all() as { id: string; games_played: number; games_won: number }[];
+
+        // Find user's rank
+        let global_rank = 0;
+        for (let i = 0; i < allUsersStats.length; i++) {
+            if (allUsersStats[i].id === user_id) {
+                global_rank = i + 1;
+                break;
+            }
+        }
+
         const games_played = gamesPlayedResult.count;
         const games_won = gamesWonResult.count;
         const games_lost = games_played - games_won;
@@ -735,7 +846,9 @@ export function getUserStats(req: FastifyRequest, reply: FastifyReply) {
             games_played,
             games_won,
             games_lost,
-            win_rate
+            win_rate,
+            global_rank: global_rank || null,
+            tournaments_won
         });
     } catch (error: any) {
         console.error('[DATABASE] getUserStats error:', error);
@@ -761,6 +874,8 @@ export function getMatchHistory(req: FastifyRequest, reply: FastifyReply) {
                 m.score1,
                 m.score2,
                 m.tournament_id,
+                m.match_type,
+                m.played_at,
                 u1.name as player1_name,
                 u2.name as player2_name
             FROM match m
