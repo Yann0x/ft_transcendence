@@ -107,6 +107,8 @@
   animation: fade-in 0.5s ease-out forwards;
   animation-delay: 3s;
   opacity: 0;
+  position: relative;
+  z-index: 1;
 }
 
 /* ---- Hover Animations ---- */

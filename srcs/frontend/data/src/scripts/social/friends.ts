@@ -97,7 +97,7 @@ async displayFriends(): Promise<void>
     const onlineStatus = isOnline ? 'online' : 'offline';
     const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
     const card = `
-      <div class="flex items-center justify-between p-4 bg-neutral-800 rounded-lg hover:bg-neutral-750 transition" data-user-id="${user.id}">
+      <div class="list-item flex items-center justify-between" data-user-id="${user.id}">
         <div class="flex items-center gap-3">
           <div class="relative avatar-clickable cursor-pointer" data-user-id="${user.id}">
             <img src="${avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover hover:ring-2 hover:ring-blue-500 transition">
@@ -109,7 +109,7 @@ async displayFriends(): Promise<void>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button class="add_friend px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition" data-user-id="${user.id}">
+          <button class="add_friend btn btn-sm btn-outline" data-user-id="${user.id}">
             <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
@@ -128,7 +128,7 @@ async displayFriends(): Promise<void>
     const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
     const statusText = isOnline ? 'online' : 'offline';
    const card =  `
-      <div class="flex items-center justify-between p-4 bg-neutral-800 rounded-lg hover:bg-neutral-750 transition" data-user-id="${user.id}">
+      <div class="list-item flex items-center justify-between" data-user-id="${user.id}">
         <div class="flex items-center gap-3">
           <div class="relative avatar-clickable cursor-pointer" data-user-id="${user.id}">
             <img src="${avatar}" alt="${user.name}" class="w-12 h-12 rounded-full object-cover hover:ring-2 hover:ring-blue-500 transition">
@@ -140,7 +140,7 @@ async displayFriends(): Promise<void>
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <button class="remove_friend px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition" data-user-id="${user.id}">
+          <button class="remove_friend btn btn-sm btn-outline" data-user-id="${user.id}">
             <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>

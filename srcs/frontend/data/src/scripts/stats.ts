@@ -25,8 +25,8 @@ export const Stats = {
 
     // Check if user is logged in
     if (!App.me?.id) {
-      console.warn('[STATS] User not logged in, showing empty stats');
-      this.showEmptyState();
+      console.warn('[STATS] User not logged in, showing login required');
+      this.showLoginRequired();
       return;
     }
 
@@ -94,6 +94,12 @@ export const Stats = {
   // Render the stats page
 
   render(): void {
+    // Ensure stats content is visible and login required is hidden
+    const loginRequiredEl = document.getElementById('stats-login-required');
+    const statsContentEl = document.getElementById('stats-content');
+    if (loginRequiredEl) loginRequiredEl.classList.add('hidden');
+    if (statsContentEl) statsContentEl.classList.remove('hidden');
+
     this.updateGlobalStats();
     this.updateGameStats();
     this.updatePerformanceStats();
@@ -387,6 +393,12 @@ export const Stats = {
   // Show loading state
 
   showLoadingState(): void {
+    // Ensure stats content is visible during loading
+    const loginRequiredEl = document.getElementById('stats-login-required');
+    const statsContentEl = document.getElementById('stats-content');
+    if (loginRequiredEl) loginRequiredEl.classList.add('hidden');
+    if (statsContentEl) statsContentEl.classList.remove('hidden');
+
     const elements = [
       'stat-games-played', 'stat-win-rate', 'stat-global-rank', 'stat-tournaments-won',
       'stat-wins', 'stat-losses', 'stat-points-scored', 'stat-points-allowed',
@@ -400,7 +412,31 @@ export const Stats = {
   },
 
   //
-  // Show empty state when not logged in
+  // Show login required state
+
+  showLoginRequired(): void {
+    const loginRequiredEl = document.getElementById('stats-login-required');
+    const statsContentEl = document.getElementById('stats-content');
+
+    if (loginRequiredEl) {
+      loginRequiredEl.classList.remove('hidden');
+    }
+    if (statsContentEl) {
+      statsContentEl.classList.add('hidden');
+    }
+
+    // Bind auth modal trigger
+    const loginBtn = loginRequiredEl?.querySelector('[data-auth="login"]');
+    if (loginBtn) {
+      loginBtn.addEventListener('click', () => {
+        const authModal = document.getElementById('auth-modal');
+        if (authModal) authModal.classList.remove('hidden');
+      });
+    }
+  },
+
+  //
+  // Show empty state (when logged in but no data)
 
   showEmptyState(): void {
     const elements = [
