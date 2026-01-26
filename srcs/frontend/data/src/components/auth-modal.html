@@ -78,6 +78,32 @@
       </div>
     </form>
 
+    <!-- 2FA Verification Form -->
+    <form id="auth-2fa-form" class="space-y-4 mb-5 hidden">
+      <div class="text-center mb-4">
+        <div class="text-4xl mb-3">🔐</div>
+        <h3 class="text-lg font-semibold text-white" data-i18n="auth.2fa_title">Vérification en deux étapes</h3>
+        <p class="text-sm text-neutral-400 mt-2" data-i18n="auth.2fa_description">Entrez le code à 6 chiffres de votre application d'authentification</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.2fa_code">Code de vérification</label>
+        <input type="text" name="code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code" 
+               placeholder="000000" 
+               class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white text-center text-2xl tracking-widest font-mono placeholder-neutral-600 focus:outline-none focus:border-blue-500 transition">
+      </div>
+
+      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="auth.2fa_submit">
+        Vérifier
+      </button>
+
+      <div class="text-center">
+        <button type="button" id="auth-2fa-back" class="text-sm text-neutral-400 hover:text-white transition" data-i18n="auth.2fa_back">
+          ← Retour à la connexion
+        </button>
+      </div>
+    </form>
+
     <!-- Divider -->
     <div class="relative mb-5">
       <div class="absolute inset-0 flex items-center">

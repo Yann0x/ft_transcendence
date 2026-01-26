@@ -24,6 +24,7 @@ export interface InvitationInfo {
   invitationId: string;
   inviterId: string;    // User ID of inviter (left player)
   invitedId: string;    // User ID of invited player (right player)
+  disconnectedPlayer?: string;  // Player ID who disconnected (for reconnection)
 }
 
 export interface Room {
@@ -180,12 +181,13 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
   // Verify invitation player authorization
   if (room.invitationInfo) {
     const { inviterId, invitedId } = room.invitationInfo;
+    console.log(`[ROOM] Invitation room check: playerId=${playerId}, inviterId=${inviterId}, invitedId=${invitedId}, currentPlayers=${room.players.length}`);
     if (playerId !== inviterId && playerId !== invitedId) {
       console.log(`[ROOM] Rejected ${playerId} - not authorized for this invitation match (expected: ${inviterId} or ${invitedId})`);
       return null;
     }
 
-    // Prevent duplicate join
+    // Prevent duplicate join - update socket for reconnection
     if (room.players.some(p => p.id === playerId)) {
       console.log(`[ROOM] Player ${playerId} already in room ${room.id}, updating socket`);
       room.players.find(p => p.id === playerId)!.socket = socket;
@@ -204,12 +206,25 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
     const player: Player = { id: playerId, socket, side };
     room.players.push(player);
     console.log(`[ROOM] ${playerId} joined ${room.id} as ${side}`);
+    
+    // Clear disconnected player flag if this player was disconnected
+    if (room.invitationInfo?.disconnectedPlayer === playerId) {
+      delete room.invitationInfo.disconnectedPlayer;
+      console.log(`[ROOM] Player ${playerId} reconnected`);
+    }
 
-    // Check if both players have joined - transition to ready
-    if (room.players.length === 2 && room.state.phase === 'waiting') {
-      room.state.phase = 'ready';
-      broadcastState(room);
-      console.log(`[ROOM] ${room.id} ready - both players joined`);
+    // Check if both players have joined - transition to ready or resume
+    if (room.players.length === 2) {
+      if (room.state.phase === 'waiting') {
+        room.state.phase = 'ready';
+        broadcastState(room);
+        console.log(`[ROOM] ${room.id} ready - both players joined`);
+      } else if (room.state.phase === 'paused') {
+        // Resume game after reconnection
+        room.state.phase = 'playing';
+        broadcastState(room);
+        console.log(`[ROOM] ${room.id} resumed - player reconnected`);
+      }
     }
 
     return player;
@@ -277,6 +292,18 @@ export function removePlayer(room: Room, playerId: string): void {
 
   // Handle according to mode and phase
   if (room.players.length === 0) {
+    // For invitation games, don't delete - allow reconnection
+    if (room.invitationInfo && room.state.phase !== 'ended') {
+      room.invitationInfo.disconnectedPlayer = playerId;
+      console.log(`[ROOM] ${room.id} - all players disconnected, waiting for reconnection`);
+      
+      // Pause the game if playing
+      if (room.state.phase === 'playing') {
+        room.state.phase = 'paused';
+      }
+      return;
+    }
+    
     stopGameLoop(room);
     rooms.delete(room.id);
     if (room.tournamentInfo) {
@@ -286,6 +313,38 @@ export function removePlayer(room: Room, playerId: string): void {
       invitationRooms.delete(room.invitationInfo.invitationId);
     }
     console.log(`[ROOM] Deleted ${room.id}`);
+    return;
+  }
+
+  // For invitation games with 1 player remaining, pause and wait for reconnection
+  if (room.invitationInfo && room.players.length === 1) {
+    if (room.state.phase === 'playing' || room.state.phase === 'paused') {
+      room.invitationInfo.disconnectedPlayer = playerId;
+      room.state.phase = 'paused';
+      broadcastState(room);
+      console.log(`[ROOM] ${room.id} paused - waiting for ${playerId} to reconnect`);
+      return;
+    } else if (room.state.phase === 'ready') {
+      room.state.phase = 'waiting';
+      broadcastState(room);
+      console.log(`[ROOM] ${room.id} back to waiting - opponent left`);
+    }
+    return;
+  }
+
+  // For invitation games with 1 player remaining, pause and wait for reconnection
+  if (room.invitationInfo && room.players.length === 1) {
+    if (room.state.phase === 'playing' || room.state.phase === 'paused') {
+      room.invitationInfo.disconnectedPlayer = playerId;
+      room.state.phase = 'paused';
+      broadcastState(room);
+      console.log(`[ROOM] ${room.id} paused - waiting for ${playerId} to reconnect`);
+      return;
+    } else if (room.state.phase === 'ready') {
+      room.state.phase = 'waiting';
+      broadcastState(room);
+      console.log(`[ROOM] ${room.id} back to waiting - opponent left`);
+    }
     return;
   }
 
@@ -622,12 +681,77 @@ export function findOrCreateRoom(): Room {
 }
 
 export function findRoomByPlayer(playerId: string): Room | undefined {
+  // First check players array
   for (const room of rooms.values()) {
     if (room.players.some(p => p.id === playerId)) {
       return room;
     }
   }
+  
+  // For invitation games, also check invitationInfo (player may have disconnected but game still active)
+  for (const room of rooms.values()) {
+    if (room.invitationInfo && 
+        (room.invitationInfo.inviterId === playerId || room.invitationInfo.invitedId === playerId) &&
+        room.state.phase !== 'ended') {
+      return room;
+    }
+  }
+  
   return undefined;
+}
+
+export interface ActiveGameInfo {
+  roomId: string;
+  invitationId?: string;
+  opponentId?: string;
+  phase: string;
+  score: { left: number; right: number };
+  side: 'left' | 'right';
+}
+
+export function getActiveGameForPlayer(playerId: string): ActiveGameInfo | null {
+  const room = findRoomByPlayer(playerId);
+  if (!room) return null;
+  
+  // Only return active games (not ended)
+  if (room.state.phase === 'ended') return null;
+  
+  // Try to find player in the room, or determine side from invitationInfo
+  let side: 'left' | 'right';
+  const player = room.players.find(p => p.id === playerId);
+  
+  if (player) {
+    side = player.side;
+  } else if (room.invitationInfo) {
+    // Player disconnected but we can determine their side from invitation info
+    side = playerId === room.invitationInfo.inviterId ? 'left' : 'right';
+  } else {
+    return null;
+  }
+  
+  // Get opponent ID
+  let opponentId: string | undefined;
+  if (room.invitationInfo) {
+    opponentId = playerId === room.invitationInfo.inviterId 
+      ? room.invitationInfo.invitedId 
+      : room.invitationInfo.inviterId;
+  }
+  
+  const result: ActiveGameInfo = {
+    roomId: room.id,
+    phase: room.state.phase,
+    score: room.state.score,
+    side
+  };
+  
+  if (room.invitationInfo?.invitationId) {
+    result.invitationId = room.invitationInfo.invitationId;
+  }
+  if (opponentId) {
+    result.opponentId = opponentId;
+  }
+  
+  return result;
 }
 
 export function getPvPStats(): { waitingPlayers: number; activeGames: number } {

@@ -19,6 +19,55 @@ let localMode = false; // true = local PvP (2 players same keyboard), false = vs
 let currentDifficulty: AIDifficulty = 'normal';
 let pollInterval: number | null = null;
 let tournamentMatchInfo: TournamentMatchInfo | null = null;
+let invitationOpponentName: string | null = null;
+
+interface ActiveGameInfo {
+  roomId: string;
+  invitationId?: string;
+  opponentId?: string;
+  phase: string;
+  score: { left: number; right: number };
+  side: 'left' | 'right';
+}
+
+async function checkActiveGame(): Promise<ActiveGameInfo | null> {
+  try {
+    const token = sessionStorage.getItem('authToken');
+    if (!token) return null;
+    
+    const response = await fetch('/api/game/active', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (response.ok) {
+      return await response.json();
+    }
+    return null;
+  } catch (e) {
+    console.error('[GAME] Error checking active game:', e);
+    return null;
+  }
+}
+
+async function fetchUserName(userId: string): Promise<string | null> {
+  try {
+    const token = sessionStorage.getItem('authToken');
+    const response = await fetch(`/api/user/public/${userId}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    
+    if (response.ok) {
+      const user = await response.json();
+      return user.name || null;
+    }
+    return null;
+  } catch (e) {
+    console.error('[GAME] Error fetching user:', e);
+    return null;
+  }
+}
 
 // Local tournament match info
 interface LocalTournamentMatchInfo {
@@ -29,7 +78,7 @@ interface LocalTournamentMatchInfo {
 }
 let localTournamentMatchInfo: LocalTournamentMatchInfo | null = null;
 
-export function init(): void {
+export async function init(): Promise<void> {
   const container = document.getElementById("game-container")
   if (!container)
   {
@@ -53,9 +102,10 @@ export function init(): void {
   const invitationData = sessionStorage.getItem('game_invitation');
   if (invitationData) {
     try {
-      const { invitationId, gameRoomId } = JSON.parse(invitationData);
+      const { invitationId, gameRoomId, opponentName } = JSON.parse(invitationData);
       gameMode = 'invitation';
       localMode = false;
+      invitationOpponentName = opponentName || null;
 
       clearModeSelection();
       setOnlineStatus(true);
@@ -73,6 +123,31 @@ export function init(): void {
       console.error('[GAME] Invalid invitation data:', e);
       sessionStorage.removeItem('game_invitation');
     }
+  }
+
+  // Check for active game (reconnection after page refresh)
+  const activeGame = await checkActiveGame();
+  if (activeGame && activeGame.invitationId) {
+    console.log('[GAME] Found active invitation game, reconnecting...', activeGame);
+    gameMode = 'invitation';
+    localMode = false;
+    
+    // Fetch opponent name if we have their ID
+    if (activeGame.opponentId) {
+      invitationOpponentName = await fetchUserName(activeGame.opponentId);
+    }
+
+    clearModeSelection();
+    setOnlineStatus(true);
+
+    connectToInvitationGame(activeGame.invitationId, activeGame.roomId);
+
+    pollPvPStats();
+    pollInterval = window.setInterval(pollPvPStats, 3000);
+
+    running = true;
+    requestAnimationFrame(gameLoop);
+    return;
   }
 
   // Check for tournament mode in URL
@@ -714,7 +789,9 @@ export function render(state: GameState): void {
       drawModeIndicator(w / 2, 80, `🏠 ${p1} vs ${p2}`);
     } else if (side) {
       let modeLabel: string;
-      if (gameMode === 'pvp') {
+      if (gameMode === 'invitation') {
+        modeLabel = invitationOpponentName ? `⚔️ Duel vs ${invitationOpponentName}` : `⚔️ Duel (${side})`;
+      } else if (gameMode === 'pvp') {
         modeLabel = `PvP Online (${side})`;
       } else if (localMode) {
         modeLabel = 'PvP Local (W/S vs ↑/↓)';
