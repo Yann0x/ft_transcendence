@@ -200,7 +200,7 @@ await server.register(async function publicDocs(instance) {
     http2: false,
   })
 
-// Game service (HTTP + WebSocket) - optional auth for user ID tracking
+// Game service (HTTP + WebSocket) - public, auth handled via query param token for WebSocket
 server.register(proxy, {
   upstream: 'http://game:3000',
   prefix: '/api/game',

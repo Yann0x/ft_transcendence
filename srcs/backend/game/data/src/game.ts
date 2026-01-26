@@ -17,6 +17,7 @@ import {
   createTournamentRoom,
   createInvitationRoom,
   getInvitationRoom,
+  getActiveGameForPlayer,
   setTournamentCallbacks,
   type TournamentCallbacks
 } from './room.js';
@@ -71,6 +72,41 @@ async function start() {
 
   server.get('/game/stats', async () => {
     return getPvPStats();
+  });
+
+  // Endpoint to check if a user has an active game (for reconnection on page refresh)
+  server.get('/game/active', async (request: FastifyRequest, reply) => {
+    // Validate JWT from Authorization header
+    const authHeader = request.headers.authorization;
+    if (!authHeader) {
+      return reply.status(401).send({ error: 'Authentication required' });
+    }
+
+    let userId: string | undefined;
+    try {
+      const response = await fetch('http://authenticate:3000/check_jwt', {
+        method: 'POST',
+        headers: { 'Authorization': authHeader }
+      });
+
+      if (response.ok) {
+        const sender = await response.json() as { id?: string };
+        userId = sender?.id;
+      }
+    } catch (error) {
+      console.error('[GAME] Error validating JWT:', error);
+    }
+
+    if (!userId) {
+      return reply.status(401).send({ error: 'Invalid or expired token' });
+    }
+    
+    const activeGame = getActiveGameForPlayer(userId);
+    if (!activeGame) {
+      return reply.status(404).send({ error: 'No active game found' });
+    }
+    
+    return reply.send(activeGame);
   });
 
   // Endpoint to create an invitation room (called by social service)

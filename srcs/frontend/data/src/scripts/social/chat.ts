@@ -725,9 +725,28 @@ export const Chat =
             console.log('[CHAT] Accepting invitation:', invitationId);
             const result = await SocialCommands.acceptGameInvitation(invitationId);
 
+            // Find the inviter's name from the cached messages
+            let opponentName: string | undefined;
+            for (const channel of this.cachedChannelsMap.values()) {
+                for (const message of channel.messages) {
+                    if (message.type === 'game_invitation' && message.metadata) {
+                        const metadata = typeof message.metadata === 'string' 
+                            ? JSON.parse(message.metadata) 
+                            : message.metadata;
+                        if (metadata.invitationId === invitationId) {
+                            const inviterUser = App.cachedUsers.get(metadata.inviterId);
+                            opponentName = inviterUser?.name;
+                            break;
+                        }
+                    }
+                }
+                if (opponentName) break;
+            }
+
             sessionStorage.setItem('game_invitation', JSON.stringify({
                 invitationId,
-                gameRoomId: result.gameRoomId
+                gameRoomId: result.gameRoomId,
+                opponentName
             }));
 
             Router.navigate('/game');
