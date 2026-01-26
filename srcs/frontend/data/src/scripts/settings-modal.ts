@@ -1,10 +1,6 @@
-/* ============================================
-   SETTINGS MODAL - Account Settings Management
-   ============================================ */
-
 import { User, UserPublic } from '../shared/types';
 
-// Forward declaration - will be set by App
+// forward declaration - will be set by App
 let getAppInstance: () => {
   me: User | null;
   logout: () => Promise<void>;
@@ -24,10 +20,9 @@ export const SettingsModal = {
   avatarPreview: null as HTMLImageElement | null,
   avatarInput: null as HTMLInputElement | null,
   avatarBase64: null as string | null,
+  pending2FASecret: null as string | null,
 
-  /**
-   * Initialize the settings modal
-   */
+  // init the settings modal
   init(): void {
     this.modal = document.getElementById('settings-modal');
     this.form = document.getElementById('settings-form') as HTMLFormElement;
@@ -40,11 +35,10 @@ export const SettingsModal = {
     this.setupAvatarUpload();
     this.setupFormSubmission();
     this.setupDeleteAccount();
+    this.setup2FA();
   },
 
-  /**
-   * Setup close button and background click
-   */
+  // setup close btn and background click
   setupCloseListeners(): void {
     const closeBtn = document.getElementById('settings-modal-close');
     closeBtn?.addEventListener('click', () => {
@@ -58,9 +52,7 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Setup avatar upload functionality
-   */
+  // setup avatar upload
   setupAvatarUpload(): void {
     const avatarBtn = document.getElementById('settings-avatar-btn');
 
@@ -73,22 +65,20 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Handle avatar file selection
-   */
+  // handle avatar file selection
   handleAvatarChange(): void {
     const file = this.avatarInput?.files?.[0];
     if (!file) return;
 
-    // Validate file type
+    // validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner une image valide');
+      alert('Please select a valid image');
       return;
     }
 
-    // Validate file size (max 5MB before compression)
+    // validate file size (max 5MB before compression)
     if (file.size > 5 * 1024 * 1024) {
-      alert('L\'image ne doit pas dépasser 5 Mo');
+      alert('Image must be under 5 MB');
       return;
     }
 
@@ -102,13 +92,11 @@ export const SettingsModal = {
       }
     }).catch((error) => {
       console.error('Error compressing image:', error);
-      alert('Erreur lors du traitement de l\'image');
+      alert('Error processing image');
     });
   },
 
-  /**
-   * Compress image to a maximum size and quality
-   */
+  // compress image to max size and quality
   compressImage(file: File, maxSize: number, quality: number): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -157,9 +145,7 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Setup form submission
-   */
+  // setup form submission
   setupFormSubmission(): void {
     this.form?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -167,13 +153,11 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Handle form submission
-   */
+  // handle form submission
   async handleSubmit(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me) {
-      alert('Vous devez être connecté');
+      alert('You must be logged in');
       return;
     }
 
@@ -189,28 +173,28 @@ export const SettingsModal = {
 
     // Validation
     if (!name || name.length === 0) {
-      alert('Le nom est requis');
+      alert('Name is required');
       return;
     }
 
     if (name.length > 50) {
-      alert('Le nom ne peut pas dépasser 50 caractères');
+      alert('Name cannot exceed 50 characters');
       return;
     }
 
     if (!email || !email.includes('@')) {
-      alert('Email invalide');
+      alert('Invalid email');
       return;
     }
 
     // Password validation (only if provided)
     if (password || passwordConfirm) {
       if (password !== passwordConfirm) {
-        alert('Les mots de passe ne correspondent pas');
+        alert('Passwords do not match');
         return;
       }
       if (password.length < 6) {
-        alert('Le mot de passe doit contenir au moins 6 caractères');
+        alert('Password must be at least 6 characters');
         return;
       }
     }
@@ -234,10 +218,10 @@ export const SettingsModal = {
       updateData.avatar = this.avatarBase64;
     }
 
-    // Check if anything changed
+    // check if anything changed
     if (Object.keys(updateData).length === 1) {
-      // Only id is present, nothing to update
-      alert('Aucune modification détectée');
+      // only id present, nothing to update
+      alert('No changes detected');
       return;
     }
 
@@ -254,7 +238,7 @@ export const SettingsModal = {
 
       if (!response.ok) {
         const errorData = await response.json();
-        alert(`Erreur: ${errorData.message || 'Mise à jour échouée'}`);
+        alert(`Error: ${errorData.message || 'Update failed'}`);
         return;
       }
 
@@ -273,20 +257,18 @@ export const SettingsModal = {
       if (passwordInput) passwordInput.value = '';
       if (passwordConfirmInput) passwordConfirmInput.value = '';
 
-      // Reset avatar pending state
+      // reset avatar pending state
       this.avatarBase64 = null;
 
-      alert('Modifications enregistrées avec succès');
+      alert('Changes saved successfully');
       this.close();
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Une erreur est survenue lors de la mise à jour');
+      alert('An error occurred while updating');
     }
   },
 
-  /**
-   * Setup delete account button
-   */
+  // setup delete account btn
   setupDeleteAccount(): void {
     const deleteBtn = document.getElementById('settings-delete-btn');
     deleteBtn?.addEventListener('click', () => {
@@ -294,28 +276,26 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Handle account deletion
-   */
+  // handle account deletion
   async handleDelete(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me) {
-      alert('Vous devez être connecté');
+      alert('You must be logged in');
       return;
     }
 
-    // Confirmation dialog
+    // confirmation dialog
     const confirmed = confirm(
-      'Êtes-vous sûr de vouloir supprimer votre compte ?\n\n' +
-      'Cette action est irréversible. Toutes vos données seront définitivement supprimées.'
+      'Are you sure you want to delete your account?\n\n' +
+      'This action is irreversible. All your data will be permanently deleted.'
     );
 
     if (!confirmed) return;
 
-    // Double confirmation for safety
+    // double confirmation for safety
     const doubleConfirm = confirm(
-      'Dernière confirmation :\n\n' +
-      'Voulez-vous vraiment supprimer définitivement votre compte ?'
+      'Final confirmation:\n\n' +
+      'Do you really want to permanently delete your account?'
     );
 
     if (!doubleConfirm) return;
@@ -333,39 +313,36 @@ export const SettingsModal = {
 
       if (!response.ok) {
         const errorData = await response.json();
-        alert(`Erreur: ${errorData.message || 'Suppression échouée'}`);
+        alert(`Error: ${errorData.message || 'Deletion failed'}`);
         return;
       }
 
-      alert('Votre compte a été supprimé');
+      alert('Your account has been deleted');
       this.close();
 
-      // Logout and redirect
+      // logout and redirect
       await app.logout();
     } catch (error) {
       console.error('Error deleting account:', error);
-      alert('Une erreur est survenue lors de la suppression');
+      alert('An error occurred while deleting');
     }
   },
 
-  /**
-   * Open the modal and populate with current user data
-   */
+  // open modal and populate w/ current user data
   open(): void {
     const app = getAppInstance?.();
     if (!app?.me) {
-      alert('Vous devez être connecté pour accéder aux paramètres');
+      alert('You must be logged in to access settings');
       return;
     }
 
     this.populateForm(app.me);
     this.loadBlockedUsers();
+    this.load2FAStatus();
     this.modal?.classList.remove('hidden');
   },
 
-  /**
-   * Populate form with user data
-   */
+  // populate form w/ user data
   populateForm(user: User): void {
     const nameInput = document.getElementById('settings-name') as HTMLInputElement;
     const emailInput = document.getElementById('settings-email') as HTMLInputElement;
@@ -373,7 +350,7 @@ export const SettingsModal = {
     if (nameInput) nameInput.value = user.name || '';
     if (emailInput) emailInput.value = user.email || '';
 
-    // Set avatar preview
+    // set avatar preview
     if (this.avatarPreview) {
       if (user.avatar) {
         this.avatarPreview.src = user.avatar;
@@ -382,19 +359,17 @@ export const SettingsModal = {
       }
     }
 
-    // Reset pending avatar
+    // reset pending avatar
     this.avatarBase64 = null;
 
-    // Clear password fields
+    // clear password fields
     const passwordInput = document.getElementById('settings-password') as HTMLInputElement;
     const passwordConfirmInput = document.getElementById('settings-password-confirm') as HTMLInputElement;
     if (passwordInput) passwordInput.value = '';
     if (passwordConfirmInput) passwordConfirmInput.value = '';
   },
 
-  /**
-   * Load and display blocked users
-   */
+  // load and display blocked users
   async loadBlockedUsers(): Promise<void> {
     const app = getAppInstance?.();
     const blockedList = document.getElementById('settings-blocked-list');
@@ -403,7 +378,7 @@ export const SettingsModal = {
 
     if (!blockedList || !app?.me) return;
 
-    // Get blocked users from blockedUsersMap
+    // get blocked users from blockedUsersMap
     const blockedUsers = Array.from(app.blockedUsersMap.values());
 
     if (blockedUsers.length === 0) {
@@ -428,27 +403,23 @@ export const SettingsModal = {
     this.attachUnblockListeners();
   },
 
-  /**
-   * Create HTML for a blocked user card
-   */
+  // create HTML for a blocked user card
   createBlockedUserCard(user: UserPublic): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=ef4444&color=fff`;
     return `
-      <div class="list-item flex items-center justify-between" data-user-id="${user.id}">
+      <div class="flex items-center justify-between p-3 bg-neutral-800 rounded-lg" data-user-id="${user.id}">
         <div class="flex items-center gap-3">
           <img src="${avatar}" alt="${user.name}" class="w-8 h-8 rounded-full object-cover opacity-50">
           <span class="text-sm text-neutral-400">${user.name || 'Unknown'}</span>
         </div>
-        <button class="settings-unblock-btn btn btn-sm btn-outline" data-user-id="${user.id}">
-          Débloquer
+        <button class="settings-unblock-btn px-2 py-1 bg-neutral-700 hover:bg-neutral-600 text-white rounded transition text-xs" data-user-id="${user.id}">
+          Unblock
         </button>
       </div>
     `;
   },
 
-  /**
-   * Attach click listeners to unblock buttons
-   */
+  // attach click listeners to unblock btns
   attachUnblockListeners(): void {
     document.querySelectorAll('#settings-blocked-list .settings-unblock-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -483,8 +454,564 @@ export const SettingsModal = {
   },
 
   /**
-   * Close the modal
+   * Setup 2FA functionality
    */
+  setup2FA(): void {
+    const enableBtn = document.getElementById('settings-2fa-enable-btn');
+    const cancelBtn = document.getElementById('settings-2fa-cancel-btn');
+    const confirmBtn = document.getElementById('settings-2fa-confirm-btn');
+    const disableBtn = document.getElementById('settings-2fa-disable-btn');
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+
+    // Enable button - start setup
+    enableBtn?.addEventListener('click', async () => {
+      await this.start2FASetup();
+    });
+
+    // Cancel button - hide setup
+    cancelBtn?.addEventListener('click', () => {
+      this.hide2FASetup();
+    });
+
+    // Confirm button - verify and enable
+    confirmBtn?.addEventListener('click', async () => {
+      await this.confirm2FASetup();
+    });
+
+    // Disable button
+    disableBtn?.addEventListener('click', async () => {
+      await this.disable2FA();
+    });
+
+    // Auto-filter input to only digits
+    codeInput?.addEventListener('input', () => {
+      codeInput.value = codeInput.value.replace(/\D/g, '');
+    });
+
+    disableCodeInput?.addEventListener('input', () => {
+      disableCodeInput.value = disableCodeInput.value.replace(/\D/g, '');
+    });
+  },
+
+  /**
+   * Start 2FA setup - fetch QR code
+   */
+  async start2FASetup(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id || !app.me.email) {
+      alert('User data not available');
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/setup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          email: app.me.email
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Error: ${error.message || 'Failed to start 2FA setup'}`);
+        return;
+      }
+
+      const data = await response.json();
+      this.pending2FASecret = data.secret;
+
+      // Display QR code and secret
+      const qrImg = document.getElementById('settings-2fa-qr') as HTMLImageElement;
+      const secretEl = document.getElementById('settings-2fa-secret');
+
+      if (qrImg) qrImg.src = data.qrCode;
+      if (secretEl) secretEl.textContent = data.secret;
+
+      // Show setup section
+      this.show2FASetup();
+    } catch (error) {
+      console.error('[SETTINGS] 2FA setup error:', error);
+      alert('An error occurred while setting up 2FA');
+    }
+  },
+
+  /**
+   * Show 2FA setup section
+   */
+  show2FASetup(): void {
+    document.getElementById('settings-2fa-enable-section')?.classList.add('hidden');
+    document.getElementById('settings-2fa-setup-section')?.classList.remove('hidden');
+    
+    // Clear code input
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    if (codeInput) {
+      codeInput.value = '';
+      codeInput.focus();
+    }
+  },
+
+  /**
+   * Hide 2FA setup section
+   */
+  hide2FASetup(): void {
+    document.getElementById('settings-2fa-setup-section')?.classList.add('hidden');
+    document.getElementById('settings-2fa-enable-section')?.classList.remove('hidden');
+    this.pending2FASecret = null;
+  },
+
+  /**
+   * Confirm 2FA setup - verify code and enable
+   */
+  async confirm2FASetup(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id || !this.pending2FASecret) {
+      alert('Setup data not available');
+      return;
+    }
+
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    const code = codeInput?.value;
+
+    if (!code || code.length !== 6) {
+      alert('Please enter a valid 6-digit code');
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/enable', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          secret: this.pending2FASecret,
+          code: code
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Verification failed: ${error.message || 'Invalid code'}`);
+        codeInput.value = '';
+        codeInput.focus();
+        return;
+      }
+
+      // Success
+      alert('2FA has been enabled successfully!');
+      this.pending2FASecret = null;
+      
+      // Update UI to show enabled state
+      this.update2FAStatus(true);
+    } catch (error) {
+      console.error('[SETTINGS] 2FA enable error:', error);
+      alert('An error occurred while enabling 2FA');
+    }
+  },
+
+  /**
+   * Disable 2FA
+   */
+  async disable2FA(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id) {
+      alert('User data not available');
+      return;
+    }
+
+    const codeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+    const code = codeInput?.value;
+
+    if (!code || code.length !== 6) {
+      alert('Please enter your current 2FA code');
+      return;
+    }
+
+    // Confirm
+    const confirmed = confirm('Are you sure you want to disable 2FA? This will make your account less secure.');
+    if (!confirmed) return;
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/disable', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          code: code
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Failed to disable: ${error.message || 'Invalid code'}`);
+        codeInput.value = '';
+        codeInput.focus();
+        return;
+      }
+
+      // Success
+      alert('2FA has been disabled');
+      codeInput.value = '';
+      
+      // Update UI to show disabled state
+      this.update2FAStatus(false);
+    } catch (error) {
+      console.error('[SETTINGS] 2FA disable error:', error);
+      alert('An error occurred while disabling 2FA');
+    }
+  },
+
+  /**
+   * Update 2FA UI based on status
+   */
+  update2FAStatus(enabled: boolean): void {
+    const badge = document.getElementById('settings-2fa-badge');
+    const enableSection = document.getElementById('settings-2fa-enable-section');
+    const setupSection = document.getElementById('settings-2fa-setup-section');
+    const disableSection = document.getElementById('settings-2fa-disable-section');
+
+    if (enabled) {
+      if (badge) {
+        badge.textContent = 'Activé';
+        badge.className = 'text-xs px-2 py-1 rounded-full bg-emerald-600/30 text-emerald-400';
+      }
+      enableSection?.classList.add('hidden');
+      setupSection?.classList.add('hidden');
+      disableSection?.classList.remove('hidden');
+    } else {
+      if (badge) {
+        badge.textContent = 'Désactivé';
+        badge.className = 'text-xs px-2 py-1 rounded-full bg-neutral-700 text-neutral-400';
+      }
+      enableSection?.classList.remove('hidden');
+      setupSection?.classList.add('hidden');
+      disableSection?.classList.add('hidden');
+    }
+
+    // Clear disable code input
+    const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+    if (disableCodeInput) disableCodeInput.value = '';
+  },
+
+  /**
+   * Load 2FA status when opening settings
+   */
+  async load2FAStatus(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id) return;
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch(`/user/find?id=${app.me.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const users = await response.json();
+        if (users && users.length > 0) {
+          const user = users[0] as User & { twoAuth_enabled?: number };
+          this.update2FAStatus(!!user.twoAuth_enabled);
+        }
+      }
+    } catch (error) {
+      console.error('[SETTINGS] Failed to load 2FA status:', error);
+    }
+  },
+
+  /**
+   * Setup 2FA functionality
+   */
+  setup2FA(): void {
+    const enableBtn = document.getElementById('settings-2fa-enable-btn');
+    const cancelBtn = document.getElementById('settings-2fa-cancel-btn');
+    const confirmBtn = document.getElementById('settings-2fa-confirm-btn');
+    const disableBtn = document.getElementById('settings-2fa-disable-btn');
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+
+    // Enable button - start setup
+    enableBtn?.addEventListener('click', async () => {
+      await this.start2FASetup();
+    });
+
+    // Cancel button - hide setup
+    cancelBtn?.addEventListener('click', () => {
+      this.hide2FASetup();
+    });
+
+    // Confirm button - verify and enable
+    confirmBtn?.addEventListener('click', async () => {
+      await this.confirm2FASetup();
+    });
+
+    // Disable button
+    disableBtn?.addEventListener('click', async () => {
+      await this.disable2FA();
+    });
+
+    // Auto-filter input to only digits
+    codeInput?.addEventListener('input', () => {
+      codeInput.value = codeInput.value.replace(/\D/g, '');
+    });
+
+    disableCodeInput?.addEventListener('input', () => {
+      disableCodeInput.value = disableCodeInput.value.replace(/\D/g, '');
+    });
+  },
+
+  /**
+   * Start 2FA setup - fetch QR code
+   */
+  async start2FASetup(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id || !app.me.email) {
+      alert('User data not available');
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/setup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          email: app.me.email
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Error: ${error.message || 'Failed to start 2FA setup'}`);
+        return;
+      }
+
+      const data = await response.json();
+      this.pending2FASecret = data.secret;
+
+      // Display QR code and secret
+      const qrImg = document.getElementById('settings-2fa-qr') as HTMLImageElement;
+      const secretEl = document.getElementById('settings-2fa-secret');
+
+      if (qrImg) qrImg.src = data.qrCode;
+      if (secretEl) secretEl.textContent = data.secret;
+
+      // Show setup section
+      this.show2FASetup();
+    } catch (error) {
+      console.error('[SETTINGS] 2FA setup error:', error);
+      alert('An error occurred while setting up 2FA');
+    }
+  },
+
+  /**
+   * Show 2FA setup section
+   */
+  show2FASetup(): void {
+    document.getElementById('settings-2fa-enable-section')?.classList.add('hidden');
+    document.getElementById('settings-2fa-setup-section')?.classList.remove('hidden');
+    
+    // Clear code input
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    if (codeInput) {
+      codeInput.value = '';
+      codeInput.focus();
+    }
+  },
+
+  /**
+   * Hide 2FA setup section
+   */
+  hide2FASetup(): void {
+    document.getElementById('settings-2fa-setup-section')?.classList.add('hidden');
+    document.getElementById('settings-2fa-enable-section')?.classList.remove('hidden');
+    this.pending2FASecret = null;
+  },
+
+  /**
+   * Confirm 2FA setup - verify code and enable
+   */
+  async confirm2FASetup(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id || !this.pending2FASecret) {
+      alert('Setup data not available');
+      return;
+    }
+
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    const code = codeInput?.value;
+
+    if (!code || code.length !== 6) {
+      alert('Please enter a valid 6-digit code');
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/enable', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          secret: this.pending2FASecret,
+          code: code
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Verification failed: ${error.message || 'Invalid code'}`);
+        codeInput.value = '';
+        codeInput.focus();
+        return;
+      }
+
+      // Success
+      alert('2FA has been enabled successfully!');
+      this.pending2FASecret = null;
+      
+      // Update UI to show enabled state
+      this.update2FAStatus(true);
+    } catch (error) {
+      console.error('[SETTINGS] 2FA enable error:', error);
+      alert('An error occurred while enabling 2FA');
+    }
+  },
+
+  /**
+   * Disable 2FA
+   */
+  async disable2FA(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id) {
+      alert('User data not available');
+      return;
+    }
+
+    const codeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+    const code = codeInput?.value;
+
+    if (!code || code.length !== 6) {
+      alert('Please enter your current 2FA code');
+      return;
+    }
+
+    // Confirm
+    const confirmed = confirm('Are you sure you want to disable 2FA? This will make your account less secure.');
+    if (!confirmed) return;
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/disable', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          code: code
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Failed to disable: ${error.message || 'Invalid code'}`);
+        codeInput.value = '';
+        codeInput.focus();
+        return;
+      }
+
+      // Success
+      alert('2FA has been disabled');
+      codeInput.value = '';
+      
+      // Update UI to show disabled state
+      this.update2FAStatus(false);
+    } catch (error) {
+      console.error('[SETTINGS] 2FA disable error:', error);
+      alert('An error occurred while disabling 2FA');
+    }
+  },
+
+  /**
+   * Update 2FA UI based on status
+   */
+  update2FAStatus(enabled: boolean): void {
+    const badge = document.getElementById('settings-2fa-badge');
+    const enableSection = document.getElementById('settings-2fa-enable-section');
+    const setupSection = document.getElementById('settings-2fa-setup-section');
+    const disableSection = document.getElementById('settings-2fa-disable-section');
+
+    if (enabled) {
+      if (badge) {
+        badge.textContent = 'Activé';
+        badge.className = 'text-xs px-2 py-1 rounded-full bg-emerald-600/30 text-emerald-400';
+      }
+      enableSection?.classList.add('hidden');
+      setupSection?.classList.add('hidden');
+      disableSection?.classList.remove('hidden');
+    } else {
+      if (badge) {
+        badge.textContent = 'Désactivé';
+        badge.className = 'text-xs px-2 py-1 rounded-full bg-neutral-700 text-neutral-400';
+      }
+      enableSection?.classList.remove('hidden');
+      setupSection?.classList.add('hidden');
+      disableSection?.classList.add('hidden');
+    }
+
+    // Clear disable code input
+    const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+    if (disableCodeInput) disableCodeInput.value = '';
+  },
+
+  /**
+   * Load 2FA status when opening settings
+   */
+  async load2FAStatus(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id) return;
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch(`/user/find?id=${app.me.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const users = await response.json();
+        if (users && users.length > 0) {
+          const user = users[0] as User & { twoAuth_enabled?: number };
+          this.update2FAStatus(!!user.twoAuth_enabled);
+        }
+      }
+    } catch (error) {
+      console.error('[SETTINGS] Failed to load 2FA status:', error);
+    }
+  },
+
+  // close the modal
   close(): void {
     this.modal?.classList.add('hidden');
   }
