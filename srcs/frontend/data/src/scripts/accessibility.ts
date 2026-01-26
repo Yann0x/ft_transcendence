@@ -184,7 +184,6 @@ function createPanel(): void {
   panel.innerHTML = `
     <div class="a11y-panel-header">
       <h2 id="a11y-panel-title" class="a11y-panel-title">
-        <span aria-hidden="true">👁️</span>
         <span data-i18n="accessibility.title">Accessibilité</span>
       </h2>
       <button id="a11y-panel-close" class="a11y-panel-close" type="button" aria-label="${I18n.translate('accessibility.close')}">
@@ -198,7 +197,6 @@ function createPanel(): void {
       <!-- High Contrast -->
       <div class="a11y-option">
         <div class="a11y-option-info">
-          <span class="a11y-option-icon" aria-hidden="true">🔲</span>
           <div>
             <div class="a11y-option-label" data-i18n="accessibility.high_contrast">Contraste élevé</div>
             <div class="a11y-option-desc" data-i18n="accessibility.high_contrast_desc">Améliore la lisibilité avec des couleurs contrastées</div>
@@ -213,7 +211,6 @@ function createPanel(): void {
       <!-- Font Size -->
       <div class="a11y-option a11y-option-vertical">
         <div class="a11y-option-info">
-          <span class="a11y-option-icon" aria-hidden="true">🔤</span>
           <div>
             <div class="a11y-option-label" data-i18n="accessibility.font_size">Taille du texte</div>
             <div class="a11y-option-desc" data-i18n="accessibility.font_size_desc">Ajuster la taille des caractères</div>
@@ -246,7 +243,6 @@ function createPanel(): void {
       <!-- Reduced Motion -->
       <div class="a11y-option">
         <div class="a11y-option-info">
-          <span class="a11y-option-icon" aria-hidden="true">⏸️</span>
           <div>
             <div class="a11y-option-label" data-i18n="accessibility.reduced_motion">Réduire les animations</div>
             <div class="a11y-option-desc" data-i18n="accessibility.reduced_motion_desc">Désactive les animations et transitions</div>
@@ -261,7 +257,6 @@ function createPanel(): void {
       <!-- Focus Highlight -->
       <div class="a11y-option">
         <div class="a11y-option-info">
-          <span class="a11y-option-icon" aria-hidden="true">🎯</span>
           <div>
             <div class="a11y-option-label" data-i18n="accessibility.focus_highlight">Surbrillance du focus</div>
             <div class="a11y-option-desc" data-i18n="accessibility.focus_highlight_desc">Met en évidence l'élément actif au clavier</div>

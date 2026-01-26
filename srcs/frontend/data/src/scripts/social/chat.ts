@@ -289,6 +289,11 @@ export const Chat =
         this.updateChatHeader(channel);
         let messagesHTML = channel.messages.map((message: Message) => this.createMessageCard(message)).join('');
         const isBlocked = (channel as any).isBlocked || false;
+        
+        // Remove centering classes and add flex-col for vertical message layout
+        messageList.classList.remove('items-center', 'justify-center', 'flex');
+        messageList.classList.add('flex', 'flex-col');
+        
         messageList.innerHTML = messagesHTML;
         requestAnimationFrame(() => {
             messageList.scrollTop = messageList.scrollHeight;
@@ -404,9 +409,8 @@ export const Chat =
                 const inviteBtn = `
                     <button
                         id="chat-invite-game"
-                        class="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition text-sm flex items-center gap-1"
+                        class="btn btn-sm bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1"
                         title="Invite to play">
-                        <span>⚔️</span>
                         <span>Duel</span>
                     </button>
                 `;
@@ -513,7 +517,7 @@ export const Chat =
             if (!card) {
                 return `
                     <div class="p-4 bg-purple-900/50 rounded-lg border border-purple-600 text-neutral-400" data-message-id="${message.id}">
-                        <span class="text-2xl">⚔️</span> Game invitation (details unavailable)
+                        Game invitation (details unavailable)
                     </div>
                 `;
             }
@@ -523,7 +527,7 @@ export const Chat =
             if (!card) {
                 return `
                     <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-600 text-neutral-400" data-message-id="${message.id}">
-                        <span class="text-2xl">🏆</span> Game result (details unavailable)
+                        Game result (details unavailable)
                     </div>
                 `;
             }
@@ -534,7 +538,7 @@ export const Chat =
         if (message.content?.includes('challenges you to a duel')) {
             return `
                 <div class="p-4 bg-purple-900/50 rounded-lg border border-purple-600 text-neutral-400" data-message-id="${message.id}">
-                    <span class="text-2xl">⚔️</span> ${message.content}
+                    ${message.content}
                 </div>
             `;
         }
@@ -595,28 +599,28 @@ export const Chat =
                             <button
                                 class="invitation-accept flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
                                 data-invitation-id="${invitationId}">
-                                ⚔️ Accept
+                                Accept
                             </button>
                             <button
                                 class="invitation-decline flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
                                 data-invitation-id="${invitationId}">
-                                ❌ Decline
+                                Decline
                             </button>
                         </div>
                     `;
-                    statusDisplay = '<p class="text-yellow-400 text-sm mt-2">⏳ Waiting for your response...</p>';
+                    statusDisplay = '<p class="text-yellow-400 text-sm mt-2">Waiting for your response...</p>';
                 } else {
-                    statusDisplay = '<p class="text-yellow-400 text-sm mt-2">⏳ Waiting for response...</p>';
+                    statusDisplay = '<p class="text-yellow-400 text-sm mt-2">Waiting for response...</p>';
                 }
                 break;
             case 'accepted':
-                statusDisplay = '<p class="text-green-400 text-sm mt-2">✓ Accepted - Starting game...</p>';
+                statusDisplay = '<p class="text-green-400 text-sm mt-2">Accepted - Starting game...</p>';
                 break;
             case 'declined':
-                statusDisplay = '<p class="text-red-400 text-sm mt-2">✗ Declined</p>';
+                statusDisplay = '<p class="text-red-400 text-sm mt-2">Declined</p>';
                 break;
             case 'expired':
-                statusDisplay = '<p class="text-gray-400 text-sm mt-2">⌛ Expired</p>';
+                statusDisplay = '<p class="text-gray-400 text-sm mt-2">Expired</p>';
                 break;
         }
 
@@ -625,7 +629,6 @@ export const Chat =
                  data-message-id="${message.id}"
                  data-invitation-id="${invitationId}">
                 <div class="flex items-start gap-3">
-                    <span class="text-3xl">⚔️</span>
                     <div class="flex-1">
                         <p class="text-white font-semibold text-lg">${inviterName} challenges you to a duel!</p>
                         ${statusDisplay}
@@ -657,23 +660,19 @@ export const Chat =
         // Color scheme based on outcome for current user
         let bgGradient: string;
         let borderColor: string;
-        let resultEmoji: string;
         let resultText: string;
 
         if (isWinner) {
             bgGradient = 'from-green-900 to-green-800';
             borderColor = 'border-green-600';
-            resultEmoji = '🏆';
             resultText = `You defeated ${loserName}!`;
         } else if (isLoser) {
             bgGradient = 'from-red-900 to-red-800';
             borderColor = 'border-red-600';
-            resultEmoji = '💀';
             resultText = `${winnerName} defeated you!`;
         } else {
             bgGradient = 'from-blue-900 to-blue-800';
             borderColor = 'border-blue-600';
-            resultEmoji = '⚔️';
             resultText = `${winnerName} defeated ${loserName}!`;
         }
 
@@ -686,7 +685,6 @@ export const Chat =
             <div class="result-card p-4 bg-gradient-to-r ${bgGradient} rounded-lg border-2 ${borderColor} shadow-lg"
                  data-message-id="${message.id}">
                 <div class="flex items-start gap-3">
-                    <span class="text-3xl">${resultEmoji}</span>
                     <div class="flex-1">
                         <p class="text-white font-semibold text-lg">Match Complete!</p>
                         <p class="text-white mt-1">${resultText}</p>

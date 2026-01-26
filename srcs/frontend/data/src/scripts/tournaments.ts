@@ -796,6 +796,15 @@ export const Tournaments = {
     this.renderTournamentList('finished-tournaments', state.tournaments.finished, 'finished')
     // Also render local finished tournaments
     this.renderLocalFinishedTournaments()
+    
+    // Update counts
+    const availableCount = document.getElementById('available-count')
+    const activeCount = document.getElementById('active-count')
+    const finishedCount = document.getElementById('finished-count')
+    
+    if (availableCount) availableCount.textContent = `(${state.tournaments.waiting.length})`
+    if (activeCount) activeCount.textContent = `(${state.tournaments.in_progress.length})`
+    if (finishedCount) finishedCount.textContent = `(${state.tournaments.finished.length + state.localFinishedTournaments.length})`
   },
 
   //
@@ -811,7 +820,7 @@ export const Tournaments = {
     
     if (isEmpty) {
       // Show empty state (already in HTML)
-      const emptyState = container.querySelector('.empty-state')
+      const emptyState = container.querySelector('.empty-state-compact')
       if (emptyState) {
         emptyState.classList.remove('hidden')
       }
@@ -821,7 +830,7 @@ export const Tournaments = {
     }
     
     // Hide empty state
-    const emptyState = container.querySelector('.empty-state')
+    const emptyState = container.querySelector('.empty-state-compact')
     if (emptyState) {
       emptyState.classList.add('hidden')
     }
@@ -859,7 +868,7 @@ export const Tournaments = {
     
     // Update empty state visibility
     const hasAny = state.tournaments.finished.length > 0 || state.localFinishedTournaments.length > 0
-    const emptyState = container.querySelector('.empty-state')
+    const emptyState = container.querySelector('.empty-state-compact')
     if (emptyState) {
       emptyState.classList.toggle('hidden', hasAny)
     }
