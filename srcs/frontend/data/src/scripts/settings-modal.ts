@@ -20,6 +20,7 @@ export const SettingsModal = {
   avatarPreview: null as HTMLImageElement | null,
   avatarInput: null as HTMLInputElement | null,
   avatarBase64: null as string | null,
+  pending2FASecret: null as string | null,
 
   // init the settings modal
   init(): void {
@@ -34,6 +35,7 @@ export const SettingsModal = {
     this.setupAvatarUpload();
     this.setupFormSubmission();
     this.setupDeleteAccount();
+    this.setup2FA();
   },
 
   // setup close btn and background click
@@ -336,6 +338,7 @@ export const SettingsModal = {
 
     this.populateForm(app.me);
     this.loadBlockedUsers();
+    this.load2FAStatus();
     this.modal?.classList.remove('hidden');
   },
 
@@ -448,6 +451,564 @@ export const SettingsModal = {
         }
       });
     });
+  },
+
+  /**
+   * Setup 2FA functionality
+   */
+  setup2FA(): void {
+    const enableBtn = document.getElementById('settings-2fa-enable-btn');
+    const cancelBtn = document.getElementById('settings-2fa-cancel-btn');
+    const confirmBtn = document.getElementById('settings-2fa-confirm-btn');
+    const disableBtn = document.getElementById('settings-2fa-disable-btn');
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+
+    // Enable button - start setup
+    enableBtn?.addEventListener('click', async () => {
+      await this.start2FASetup();
+    });
+
+    // Cancel button - hide setup
+    cancelBtn?.addEventListener('click', () => {
+      this.hide2FASetup();
+    });
+
+    // Confirm button - verify and enable
+    confirmBtn?.addEventListener('click', async () => {
+      await this.confirm2FASetup();
+    });
+
+    // Disable button
+    disableBtn?.addEventListener('click', async () => {
+      await this.disable2FA();
+    });
+
+    // Auto-filter input to only digits
+    codeInput?.addEventListener('input', () => {
+      codeInput.value = codeInput.value.replace(/\D/g, '');
+    });
+
+    disableCodeInput?.addEventListener('input', () => {
+      disableCodeInput.value = disableCodeInput.value.replace(/\D/g, '');
+    });
+  },
+
+  /**
+   * Start 2FA setup - fetch QR code
+   */
+  async start2FASetup(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id || !app.me.email) {
+      alert('User data not available');
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/setup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          email: app.me.email
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Error: ${error.message || 'Failed to start 2FA setup'}`);
+        return;
+      }
+
+      const data = await response.json();
+      this.pending2FASecret = data.secret;
+
+      // Display QR code and secret
+      const qrImg = document.getElementById('settings-2fa-qr') as HTMLImageElement;
+      const secretEl = document.getElementById('settings-2fa-secret');
+
+      if (qrImg) qrImg.src = data.qrCode;
+      if (secretEl) secretEl.textContent = data.secret;
+
+      // Show setup section
+      this.show2FASetup();
+    } catch (error) {
+      console.error('[SETTINGS] 2FA setup error:', error);
+      alert('An error occurred while setting up 2FA');
+    }
+  },
+
+  /**
+   * Show 2FA setup section
+   */
+  show2FASetup(): void {
+    document.getElementById('settings-2fa-enable-section')?.classList.add('hidden');
+    document.getElementById('settings-2fa-setup-section')?.classList.remove('hidden');
+    
+    // Clear code input
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    if (codeInput) {
+      codeInput.value = '';
+      codeInput.focus();
+    }
+  },
+
+  /**
+   * Hide 2FA setup section
+   */
+  hide2FASetup(): void {
+    document.getElementById('settings-2fa-setup-section')?.classList.add('hidden');
+    document.getElementById('settings-2fa-enable-section')?.classList.remove('hidden');
+    this.pending2FASecret = null;
+  },
+
+  /**
+   * Confirm 2FA setup - verify code and enable
+   */
+  async confirm2FASetup(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id || !this.pending2FASecret) {
+      alert('Setup data not available');
+      return;
+    }
+
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    const code = codeInput?.value;
+
+    if (!code || code.length !== 6) {
+      alert('Please enter a valid 6-digit code');
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/enable', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          secret: this.pending2FASecret,
+          code: code
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Verification failed: ${error.message || 'Invalid code'}`);
+        codeInput.value = '';
+        codeInput.focus();
+        return;
+      }
+
+      // Success
+      alert('2FA has been enabled successfully!');
+      this.pending2FASecret = null;
+      
+      // Update UI to show enabled state
+      this.update2FAStatus(true);
+    } catch (error) {
+      console.error('[SETTINGS] 2FA enable error:', error);
+      alert('An error occurred while enabling 2FA');
+    }
+  },
+
+  /**
+   * Disable 2FA
+   */
+  async disable2FA(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id) {
+      alert('User data not available');
+      return;
+    }
+
+    const codeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+    const code = codeInput?.value;
+
+    if (!code || code.length !== 6) {
+      alert('Please enter your current 2FA code');
+      return;
+    }
+
+    // Confirm
+    const confirmed = confirm('Are you sure you want to disable 2FA? This will make your account less secure.');
+    if (!confirmed) return;
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/disable', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          code: code
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Failed to disable: ${error.message || 'Invalid code'}`);
+        codeInput.value = '';
+        codeInput.focus();
+        return;
+      }
+
+      // Success
+      alert('2FA has been disabled');
+      codeInput.value = '';
+      
+      // Update UI to show disabled state
+      this.update2FAStatus(false);
+    } catch (error) {
+      console.error('[SETTINGS] 2FA disable error:', error);
+      alert('An error occurred while disabling 2FA');
+    }
+  },
+
+  /**
+   * Update 2FA UI based on status
+   */
+  update2FAStatus(enabled: boolean): void {
+    const badge = document.getElementById('settings-2fa-badge');
+    const enableSection = document.getElementById('settings-2fa-enable-section');
+    const setupSection = document.getElementById('settings-2fa-setup-section');
+    const disableSection = document.getElementById('settings-2fa-disable-section');
+
+    if (enabled) {
+      if (badge) {
+        badge.textContent = 'Activé';
+        badge.className = 'text-xs px-2 py-1 rounded-full bg-emerald-600/30 text-emerald-400';
+      }
+      enableSection?.classList.add('hidden');
+      setupSection?.classList.add('hidden');
+      disableSection?.classList.remove('hidden');
+    } else {
+      if (badge) {
+        badge.textContent = 'Désactivé';
+        badge.className = 'text-xs px-2 py-1 rounded-full bg-neutral-700 text-neutral-400';
+      }
+      enableSection?.classList.remove('hidden');
+      setupSection?.classList.add('hidden');
+      disableSection?.classList.add('hidden');
+    }
+
+    // Clear disable code input
+    const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+    if (disableCodeInput) disableCodeInput.value = '';
+  },
+
+  /**
+   * Load 2FA status when opening settings
+   */
+  async load2FAStatus(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id) return;
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch(`/user/find?id=${app.me.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const users = await response.json();
+        if (users && users.length > 0) {
+          const user = users[0] as User & { twoAuth_enabled?: number };
+          this.update2FAStatus(!!user.twoAuth_enabled);
+        }
+      }
+    } catch (error) {
+      console.error('[SETTINGS] Failed to load 2FA status:', error);
+    }
+  },
+
+  /**
+   * Setup 2FA functionality
+   */
+  setup2FA(): void {
+    const enableBtn = document.getElementById('settings-2fa-enable-btn');
+    const cancelBtn = document.getElementById('settings-2fa-cancel-btn');
+    const confirmBtn = document.getElementById('settings-2fa-confirm-btn');
+    const disableBtn = document.getElementById('settings-2fa-disable-btn');
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+
+    // Enable button - start setup
+    enableBtn?.addEventListener('click', async () => {
+      await this.start2FASetup();
+    });
+
+    // Cancel button - hide setup
+    cancelBtn?.addEventListener('click', () => {
+      this.hide2FASetup();
+    });
+
+    // Confirm button - verify and enable
+    confirmBtn?.addEventListener('click', async () => {
+      await this.confirm2FASetup();
+    });
+
+    // Disable button
+    disableBtn?.addEventListener('click', async () => {
+      await this.disable2FA();
+    });
+
+    // Auto-filter input to only digits
+    codeInput?.addEventListener('input', () => {
+      codeInput.value = codeInput.value.replace(/\D/g, '');
+    });
+
+    disableCodeInput?.addEventListener('input', () => {
+      disableCodeInput.value = disableCodeInput.value.replace(/\D/g, '');
+    });
+  },
+
+  /**
+   * Start 2FA setup - fetch QR code
+   */
+  async start2FASetup(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id || !app.me.email) {
+      alert('User data not available');
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/setup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          email: app.me.email
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Error: ${error.message || 'Failed to start 2FA setup'}`);
+        return;
+      }
+
+      const data = await response.json();
+      this.pending2FASecret = data.secret;
+
+      // Display QR code and secret
+      const qrImg = document.getElementById('settings-2fa-qr') as HTMLImageElement;
+      const secretEl = document.getElementById('settings-2fa-secret');
+
+      if (qrImg) qrImg.src = data.qrCode;
+      if (secretEl) secretEl.textContent = data.secret;
+
+      // Show setup section
+      this.show2FASetup();
+    } catch (error) {
+      console.error('[SETTINGS] 2FA setup error:', error);
+      alert('An error occurred while setting up 2FA');
+    }
+  },
+
+  /**
+   * Show 2FA setup section
+   */
+  show2FASetup(): void {
+    document.getElementById('settings-2fa-enable-section')?.classList.add('hidden');
+    document.getElementById('settings-2fa-setup-section')?.classList.remove('hidden');
+    
+    // Clear code input
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    if (codeInput) {
+      codeInput.value = '';
+      codeInput.focus();
+    }
+  },
+
+  /**
+   * Hide 2FA setup section
+   */
+  hide2FASetup(): void {
+    document.getElementById('settings-2fa-setup-section')?.classList.add('hidden');
+    document.getElementById('settings-2fa-enable-section')?.classList.remove('hidden');
+    this.pending2FASecret = null;
+  },
+
+  /**
+   * Confirm 2FA setup - verify code and enable
+   */
+  async confirm2FASetup(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id || !this.pending2FASecret) {
+      alert('Setup data not available');
+      return;
+    }
+
+    const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
+    const code = codeInput?.value;
+
+    if (!code || code.length !== 6) {
+      alert('Please enter a valid 6-digit code');
+      return;
+    }
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/enable', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          secret: this.pending2FASecret,
+          code: code
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Verification failed: ${error.message || 'Invalid code'}`);
+        codeInput.value = '';
+        codeInput.focus();
+        return;
+      }
+
+      // Success
+      alert('2FA has been enabled successfully!');
+      this.pending2FASecret = null;
+      
+      // Update UI to show enabled state
+      this.update2FAStatus(true);
+    } catch (error) {
+      console.error('[SETTINGS] 2FA enable error:', error);
+      alert('An error occurred while enabling 2FA');
+    }
+  },
+
+  /**
+   * Disable 2FA
+   */
+  async disable2FA(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id) {
+      alert('User data not available');
+      return;
+    }
+
+    const codeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+    const code = codeInput?.value;
+
+    if (!code || code.length !== 6) {
+      alert('Please enter your current 2FA code');
+      return;
+    }
+
+    // Confirm
+    const confirmed = confirm('Are you sure you want to disable 2FA? This will make your account less secure.');
+    if (!confirmed) return;
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch('/authenticate/2fa/disable', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: app.me.id,
+          code: code
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        alert(`Failed to disable: ${error.message || 'Invalid code'}`);
+        codeInput.value = '';
+        codeInput.focus();
+        return;
+      }
+
+      // Success
+      alert('2FA has been disabled');
+      codeInput.value = '';
+      
+      // Update UI to show disabled state
+      this.update2FAStatus(false);
+    } catch (error) {
+      console.error('[SETTINGS] 2FA disable error:', error);
+      alert('An error occurred while disabling 2FA');
+    }
+  },
+
+  /**
+   * Update 2FA UI based on status
+   */
+  update2FAStatus(enabled: boolean): void {
+    const badge = document.getElementById('settings-2fa-badge');
+    const enableSection = document.getElementById('settings-2fa-enable-section');
+    const setupSection = document.getElementById('settings-2fa-setup-section');
+    const disableSection = document.getElementById('settings-2fa-disable-section');
+
+    if (enabled) {
+      if (badge) {
+        badge.textContent = 'Activé';
+        badge.className = 'text-xs px-2 py-1 rounded-full bg-emerald-600/30 text-emerald-400';
+      }
+      enableSection?.classList.add('hidden');
+      setupSection?.classList.add('hidden');
+      disableSection?.classList.remove('hidden');
+    } else {
+      if (badge) {
+        badge.textContent = 'Désactivé';
+        badge.className = 'text-xs px-2 py-1 rounded-full bg-neutral-700 text-neutral-400';
+      }
+      enableSection?.classList.remove('hidden');
+      setupSection?.classList.add('hidden');
+      disableSection?.classList.add('hidden');
+    }
+
+    // Clear disable code input
+    const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
+    if (disableCodeInput) disableCodeInput.value = '';
+  },
+
+  /**
+   * Load 2FA status when opening settings
+   */
+  async load2FAStatus(): Promise<void> {
+    const app = getAppInstance?.();
+    if (!app?.me?.id) return;
+
+    try {
+      const token = sessionStorage.getItem('authToken');
+      const response = await fetch(`/user/find?id=${app.me.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const users = await response.json();
+        if (users && users.length > 0) {
+          const user = users[0] as User & { twoAuth_enabled?: number };
+          this.update2FAStatus(!!user.twoAuth_enabled);
+        }
+      }
+    } catch (error) {
+      console.error('[SETTINGS] Failed to load 2FA status:', error);
+    }
   },
 
   // close the modal

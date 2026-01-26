@@ -17,6 +17,7 @@ import {
   createTournamentRoom,
   createInvitationRoom,
   getInvitationRoom,
+  getActiveGameForPlayer,
   setTournamentCallbacks,
   type TournamentCallbacks
 } from './room.js';
@@ -73,6 +74,46 @@ async function start() {
     return getPvPStats();
   });
 
+  // Endpoint to get active game for a player (for reconnection after refresh)
+  server.get('/game/active', async (request, reply) => {
+    // Get user ID from x-sender-id header (set by proxy after JWT validation)
+    let userId = request.headers['x-sender-id'] as string | undefined;
+    
+    // If no x-sender-id, try to validate JWT from Authorization header
+    if (!userId) {
+      const authHeader = request.headers['authorization'];
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.slice(7);
+        try {
+          const response = await fetch('http://authenticate:3000/check_jwt', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const sender = await response.json();
+            if (sender?.id) {
+              userId = sender.id.toString();
+            }
+          }
+        } catch (error) {
+          console.error('[GAME] Failed to validate JWT:', error);
+        }
+      }
+    }
+    
+    if (!userId) {
+      return reply.status(401).send({ error: 'Unauthorized' });
+    }
+    
+    const activeGame = getActiveGameForPlayer(userId);
+    if (!activeGame) {
+      return reply.status(404).send({ error: 'No active game' });
+    }
+    
+    console.log(`[GAME] Active game for ${userId}:`, activeGame);
+    return activeGame;
+  });
+
   // Endpoint to create an invitation room (called by social service)
   server.post('/game/invitation-room', async (request, reply) => {
     const { invitationId, inviterId, invitedId } = request.body as {
@@ -95,77 +136,48 @@ async function start() {
   });
 
   server.get('/game/ws', { websocket: true }, async (socket: WebSocket, request: FastifyRequest) => {
-    const url = new URL(request.url, `http://${request.headers.host}`);
-    const mode = url.searchParams.get('mode') as 'solo' | 'local' | 'pvp' | 'tournament' | 'invitation' || 'solo';
-    const difficulty = url.searchParams.get('difficulty') as 'easy' | 'normal' | 'hard' || 'hard';
-
-    // Get user ID from headers (set by proxy auth middleware)
+    // Get user ID from headers (set by auth middleware)
     let userId = request.headers['x-sender-id'] as string | undefined;
-
-    // Try to extract JWT from WebSocket subprotocol (format: "Bearer.{token}")
-    if (!userId) {
-      const subprotocol = request.headers['sec-websocket-protocol'] as string | undefined;
-      if (subprotocol && subprotocol.startsWith('Bearer.')) {
-        const token = subprotocol.substring(7);
-        console.log('[WS] Extracted JWT from subprotocol');
-        
-        try {
-          const response = await fetch('http://authenticate:3000/check_jwt', {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.ok) {
-            const sender = await response.json() as { id?: string; name?: string; email?: string } | undefined;
-            if (sender && sender.id) {
-              userId = sender.id;
-              console.log(`[WS] JWT validated from subprotocol, user: ${userId}`);
-            }
-          } else {
-            console.log('[WS] JWT validation failed from subprotocol');
-          }
-        } catch (error) {
-          console.error('[WS] JWT validation error from subprotocol:', error);
-        }
-      }
-    }
-
-    // Fallback: try to extract and validate JWT from query param
+    
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    
+    console.log('[WS] Headers x-sender-id:', userId);
+    
+    // If no x-sender-id, try to validate JWT from query param directly
     if (!userId) {
       const token = url.searchParams.get('token');
-
+      console.log('[WS] Token from query param:', token ? `${token.substring(0, 20)}...` : 'null');
       if (token) {
         try {
+          console.log('[WS] Validating JWT with authenticate service...');
           const response = await fetch('http://authenticate:3000/check_jwt', {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
+            headers: { 
+              'Authorization': `Bearer ${token}` 
             }
           });
-
+          console.log('[WS] JWT validation response status:', response.status);
           if (response.ok) {
-            const sender = await response.json() as { id?: string; name?: string; email?: string } | undefined;
+            const sender = await response.json();
+            console.log('[WS] JWT validation response body:', sender);
             if (sender && sender.id) {
-              userId = sender.id;
-              console.log(`[WS] JWT validated from query param, user: ${userId}`);
+              userId = sender.id.toString();
+              console.log('[WS] JWT validated from query param, user:', userId);
             }
           } else {
-            console.log('[WS] JWT validation failed');
+            const errorText = await response.text();
+            console.error('[WS] JWT validation failed:', response.status, errorText);
           }
         } catch (error) {
-          console.error('[WS] JWT validation error:', error);
+          console.error('[WS] Failed to validate JWT from query param:', error);
         }
       }
     }
-
-    // Invitation mode requires authenticated user
-    if (mode === 'invitation' && !userId) {
-      console.error('[WS] Invitation mode requires authenticated user');
-      socket.send(JSON.stringify({ type: 'error', message: 'Authentication required for invitation games' }));
-      socket.close();
-      return;
-    }
+    
     const playerId = userId || `player_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
+    const mode = url.searchParams.get('mode') as 'solo' | 'local' | 'pvp' | 'tournament' | 'invitation' || 'solo';
+    const difficulty = url.searchParams.get('difficulty') as 'easy' | 'normal' | 'hard' || 'hard';
+    
     // Tournament mode parameters
     const tournamentId = url.searchParams.get('tournamentId');
     const matchId = url.searchParams.get('matchId');
@@ -176,7 +188,7 @@ async function start() {
     const invitationId = url.searchParams.get('invitationId');
     const roomId = url.searchParams.get('roomId');
 
-    console.log(`[WS] Connected: ${playerId}, mode=${mode}, difficulty=${difficulty}`);
+    console.log(`[WS] Connected: ${playerId}, mode=${mode}, difficulty=${difficulty}, invitationId=${invitationId}, roomId=${roomId}`);
 
     let room;
     if (mode === 'invitation' && invitationId && roomId) {
@@ -188,7 +200,7 @@ async function start() {
         socket.close();
         return;
       }
-      console.log(`[WS] Invitation match: ${invitationId}, room: ${roomId}`);
+      console.log(`[WS] Invitation match: ${invitationId}, room: ${roomId}, players in room: ${room.players.length}, invitationInfo:`, room.invitationInfo);
     } else if (mode === 'tournament' && tournamentId && matchId && tournamentPlayerId) {
       // Tournament mode - create or join tournament match room
       room = createTournamentRoom(tournamentId, matchId, tournamentPlayerId, isPlayer1);
@@ -200,8 +212,10 @@ async function start() {
       room = createRoom(false, allowAI, difficulty);
     }
 
+    console.log(`[WS] Attempting to add player ${playerId} to room ${room.id}`);
     const player = addPlayer(room, socket, playerId, tournamentPlayerId);
     if (!player) {
+      console.error(`[WS] Failed to add player ${playerId} to room ${room.id} - room full or not authorized`);
       socket.send(JSON.stringify({ type: 'error', message: 'Room is full' }));
       socket.close();
       return;

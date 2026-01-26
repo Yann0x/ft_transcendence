@@ -134,6 +134,7 @@ export async function loginUserHandler(
     }
 
     const user : User = users[0];
+    console.log('[USER] User data from DB:', JSON.stringify(user, null, 2));
 
     const storedHash = await customFetch(
       'http://database:3000/database/user/password_hash',
@@ -142,6 +143,18 @@ export async function loginUserHandler(
     ) as string | null;
 
     await customFetch('http://authenticate:3000/check_pass_match', 'POST', { to_check: credentials.password, valid: storedHash } );
+
+    // Check if 2FA is enabled for this user
+    const userWith2FA = user as User & { twoAuth_enabled?: number; twoAuth_secret?: string };
+    if (userWith2FA.twoAuth_enabled) {
+      // Return a response indicating 2FA is required
+      console.log('[USER] 2FA required for user:', user.id);
+      return reply.send({
+        requires2FA: true,
+        userId: user.id,
+        message: '2FA verification required'
+      });
+    }
 
     const token = await customFetch(
       'http://authenticate:3000/get_jwt',
@@ -169,6 +182,87 @@ export async function loginUserHandler(
   }
 }
 
+/**
+ * Complete login with 2FA verification
+ */
+export async function login2FAHandler(
+  req: FastifyRequest<{ Body: { userId: string; code: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const { userId, code } = req.body;
+
+    if (!userId || !code) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'userId and code are required',
+        statusCode: 400,
+        service: 'user'
+      });
+    }
+
+    // Verify 2FA code via authenticate service
+    const verifyResult = await customFetch(
+      'http://authenticate:3000/authenticate/2fa/login-verify',
+      'POST',
+      { userId, code }
+    ) as { valid: boolean };
+
+    if (!verifyResult.valid) {
+      return reply.status(401).send({
+        error: 'Unauthorized',
+        message: 'Invalid 2FA code',
+        statusCode: 401,
+        service: 'user'
+      });
+    }
+
+    // Get user data
+    const users = await customFetch(
+      'http://database:3000/database/user',
+      'GET',
+      { id: userId }
+    ) as User[];
+
+    if (!users || users.length === 0) {
+      return reply.status(404).send({
+        error: 'Not Found',
+        message: 'User not found',
+        statusCode: 404,
+        service: 'user'
+      });
+    }
+
+    const user = users[0];
+
+    // Generate JWT
+    const token = await customFetch(
+      'http://authenticate:3000/get_jwt',
+      'POST',
+      {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      }
+    );
+
+    await fillUser(user);
+
+    const loginResponse = await buildLoginResponse(user, token as string);
+    console.log('[USER] 2FA login successful for user:', userId);
+    return loginResponse;
+  } catch (error: any) {
+    const statusCode = error.statusCode || 500;
+    return reply.status(statusCode).send({
+      error: error.error || '2FA Login Failed',
+      message: error.message || 'Failed to complete 2FA login',
+      statusCode,
+      service: error.service || 'user',
+      details: error.details
+    });
+  }
+}
+
 export async function logoutUserHandler(
   req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
@@ -182,6 +276,7 @@ export async function findUserHandler(
   try {
     const query = req.query;
     const requestingUserId = req.headers['x-sender-id'] as string;
+    console.log('[USER] findUserHandler - x-sender-id:', requestingUserId, 'query:', JSON.stringify(query));
 
     const users = await customFetch(
       'http://database:3000/database/user',
@@ -194,7 +289,9 @@ export async function findUserHandler(
     }
 
     const result = await Promise.all(users.map(async (user) => {
+      const userWith2FA = user as User & { twoAuth_enabled?: number };
       const isOwnData = requestingUserId && user.id && requestingUserId === user.id;
+      console.log('[USER] findUserHandler - user.id:', user.id, 'isOwnData:', isOwnData, 'twoAuth_enabled:', userWith2FA.twoAuth_enabled);
 
       if (isOwnData) {
         await fillUser(user);

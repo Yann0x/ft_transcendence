@@ -1,5 +1,17 @@
 import { FastifyInstance } from 'fastify'
-import { buildCheckJwtHandler, buildGetJwtHandler, hashPassword, validHashPassword, buildOAuth42UrlHandler, buildOAuth42CallbackHandler } from './authenticate_methods'
+import { 
+  buildCheckJwtHandler, 
+  buildGetJwtHandler, 
+  hashPassword, 
+  validHashPassword, 
+  buildOAuth42UrlHandler, 
+  buildOAuth42CallbackHandler,
+  build2FASetupHandler,
+  build2FAVerifyHandler,
+  build2FAEnableHandler,
+  build2FADisableHandler,
+  build2FALoginVerifyHandler
+} from './authenticate_methods'
 import { ErrorResponseSchema, UserSchema } from './shared/with_front/types'
 import { Type } from '@sinclair/typebox'
 
@@ -70,4 +82,90 @@ export function authenticateRoutes(server: FastifyInstance) {
   // OAuth 2.0 with 42 API
   server.get('/authenticate/oauth/42', buildOAuth42UrlHandler(server))
   server.get('/authenticate/oauth/42/callback', buildOAuth42CallbackHandler(server))
+
+  // 2FA (TOTP) routes
+  server.post('/authenticate/2fa/setup', {
+    schema: {
+      body: Type.Object({
+        userId: Type.String(),
+        email: Type.String()
+      }),
+      response: {
+        200: Type.Object({
+          secret: Type.String(),
+          qrCode: Type.String(),
+          otpauthUrl: Type.String()
+        }),
+        400: ErrorResponseSchema,
+        500: ErrorResponseSchema
+      }
+    }
+  }, build2FASetupHandler(server))
+
+  server.post('/authenticate/2fa/verify', {
+    schema: {
+      body: Type.Object({
+        secret: Type.String(),
+        code: Type.String()
+      }),
+      response: {
+        200: Type.Object({ valid: Type.Boolean() }),
+        400: ErrorResponseSchema,
+        500: ErrorResponseSchema
+      }
+    }
+  }, build2FAVerifyHandler(server))
+
+  server.post('/authenticate/2fa/enable', {
+    schema: {
+      body: Type.Object({
+        userId: Type.String(),
+        secret: Type.String(),
+        code: Type.String()
+      }),
+      response: {
+        200: Type.Object({
+          success: Type.Boolean(),
+          message: Type.String()
+        }),
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        500: ErrorResponseSchema
+      }
+    }
+  }, build2FAEnableHandler(server))
+
+  server.post('/authenticate/2fa/disable', {
+    schema: {
+      body: Type.Object({
+        userId: Type.String(),
+        code: Type.String()
+      }),
+      response: {
+        200: Type.Object({
+          success: Type.Boolean(),
+          message: Type.String()
+        }),
+        400: ErrorResponseSchema,
+        401: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema
+      }
+    }
+  }, build2FADisableHandler(server))
+
+  server.post('/authenticate/2fa/login-verify', {
+    schema: {
+      body: Type.Object({
+        userId: Type.String(),
+        code: Type.String()
+      }),
+      response: {
+        200: Type.Object({ valid: Type.Boolean() }),
+        400: ErrorResponseSchema,
+        404: ErrorResponseSchema,
+        500: ErrorResponseSchema
+      }
+    }
+  }, build2FALoginVerifyHandler(server))
 }
