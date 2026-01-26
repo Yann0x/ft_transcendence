@@ -1,9 +1,9 @@
 <!-- Auth Modal -->
-<div id="auth-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-  <div class="bg-neutral-900 rounded-2xl border border-neutral-800 w-full max-w-md p-8 relative">
+<div id="auth-modal" class="modal-overlay hidden">
+  <div class="modal">
     
     <!-- Close Button -->
-    <button id="auth-modal-close" class="absolute top-4 right-4 text-neutral-400 hover:text-white transition" type="button">
+    <button id="auth-modal-close" class="absolute top-4 right-4 text-secondary hover:text-primary transition" type="button">
       <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
       </svg>
@@ -11,10 +11,10 @@
 
     <!-- Tabs -->
     <div class="flex gap-4 mb-6 border-b border-neutral-800">
-      <button id="auth-login-tab" class="py-3 px-2 border-b-2 border-blue-500 font-semibold text-white transition" type="button" data-i18n="auth.login">
+      <button id="auth-login-tab" class="py-3 px-2 border-b-2 border-blue-500 font-semibold text-primary transition" type="button" data-i18n="auth.login">
         Connexion
       </button>
-      <button id="auth-signup-tab" class="py-3 px-2 border-b-2 border-transparent text-neutral-400 hover:text-white transition" type="button" data-i18n="auth.signup">
+      <button id="auth-signup-tab" class="py-3 px-2 border-b-2 border-transparent text-secondary hover:text-primary transition" type="button" data-i18n="auth.signup">
         Inscription
       </button>
     </div>
@@ -22,25 +22,25 @@
     <!-- Login Form -->
     <form id="auth-login-form" class="space-y-4 mb-5">
       <div>
-        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.email">Email</label>
-        <input type="email" name="email" placeholder="votre@email.com" data-i18n-placeholder="auth.email_placeholder" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+        <label class="block text-sm font-medium text-secondary mb-2" data-i18n="auth.email">Email</label>
+        <input type="email" name="email" placeholder="votre@email.com" data-i18n-placeholder="auth.email_placeholder" class="input">
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.password">Mot de passe</label>
-        <input type="password" name="password" placeholder="••••••••" data-i18n-placeholder="auth.password_placeholder" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+        <label class="block text-sm font-medium text-secondary mb-2" data-i18n="auth.password">Mot de passe</label>
+        <input type="password" name="password" placeholder="••••••••" data-i18n-placeholder="auth.password_placeholder" class="input">
       </div>
 
       <div class="flex items-center gap-2">
         <input type="checkbox" id="auth-remember" class="w-4 h-4 accent-blue-500 cursor-pointer">
-        <label for="auth-remember" class="text-sm text-neutral-400 cursor-pointer" data-i18n="auth.remember">Se souvenir de moi</label>
+        <label for="auth-remember" class="text-sm text-tertiary cursor-pointer" data-i18n="auth.remember">Se souvenir de moi</label>
       </div>
 
-      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="auth.login_submit">
+      <button type="submit" class="btn btn-primary w-full" data-i18n="auth.login_submit">
         Se connecter
       </button>
 
-      <div class="text-center text-sm text-neutral-400">
+      <div class="text-center text-sm text-tertiary">
         <span data-i18n="auth.no_account">Pas encore inscrit ?</span>
         <span id="auth-switch-signup" class="text-blue-500 hover:text-blue-400 cursor-pointer transition" data-i18n="auth.create_account">Créer un compte</span>
       </div>
@@ -49,30 +49,30 @@
     <!-- Signup Form -->
     <form id="auth-signup-form" class="space-y-4 mb-5 hidden">
       <div>
-        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.email">Email</label>
-        <input type="email" name="email" placeholder="votre@email.com" data-i18n-placeholder="auth.email_placeholder" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+        <label class="block text-sm font-medium text-secondary mb-2" data-i18n="auth.email">Email</label>
+        <input type="email" name="email" placeholder="votre@email.com" data-i18n-placeholder="auth.email_placeholder" class="input">
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.username">Nom d'utilisateur</label>
-        <input type="text" name="name" placeholder="votre_username" data-i18n-placeholder="auth.username_placeholder" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+        <label class="block text-sm font-medium text-secondary mb-2" data-i18n="auth.username">Nom d'utilisateur</label>
+        <input type="text" name="name" placeholder="votre_username" data-i18n-placeholder="auth.username_placeholder" class="input">
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="auth.password">Mot de passe</label>
-        <input type="password" name="password" placeholder="••••••••" data-i18n-placeholder="auth.password_placeholder" class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 transition">
+        <label class="block text-sm font-medium text-secondary mb-2" data-i18n="auth.password">Mot de passe</label>
+        <input type="password" name="password" placeholder="••••••••" data-i18n-placeholder="auth.password_placeholder" class="input">
       </div>
 
       <div class="flex items-center gap-2">
         <input type="checkbox" id="auth-terms" class="w-4 h-4 accent-blue-500 cursor-pointer">
-        <label for="auth-terms" class="text-sm text-neutral-400 cursor-pointer" data-i18n="auth.terms">J'accepte les conditions d'utilisation</label>
+        <label for="auth-terms" class="text-sm text-tertiary cursor-pointer" data-i18n="auth.terms">J'accepte les conditions d'utilisation</label>
       </div>
 
-      <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="auth.signup_submit">
+      <button type="submit" class="btn btn-primary w-full" data-i18n="auth.signup_submit">
         S'inscrire
       </button>
 
-      <div class="text-center text-sm text-neutral-400">
+      <div class="text-center text-sm text-tertiary">
         <span data-i18n="auth.have_account">Vous avez un compte ?</span>
         <span id="auth-switch-login" class="text-blue-500 hover:text-blue-400 cursor-pointer transition" data-i18n="auth.login_link">Se connecter</span>
       </div>
@@ -84,12 +84,12 @@
         <div class="w-full border-t border-neutral-700"></div>
       </div>
       <div class="relative flex justify-center text-sm">
-        <span class="px-2 bg-neutral-900 text-neutral-400" data-i18n="auth.or_continue">ou continuer avec</span>
+        <span class="px-2 bg-neutral-900 text-tertiary" data-i18n="auth.or_continue">ou continuer avec</span>
       </div>
     </div>
 
     <!-- OAuth 42 Button -->
-    <button id="auth-oauth-42" type="button" class="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-2 rounded-lg border border-neutral-700 transition font-semibold">
+    <button id="auth-oauth-42" type="button" class="btn btn-outline w-full justify-center">
       <svg class="w-5 h-5" viewBox="0 0 137 96" fill="currentColor">
         <polygon points="76,0 76,34.2 42.7,67.5 42.7,34.2 0,34.2 0,67.5 42.7,67.5 42.7,96 76,96 76,67.5 137,67.5 137,34.2 76,34.2"/>
       </svg>

@@ -58,6 +58,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'home.controls': '⌨️ W/S ou ↑/↓ - Déplacer',
     'home.first_to': '🎯 Premier à 11 points',
     'home.settings': '⚙️ Paramètres',
+    'home.quick_stats': 'Statistiques rapides',
+    'home.view_all': 'Voir tout',
     'home.stat_games': 'Parties jouées',
     'home.stat_wins': 'Victoires',
     'home.stat_rank': 'Classement',
@@ -74,6 +76,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     
     // Game messages
     'game.choose_mode': 'Choisissez Solo ou PvP pour jouer',
+    'game.select_mode_below': 'Sélectionnez un mode ci-dessous',
+    'game.tournament_match': 'Match de Tournoi',
     'game.waiting_opponent': 'En attente d\'un adversaire...',
     'game.connecting': 'Connexion...',
     'game.press_space_start': 'Appuyez sur ESPACE pour commencer',
@@ -84,6 +88,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'game.victory': '🏆 Victoire !',
     'game.defeat': 'Défaite',
     'game.you_advance': 'Vous avancez ! Retour au tournoi...',
+    'game.you_advance_tournament': 'Vous avancez ! Retour au tournoi...',
     'game.returning_tournament': 'Retour au tournoi...',
     'game.you_win_space': 'Vous gagnez ! Appuyez sur ESPACE pour une nouvelle partie',
     'game.press_space_restart': 'Appuyez sur ESPACE pour recommencer',
@@ -92,7 +97,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'game.wins': 'gagne',
     
     // Stats
-    'stats.title': 'Mes Statistiques',
+    'stats.title': 'Statistiques',
     'stats.subtitle': 'Retrouvez ici vos statistiques de jeu et votre progression',
     'stats.games_played': 'Parties jouées',
     'stats.win_rate': 'Taux de victoire',
@@ -115,6 +120,11 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'stats.table_result': 'Résultat',
     'stats.table_date': 'Date',
     'stats.no_data': 'Aucune donnée pour le moment',
+    'stats.no_games': 'Aucune partie jouée',
+    'stats.login_required': 'Connectez-vous pour voir vos statistiques',
+    'stats.login_required_title': 'Connexion requise',
+    'stats.login_required_desc': 'Connectez-vous pour accéder à vos statistiques détaillées et suivre votre progression.',
+    'stats.error': 'Erreur lors du chargement des statistiques',
     'stats.result_win': 'Victoire',
     'stats.result_loss': 'Défaite',
     
@@ -161,7 +171,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     
     // Tournaments
     'tournaments.title': 'Tournois',
-    'tournaments.create': '+ Créer un tournoi',
+    'tournaments.create': 'Créer un tournoi',
     'tournaments.subtitle': "Participez à des tournois et affrontez d'autres joueurs",
     'tournaments.active': 'Tournois en cours',
     'tournaments.available': 'Tournois disponibles',
@@ -340,6 +350,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'home.controls': '⌨️ W/S or ↑/↓ - Move',
     'home.first_to': '🎯 First to 11 points',
     'home.settings': '⚙️ Settings',
+    'home.quick_stats': 'Quick stats',
+    'home.view_all': 'View all',
     'home.stat_games': 'Games played',
     'home.stat_wins': 'Wins',
     'home.stat_rank': 'Rank',
@@ -356,19 +368,28 @@ const translations: Record<SupportedLang, TranslationMap> = {
     
     // Game messages
     'game.choose_mode': 'Choose a game mode',
+    'game.select_mode_below': 'Select a mode below',
+    'game.tournament_match': 'Tournament Match',
     'game.waiting_opponent': 'Waiting for opponent...',
+    'game.connecting': 'Connecting...',
     'game.press_space_start': 'Press SPACE to start',
     'game.paused': 'PAUSED',
     'game.press_esc_resume': 'Press ESC to resume',
     'game.opponent_disconnected': 'OPPONENT DISCONNECTED',
-    'game.victory': 'Victory!',
+    'game.waiting_reconnection': 'Waiting for reconnection...',
+    'game.victory': '🏆 Victory!',
     'game.defeat': 'Defeated',
+    'game.you_advance': 'You advance! Returning to tournament...',
+    'game.you_advance_tournament': 'You advance! Returning to tournament...',
+    'game.returning_tournament': 'Returning to tournament...',
+    'game.you_win_space': 'You win! Press SPACE to find a new game',
+    'game.press_space_restart': 'Press SPACE to restart',
     'game.left_wins': 'Left wins!',
     'game.right_wins': 'Right wins!',
     'game.wins': 'wins',
     
     // Stats
-    'stats.title': 'My Stats',
+    'stats.title': 'Stats',
     'stats.subtitle': 'Track your game stats and progression',
     'stats.games_played': 'Games played',
     'stats.win_rate': 'Win rate',
@@ -391,6 +412,11 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'stats.table_result': 'Result',
     'stats.table_date': 'Date',
     'stats.no_data': 'No data yet',
+    'stats.no_games': 'No games played',
+    'stats.login_required': 'Log in to view your stats',
+    'stats.login_required_title': 'Login required',
+    'stats.login_required_desc': 'Log in to access your detailed stats and track your progress.',
+    'stats.error': 'Error loading stats',
     'stats.result_win': 'Win',
     'stats.result_loss': 'Loss',
     
@@ -437,7 +463,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     
     // Tournaments
     'tournaments.title': 'Tournaments',
-    'tournaments.create': '+ Create a tournament',
+    'tournaments.create': 'Create a tournament',
     'tournaments.subtitle': 'Join tournaments and face other players',
     'tournaments.active': 'Active tournaments',
     'tournaments.available': 'Available tournaments',
@@ -616,6 +642,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'home.controls': '⌨️ W/S o ↑/↓ - Mover',
     'home.first_to': '🎯 Primero en 11 puntos',
     'home.settings': '⚙️ Configuración',
+    'home.quick_stats': 'Estadísticas rápidas',
+    'home.view_all': 'Ver todo',
     'home.stat_games': 'Partidas jugadas',
     'home.stat_wins': 'Victorias',
     'home.stat_rank': 'Clasificación',
@@ -632,19 +660,28 @@ const translations: Record<SupportedLang, TranslationMap> = {
     
     // Game messages
     'game.choose_mode': 'Elige un modo de juego',
+    'game.select_mode_below': 'Selecciona un modo abajo',
+    'game.tournament_match': 'Partido de Torneo',
     'game.waiting_opponent': 'Esperando oponente...',
+    'game.connecting': 'Conectando...',
     'game.press_space_start': 'Presiona ESPACIO para empezar',
     'game.paused': 'PAUSA',
     'game.press_esc_resume': 'Presiona ESC para continuar',
     'game.opponent_disconnected': 'OPONENTE DESCONECTADO',
-    'game.victory': '¡Victoria!',
+    'game.waiting_reconnection': 'Esperando reconexión...',
+    'game.victory': '🏆 ¡Victoria!',
     'game.defeat': 'Derrotado',
+    'game.you_advance': '¡Avanzas! Volviendo al torneo...',
+    'game.you_advance_tournament': '¡Avanzas! Volviendo al torneo...',
+    'game.returning_tournament': 'Volviendo al torneo...',
+    'game.you_win_space': '¡Ganas! Presiona ESPACIO para un nuevo juego',
+    'game.press_space_restart': 'Presiona ESPACIO para reiniciar',
     'game.left_wins': '¡Izquierda gana!',
     'game.right_wins': '¡Derecha gana!',
     'game.wins': 'gana',
     
     // Stats
-    'stats.title': 'Mis Estadísticas',
+    'stats.title': 'Estadísticas',
     'stats.subtitle': 'Consulta tus estadísticas de juego y tu progreso',
     'stats.games_played': 'Partidas jugadas',
     'stats.win_rate': 'Tasa de victorias',
@@ -667,6 +704,11 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'stats.table_result': 'Resultado',
     'stats.table_date': 'Fecha',
     'stats.no_data': 'Sin datos por el momento',
+    'stats.no_games': 'Ninguna partida jugada',
+    'stats.login_required': 'Inicia sesión para ver tus estadísticas',
+    'stats.login_required_title': 'Inicio de sesión requerido',
+    'stats.login_required_desc': 'Inicia sesión para acceder a tus estadísticas detalladas y seguir tu progreso.',
+    'stats.error': 'Error al cargar las estadísticas',
     'stats.result_win': 'Victoria',
     'stats.result_loss': 'Derrota',
     
@@ -713,7 +755,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     
     // Tournaments
     'tournaments.title': 'Torneos',
-    'tournaments.create': '+ Crear un torneo',
+    'tournaments.create': 'Crear un torneo',
     'tournaments.subtitle': 'Participa en torneos y enfréntate a otros jugadores',
     'tournaments.active': 'Torneos en curso',
     'tournaments.available': 'Torneos disponibles',
@@ -851,7 +893,15 @@ function resolveLanguage(lang: string): SupportedLang {
 }
 
 function translate(key: string): string {
-  return translations[currentLang]?.[key] ?? translations[DEFAULT_LANG]?.[key] ?? key;
+  const translation = translations[currentLang]?.[key] ?? translations[DEFAULT_LANG]?.[key];
+
+  if (!translation) {
+    // Fallback humain : transformer la clé en texte lisible
+    console.warn(`[i18n] Missing translation for key: ${key}`);
+    return key.split('.').pop()?.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || key;
+  }
+
+  return translation;
 }
 
 function applyTranslations(root: ParentNode = document): void {
@@ -885,6 +935,13 @@ function applyTranslations(root: ParentNode = document): void {
 }
 
 function updateFlagSelection(): void {
+  // Update the main button text to show current language
+  const currentLangBtn = document.getElementById('current-lang');
+  if (currentLangBtn) {
+    currentLangBtn.textContent = currentLang.toUpperCase();
+  }
+
+  // Legacy support for old flag buttons (if any)
   const flags = document.querySelectorAll<HTMLButtonElement>('.lang-flag');
   flags.forEach((flag) => {
     const lang = flag.getAttribute('data-lang');
@@ -911,7 +968,44 @@ function getLanguage(): string {
 }
 
 function bindControls(): void {
-  // Bind flag buttons
+  // Language dropdown toggle
+  const languageBtn = document.getElementById('btn-language');
+  const languageMenu = document.getElementById('language-menu');
+
+  if (languageBtn && languageMenu) {
+    languageBtn.onclick = (e) => {
+      e.stopPropagation();
+      const isHidden = languageMenu.classList.contains('hidden');
+      languageMenu.classList.toggle('hidden', !isHidden);
+      languageBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    };
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!languageMenu.contains(e.target as Node) && !languageBtn.contains(e.target as Node)) {
+        languageMenu.classList.add('hidden');
+        languageBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  // Bind language options
+  const langOptions = document.querySelectorAll<HTMLButtonElement>('.lang-option');
+  langOptions.forEach((option) => {
+    option.onclick = () => {
+      const lang = option.getAttribute('data-lang');
+      if (lang) {
+        setLanguage(lang);
+        // Close menu after selection
+        if (languageMenu) {
+          languageMenu.classList.add('hidden');
+          languageBtn?.setAttribute('aria-expanded', 'false');
+        }
+      }
+    };
+  });
+
+  // Legacy flag buttons support (if any)
   const flags = document.querySelectorAll<HTMLButtonElement>('.lang-flag');
   flags.forEach((flag) => {
     flag.onclick = () => {
@@ -921,14 +1015,14 @@ function bindControls(): void {
       }
     };
   });
-  
+
   // Legacy select support (if still present)
   const select = document.getElementById('lang-select') as HTMLSelectElement | null;
   if (select) {
     select.value = currentLang;
     select.onchange = () => setLanguage(select.value);
   }
-  
+
   updateFlagSelection();
 }
 

@@ -2,7 +2,7 @@
 
 import { createCanvas, getCtx } from './canvas';
 import { State, setPhase, type GameState } from './state';
-import { drawRect, drawCircle, drawNet, drawText } from './render';
+import { drawRect, drawCircle, drawNet, drawText, drawPaddle, drawBall, drawScoreGauge, drawEndMessage, drawModeIndicator, drawInfoMessage } from './render';
 import { updateFps, drawFps, toggleFPS, toggleHitboxes, showHitboxes } from './debug';
 import { WIN_SCORE, SERVER_WIDTH, SERVER_HEIGHT } from './config';
 import { bindKeyboard, unbindKeyboard, getInput, getInputP1, getInputP2 } from './input';
@@ -646,19 +646,43 @@ export function render(state: GameState): void {
 
   const { width: w, height: h } = state.viewport;
 
+  // Fond noir uni
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, w, h);
 
-  drawNet(state.net.x, h, state.net.dashHeight, state.net.dashGap);
+  // Filet central plus brillant
+  drawNet(state.net.x, h, state.net.dashHeight, state.net.dashGap, '#555');
 
-  drawText(String(state.score.left), w / 4, 50, { font: 'bold 48px system-ui', color: '#333' });
-  drawText(String(state.score.right), (w * 3) / 4, 50, { font: 'bold 48px system-ui', color: '#333' });
+  // Jauges de score
+  drawScoreGauge(w / 4, 15, state.score.left, WIN_SCORE, '#3b82f6', 'rgba(59, 130, 246, 0.6)');
+  drawScoreGauge((w * 3) / 4, 15, state.score.right, WIN_SCORE, '#ef4444', 'rgba(239, 68, 68, 0.6)');
 
-  for (const p of state.paddles) {
-    drawRect(p.x, p.y, p.width, p.height, '#fff');
-  }
+  // Scores colorés avec police moderne
+  drawText(String(state.score.left), w / 4, 60, { font: 'bold 56px "Inter", "Segoe UI", system-ui, sans-serif', color: '#3b82f6' });
+  drawText(String(state.score.right), (w * 3) / 4, 60, { font: 'bold 56px "Inter", "Segoe UI", system-ui, sans-serif', color: '#ef4444' });
 
-  drawCircle(state.ball.x, state.ball.y, state.ball.radius, '#fff');
+  // Paddle gauche (bleu)
+  drawPaddle(
+    state.paddles[0].x,
+    state.paddles[0].y,
+    state.paddles[0].width,
+    state.paddles[0].height,
+    '#3b82f6',
+    'rgba(59, 130, 246, 0.5)'
+  );
+
+  // Paddle droit (rouge)
+  drawPaddle(
+    state.paddles[1].x,
+    state.paddles[1].y,
+    state.paddles[1].width,
+    state.paddles[1].height,
+    '#ef4444',
+    'rgba(239, 68, 68, 0.5)'
+  );
+
+  // Balle avec glow blanc brillant
+  drawBall(state.ball.x, state.ball.y, state.ball.radius);
 
   if (showHitboxes) {
     ctx.strokeStyle = '#0f0';
@@ -674,78 +698,108 @@ export function render(state: GameState): void {
   const side = Network.getSide();
   const connected = Network.isConnected();
 
-  // Mode indicator
-  if (!gameMode) {
-    drawText('Select mode below', w / 2, 30, { font: '16px system-ui', color: '#525252' });
-  } else if (gameMode === 'tournament' && tournamentMatchInfo) {
-    drawText('🏆 Tournament Match', w / 2, 30, { font: 'bold 16px system-ui', color: '#f59e0b' });
-  } else if (gameMode === 'local_tournament' && localTournamentMatchInfo) {
-    // Local tournament - show player names
-    const p1 = localTournamentMatchInfo.player1Alias || 'Player 1';
-    const p2 = localTournamentMatchInfo.player2Alias || 'Player 2';
-    drawText(`🏠 ${p1} vs ${p2}`, w / 2, 30, { font: 'bold 16px system-ui', color: '#f59e0b' });
-    // Show control hints below names
-    drawText('(W/S)', w / 4, 70, { font: '12px system-ui', color: '#525252' });
-    drawText('(↑/↓)', (w * 3) / 4, 70, { font: '12px system-ui', color: '#525252' });
-  } else if (side) {
-    let modeLabel: string;
-    if (gameMode === 'pvp') {
-      modeLabel = `PvP Online (${side})`;
-    } else if (localMode) {
-      modeLabel = 'PvP Local (W/S vs ↑/↓)';
+  // Vérifier si on doit afficher le mode indicator (uniquement avec les messages overlay)
+  const hasOverlayMessage = !connected || state.phase === 'waiting' || state.phase === 'ready' || state.phase === 'paused' || state.phase === 'ended';
+
+  // Mode indicator (plus proche du centre, apparaît avec les messages)
+  if (hasOverlayMessage) {
+    if (!gameMode) {
+      drawModeIndicator(w / 2, 80, I18n.translate('game.select_mode_below'));
+    } else if (gameMode === 'tournament' && tournamentMatchInfo) {
+      drawModeIndicator(w / 2, 80, '🏆 ' + I18n.translate('game.tournament_match'));
+    } else if (gameMode === 'local_tournament' && localTournamentMatchInfo) {
+      // Local tournament - show player names
+      const p1 = localTournamentMatchInfo.player1Alias || 'Player 1';
+      const p2 = localTournamentMatchInfo.player2Alias || 'Player 2';
+      drawModeIndicator(w / 2, 80, `🏠 ${p1} vs ${p2}`);
+    } else if (side) {
+      let modeLabel: string;
+      if (gameMode === 'pvp') {
+        modeLabel = `PvP Online (${side})`;
+      } else if (localMode) {
+        modeLabel = 'PvP Local (W/S vs ↑/↓)';
+      } else {
+        const diffLabel = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
+        modeLabel = `Solo vs AI (${diffLabel})`;
+      }
+      drawModeIndicator(w / 2, 80, modeLabel);
     } else {
-      const diffLabel = currentDifficulty.charAt(0).toUpperCase() + currentDifficulty.slice(1);
-      modeLabel = `Solo vs AI (${diffLabel})`;
+      drawModeIndicator(w / 2, 80, I18n.translate('game.connecting'));
     }
-    drawText(modeLabel, w / 2, 30, { font: '16px system-ui', color: '#525252' });
-  } else {
-    drawText('Connecting...', w / 2, 30, { font: '16px system-ui', color: '#525252' });
   }
 
   // Phase messages
   if (!connected && !gameMode) {
-    drawText(I18n.translate('game.choose_mode'), w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
+    drawInfoMessage(w / 2, h / 2, I18n.translate('game.choose_mode'));
   } else if (state.phase === 'waiting') {
-    const msg = gameMode === 'tournament' ? I18n.translate('game.waiting_opponent') : (gameMode === 'pvp' ? I18n.translate('game.waiting_opponent') : 'Connecting...');
-    drawText(msg, w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
+    const msg = gameMode === 'tournament' ? I18n.translate('game.waiting_opponent') : (gameMode === 'pvp' ? I18n.translate('game.waiting_opponent') : I18n.translate('game.connecting'));
+    drawInfoMessage(w / 2, h / 2, msg);
   } else if (state.phase === 'ready') {
-    if (gameMode === 'local_tournament' && localTournamentMatchInfo) {
-      // Local tournament ready message
-      drawText(I18n.translate('game.press_space_start'), w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
-    } else {
-      drawText(I18n.translate('game.press_space_start'), w / 2, h / 2, { color: '#525252', font: 'bold 24px system-ui' });
-    }
+    drawInfoMessage(w / 2, h / 2, I18n.translate('game.press_space_start'));
   } else if (state.phase === 'paused') {
     if (gameMode === 'tournament') {
-      drawText(I18n.translate('game.opponent_disconnected'), w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
-      drawText(I18n.translate('game.waiting_opponent'), w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+      drawInfoMessage(
+        w / 2,
+        h / 2,
+        I18n.translate('game.opponent_disconnected'),
+        I18n.translate('game.waiting_opponent')
+      );
     } else {
-      drawText(I18n.translate('game.paused'), w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
-      drawText(I18n.translate('game.press_esc_resume'), w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+      drawInfoMessage(
+        w / 2,
+        h / 2,
+        I18n.translate('game.paused'),
+        I18n.translate('game.press_esc_resume')
+      );
     }
   } else if (state.phase === 'ended') {
     const winner = state.score.left >= WIN_SCORE ? 'Left' : 'Right';
     const myWin = (side === 'left' && state.score.left >= WIN_SCORE) || (side === 'right' && state.score.right >= WIN_SCORE);
-    
+
     if (gameMode === 'local_tournament' && localTournamentMatchInfo) {
       // Local tournament end - show winner name
       const winnerName = winner === 'Left' ? localTournamentMatchInfo.player1Alias : localTournamentMatchInfo.player2Alias;
-      drawText(`🏆 ${winnerName} ${I18n.translate('game.wins')}!`, w / 2, h / 2 - 20, { color: '#10b981', font: 'bold 32px system-ui' });
-      drawText(I18n.translate('tournaments.returning'), w / 2, h / 2 + 20, { color: '#f59e0b', font: '20px system-ui' });
+      drawEndMessage(
+        w / 2,
+        h / 2,
+        `🏆 ${winnerName} ${I18n.translate('game.wins')}!`,
+        I18n.translate('tournaments.returning'),
+        true
+      );
     } else if (gameMode === 'tournament') {
       if (state.endReason === 'forfeit') {
-        drawText(I18n.translate('game.opponent_disconnected'), w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
-        drawText(myWin ? 'You advance! Returning to tournament...' : 'Returning to tournament...', w / 2, h / 2 + 20, { color: '#f59e0b', font: '20px system-ui' });
+        drawEndMessage(
+          w / 2,
+          h / 2,
+          I18n.translate('game.opponent_disconnected'),
+          myWin ? I18n.translate('game.you_advance_tournament') : I18n.translate('game.returning_tournament'),
+          myWin
+        );
       } else {
-        drawText(myWin ? '🏆 ' + I18n.translate('game.victory') : I18n.translate('game.defeat'), w / 2, h / 2 - 20, { color: myWin ? '#10b981' : '#ef4444', font: 'bold 32px system-ui' });
-        drawText('Returning to tournament...', w / 2, h / 2 + 20, { color: '#f59e0b', font: '20px system-ui' });
+        drawEndMessage(
+          w / 2,
+          h / 2,
+          myWin ? I18n.translate('game.victory') : I18n.translate('game.defeat'),
+          I18n.translate('game.returning_tournament'),
+          myWin
+        );
       }
     } else if (state.endReason === 'forfeit') {
-      drawText(I18n.translate('game.opponent_disconnected'), w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
-      drawText('You win! Press SPACE to find a new game', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+      drawEndMessage(
+        w / 2,
+        h / 2,
+        I18n.translate('game.opponent_disconnected'),
+        I18n.translate('game.you_win_space'),
+        true
+      );
     } else {
-      drawText(winner === 'Left' ? I18n.translate('game.left_wins') : I18n.translate('game.right_wins'), w / 2, h / 2 - 20, { color: '#fff', font: 'bold 32px system-ui' });
-      drawText('Press SPACE to restart', w / 2, h / 2 + 20, { color: '#525252', font: '20px system-ui' });
+      drawEndMessage(
+        w / 2,
+        h / 2,
+        winner === 'Left' ? I18n.translate('game.left_wins') : I18n.translate('game.right_wins'),
+        I18n.translate('game.press_space_restart'),
+        false
+      );
     }
   }
 }
