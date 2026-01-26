@@ -335,7 +335,7 @@ const App = {
         Social.load()
         break
       case "home":
-        PongGame.init();
+        PongGame.init().catch(e => console.error('[APP] PongGame init error:', e));
         break
       case "tournaments":
         Tournaments.init();

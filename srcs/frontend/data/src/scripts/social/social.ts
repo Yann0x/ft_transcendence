@@ -108,11 +108,30 @@ export const Social = {
 
             // If accepted and we're the inviter (not the one who accepted), prompt to join
             if (status === 'accepted' && gameRoomId && inviterId === App.me?.id) {
+                // Find the opponent's name from the cached messages
+                let opponentName: string | undefined;
+                for (const channel of Chat.cachedChannelsMap.values()) {
+                    for (const message of channel.messages) {
+                        if (message.type === 'game_invitation' && message.metadata) {
+                            const metadata = typeof message.metadata === 'string' 
+                                ? JSON.parse(message.metadata) 
+                                : message.metadata;
+                            if (metadata.invitationId === invitationId && metadata.invitedId) {
+                                const invitedUser = App.cachedUsers.get(metadata.invitedId);
+                                opponentName = invitedUser?.name;
+                                break;
+                            }
+                        }
+                    }
+                    if (opponentName) break;
+                }
+
                 const shouldJoin = confirm('Your invitation was accepted! Join the game now?');
                 if (shouldJoin) {
                     sessionStorage.setItem('game_invitation', JSON.stringify({
                         invitationId,
-                        gameRoomId
+                        gameRoomId,
+                        opponentName
                     }));
                     Router.navigate('/game');
                 }
