@@ -1,7 +1,3 @@
-/* ============================================
-   PROFILE MODAL - User Profile Display
-   ============================================ */
-
 import { User } from '../shared/types';
 import { App } from './app';
 import { Router } from './router';
@@ -12,9 +8,7 @@ export const ProfileModal = {
   modal: null as HTMLElement | null,
   currentUserId: null as string | null,
 
-  /**
-   * Initialize the profile modal
-   */
+  // init the profile modal
   init(): void {
     this.modal = document.getElementById('profile-modal');
 
@@ -23,9 +17,7 @@ export const ProfileModal = {
     this.setupCloseListeners();
   },
 
-  /**
-   * Setup close button and background click
-   */
+  // setup close btn and background click
   setupCloseListeners(): void {
     const closeBtn = document.getElementById('profile-modal-close');
     closeBtn?.addEventListener('click', () => {
@@ -39,9 +31,7 @@ export const ProfileModal = {
     });
   },
 
-  /**
-   * Open the modal and display user profile
-   */
+  // open modal and display user profile
   async open(userId: string): Promise<void> {
     if (!this.modal) {
       console.error('[PROFILE] Modal element not found');
@@ -85,29 +75,27 @@ export const ProfileModal = {
     }
   },
 
-  /**
-   * Populate modal with user data
-   */
+  // populate modal w/ user data
   async populateProfile(user: User): Promise<void> {
     const avatarEl = document.getElementById('profile-avatar') as HTMLImageElement;
     const nameEl = document.getElementById('profile-name');
     const statusEl = document.getElementById('profile-status');
     const statusDot = document.getElementById('profile-status-dot');
 
-    // Set avatar
+    // set avatar
     if (avatarEl) {
       avatarEl.src = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
     }
 
-    // Set name
+    // set name
     if (nameEl) {
       nameEl.textContent = user.name || 'Unknown';
     }
 
-    // Set online status
+    // set online status
     const isOnline = user.id ? App.onlineUsersMap.has(user.id) : false;
     if (statusEl) {
-      statusEl.textContent = isOnline ? 'En ligne' : 'Hors ligne';
+      statusEl.textContent = isOnline ? 'Online' : 'Offline';
       statusEl.className = isOnline ? 'text-sm text-green-400 mt-1' : 'text-sm text-neutral-400 mt-1';
     }
     if (statusDot) {
@@ -116,14 +104,12 @@ export const ProfileModal = {
         : 'absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-neutral-900 bg-neutral-500';
     }
 
-    // Fetch fresh stats from API
+    // fetch fresh stats from API
     const stats = await StatsService.fetchStats(user.id);
     StatsService.updateProfileStats(stats);
   },
 
-  /**
-   * Setup action buttons based on relationship with user
-   */
+  // setup action btns based on relationship w/ user
   setupActionButtons(user: User): void {
     const actionsContainer = document.getElementById('profile-actions');
     const addFriendBtn = document.getElementById('profile-add-friend');
@@ -152,10 +138,10 @@ export const ProfileModal = {
       }
     }
 
-    // Update block button text
+    // update block btn text
     const blockBtn = document.getElementById('profile-block');
     if (blockBtn) {
-      blockBtn.textContent = isBlocked ? 'Débloquer' : 'Bloquer';
+      blockBtn.textContent = isBlocked ? 'Unblock' : 'Block';
     }
 
     this.attachActionListeners(user);
@@ -207,9 +193,7 @@ export const ProfileModal = {
     }
   },
 
-  /**
-   * Handle remove friend action
-   */
+  // handle remove friend action
   async handleRemoveFriend(user: User): Promise<void> {
     if (!user.id) return;
 
@@ -225,16 +209,14 @@ export const ProfileModal = {
     }
   },
 
-  /**
-   * Handle send message action
-   */
+  // handle send message action
   async handleMessage(user: User): Promise<void> {
     if (!user.id) return;
 
     try {
       const token = sessionStorage.getItem('authToken');
 
-      // Create or get DM channel
+      // create or get DM channel
       const response = await fetch('/user/channel/create-dm', {
         method: 'POST',
         headers: {
@@ -273,8 +255,8 @@ export const ProfileModal = {
 
     const confirmed = confirm(
       isBlocked
-        ? `Voulez-vous vraiment débloquer ${user.name || 'cet utilisateur'} ?`
-        : `Voulez-vous vraiment bloquer ${user.name || 'cet utilisateur'} ?`
+        ? `Do you really want to unblock ${user.name || 'this user'}?`
+        : `Do you really want to block ${user.name || 'this user'}?`
     );
     if (!confirmed) return;
 
@@ -296,9 +278,7 @@ export const ProfileModal = {
     }
   },
 
-  /**
-   * Refresh current user data from API
-   */
+  // refresh current user data from API
   async refreshCurrentUserData(): Promise<void> {
     try {
       const token = sessionStorage.getItem('authToken');

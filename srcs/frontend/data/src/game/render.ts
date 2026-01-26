@@ -1,10 +1,8 @@
-// RENDER - Helpers de dessin
+// RENDER - drawing helpers
 
 import { getCtx } from './canvas';
 
-/*
- * Dessine un rectangle
- */
+// draw a rectangle
 export function drawRect(
   x: number,
   y: number,
@@ -19,9 +17,7 @@ export function drawRect(
   ctx.fillRect(x, y, w, h);
 }
 
-/*
- * Dessine un cercle
- */
+// draw a circle
 export function drawCircle(
   x: number,
   y: number,
@@ -37,9 +33,7 @@ export function drawCircle(
   ctx.fill();
 }
 
-/*
- * Dessine le filet central (ligne pointillee verticale)
- */
+// draw the center net (vertical dashed line)
 export function drawNet(
   x: number,
   viewportHeight: number,
@@ -56,7 +50,7 @@ export function drawNet(
   }
 }
 
-// Options pour drawText
+// options for drawText
 export interface TextOptions {
   font?: string;
   color?: string;
@@ -64,9 +58,7 @@ export interface TextOptions {
   baseline?: CanvasTextBaseline;
 }
 
-/*
- * Dessine du texte
- */
+// draw text
 export function drawText(
   text: string,
   x: number,
@@ -90,7 +82,7 @@ export function drawText(
   ctx.fillText(text, x, y);
 }
 
-// Export groupe
+// export group
 export const Render = {
   drawRect,
   drawCircle,

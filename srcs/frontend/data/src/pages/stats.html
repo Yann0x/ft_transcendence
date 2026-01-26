@@ -73,17 +73,24 @@
             <span class="text-neutral-400" data-i18n="stats.worst_score">Pire score</span>
             <span class="font-bold text-red-400" id="stat-worst-score">-</span>
           </div>
-          <div class="flex justify-between items-center pb-4 border-b border-neutral-800">
+          <div class="flex justify-between items-center">
             <span class="text-neutral-400" data-i18n="stats.streak">Série de victoires</span>
             <span class="font-bold text-emerald-400" id="stat-win-streak">-</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-neutral-400" data-i18n="stats.elo">ELO</span>
-            <span class="font-bold text-amber-400" id="stat-elo">-</span>
           </div>
         </div>
       </div>
 
+    </div>
+
+    <!-- Winrate Graph -->
+    <div class="card mb-8">
+      <div class="card-header">
+        <h3 class="text-lg font-bold" data-i18n="stats.winrate_evolution">Évolution du winrate</h3>
+      </div>
+      <div class="card-body p-6">
+        <canvas id="winrate-graph" class="w-full" height="200"></canvas>
+        <p id="winrate-no-data" class="text-neutral-500 text-center py-8 hidden" data-i18n="stats.no_data">Aucune donnée pour le moment</p>
+      </div>
     </div>
 
     <!-- Recent Games -->
@@ -96,6 +103,7 @@
           <table class="w-full text-sm">
             <thead class="border-b border-neutral-800">
               <tr class="text-neutral-400">
+                <th class="text-left py-3 px-4" data-i18n="stats.table_type">Type</th>
                 <th class="text-left py-3 px-4" data-i18n="stats.table_opponent">Adversaire</th>
                 <th class="text-center py-3 px-4" data-i18n="stats.table_score">Score</th>
                 <th class="text-center py-3 px-4" data-i18n="stats.table_result">Résultat</th>
@@ -104,7 +112,7 @@
             </thead>
             <tbody>
               <tr class="hover:bg-neutral-800/50 transition">
-                <td class="py-3 px-4 text-neutral-500" colspan="4" data-i18n="stats.no_data">Aucune donnée pour le moment</td>
+                <td class="py-3 px-4 text-neutral-500" colspan="5" data-i18n="stats.no_data">Aucune donnée pour le moment</td>
               </tr>
             </tbody>
           </table>

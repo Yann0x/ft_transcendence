@@ -6,7 +6,7 @@ import { PADDLE_SPEED, WIN_SCORE, BALL_ACCELERATION, BALL_MAX_SPEED } from './co
 export function updateBall(state: GameState, dt: number): void {
   if (state.phase !== 'playing') return;
 
-  // Delai apres un but avant de relancer la balle
+  // Delay after a goal before relaunching the ball
   if (state.ballFrozenUntil > 0 && Date.now() < state.ballFrozenUntil) {
     return;
   }
@@ -53,7 +53,7 @@ export function updatePaddles(state: GameState, dt: number): void {
   }
 }
 
-// Collision cercle-rectangle: trouve le point le plus proche du rectangle au cercle
+// Circle-rectangle collision: finds the closest point on the rectangle to the circle
 function circleRectCollision(ball: Ball, rect: Paddle): boolean {
   const closestX = Math.max(rect.x, Math.min(ball.x, rect.x + rect.width));
   const closestY = Math.max(rect.y, Math.min(ball.y, rect.y + rect.height));
@@ -83,13 +83,13 @@ export function bouncePaddles(state: GameState): void {
       ball.x = paddle.x - ball.radius;
     }
 
-    // L'angle de rebond depend de ou la balle touche le paddle
+    // The bounce angle depends on where the ball hits the paddle
     const paddleCenter = paddle.y + paddle.height / 2;
-    const hitOffset = (ball.y - paddleCenter) / (paddle.height / 2); // -1 a 1
-    const maxAngle = Math.PI / 4; // 45 degres max
+    const hitOffset = (ball.y - paddleCenter) / (paddle.height / 2); // -1 to 1
+    const maxAngle = Math.PI / 4; // 45 degrees max
     const angle = hitOffset * maxAngle;
 
-    // Calculer la vitesse actuelle pour l'acceleration
+    // Calculate current speed for acceleration
     const currentSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
     const newSpeed = Math.min(currentSpeed * BALL_ACCELERATION, BALL_MAX_SPEED);
 

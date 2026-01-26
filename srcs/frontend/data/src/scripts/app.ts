@@ -1,7 +1,3 @@
-/* ============================================
-   MAIN APP - ft_transcendance
-   ============================================ */
-
 import { Intro } from './intro'
 import { Router } from './router'
 import { AuthModal } from './auth-modal'
@@ -16,9 +12,7 @@ import { PongGame } from '../game'
 import { Tournaments } from './tournaments'
 import { Stats } from './stats'
 
-/**
- * Application principale
- */
+// main app instance
 const App = {
 
   appContainer: null as HTMLElement | null,
@@ -298,12 +292,12 @@ const App = {
   async loadPage(name: string): Promise<void> {
     if (!this.appContainer) return;
 
-    // Cleanup du jeu si on quitte la page home
+    // Cleanup the game if leaving the home page
     if (this.currentPage === 'home' && name !== 'home') {
       PongGame.cleanup();
     }
     
-    // Cleanup des tournois si on quitte la page tournaments
+    // Cleanup tournaments if leaving the tournaments page
     if (this.currentPage === 'tournaments' && name !== 'tournaments') {
       Tournaments.cleanup();
     }
@@ -324,7 +318,7 @@ const App = {
     I18n.refresh();
     Accessibility.bindControls();
 
-    // Mettre à jour la page courante
+    // update the current page
     this.currentPage = name;
   },
 
@@ -394,9 +388,9 @@ const App = {
     }
   },
 
-  /**
-   * Setup user dropdown menu
-   */
+  //
+  // Setup user dropdown menu
+
   setupUserDropdown(): void {
     const accountButton = document.getElementById('user-account-button');
     const dropdown = document.getElementById('user-dropdown');
@@ -452,9 +446,9 @@ const App = {
     document.addEventListener('click', closeDropdown);
   },
 
-  /**
-   * Handle user login
-   */
+  //
+  // Handle user login
+
   async onLogin(loginResponse: LoginResponse): Promise<void> {
     this.me = loginResponse.user;
     sessionStorage.setItem('currentUser', JSON.stringify(loginResponse.user));
@@ -465,9 +459,9 @@ const App = {
     Social.init();
   },
 
-  /**
-   * Build cachedUsers, friendsMap, and blockedUsersMap from LoginResponse
-   */
+  //
+  // Build cachedUsers, friendsMap, and blockedUsersMap from LoginResponse
+
   buildMapsFromLoginResponse(loginResponse: LoginResponse): void {
     // Cache all users from the response
     this.cacheUsers(loginResponse.cachedUsers);
@@ -493,14 +487,18 @@ const App = {
     console.log(`[App] Built maps: ${this.friendsMap.size} friends, ${this.blockedUsersMap.size} blocked users`);
   },
 
-  /**
-   * Handle user logout
-   */
+  //
+  // Handle user logout
+
   async logout(): Promise<void> {
     if (!this.me?.id) {
       console.warn('No user to logout');
       return;
     }
+    
+    // Cleanup game connection BEFORE logout to avoid stuck "Connecting..." state
+    PongGame.cleanup();
+    
     const token = sessionStorage.getItem('authToken')
     if (token)
     {

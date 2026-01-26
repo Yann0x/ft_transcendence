@@ -102,6 +102,33 @@ async function start() {
     // Get user ID from headers (set by proxy auth middleware)
     let userId = request.headers['x-sender-id'] as string | undefined;
 
+    // Try to extract JWT from WebSocket subprotocol (format: "Bearer.{token}")
+    if (!userId) {
+      const subprotocol = request.headers['sec-websocket-protocol'] as string | undefined;
+      if (subprotocol && subprotocol.startsWith('Bearer.')) {
+        const token = subprotocol.substring(7);
+        console.log('[WS] Extracted JWT from subprotocol');
+        
+        try {
+          const response = await fetch('http://authenticate:3000/check_jwt', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const sender = await response.json() as { id?: string; name?: string; email?: string } | undefined;
+            if (sender && sender.id) {
+              userId = sender.id;
+              console.log(`[WS] JWT validated from subprotocol, user: ${userId}`);
+            }
+          } else {
+            console.log('[WS] JWT validation failed from subprotocol');
+          }
+        } catch (error) {
+          console.error('[WS] JWT validation error from subprotocol:', error);
+        }
+      }
+    }
+
     // Fallback: try to extract and validate JWT from query param
     if (!userId) {
       const token = url.searchParams.get('token');

@@ -17,12 +17,12 @@ export function createAIState(difficulty: AIDifficulty = 'hard'): AIState {
   };
 }
 
-// Predit ou la balle arrivera au niveau du paddle droit, en simulant les rebonds
+// Predicts where the ball will arrive at the right paddle level, simulating bounces
 function predictBallY(state: GameState): number {
   const { ball, paddles } = state;
   const paddleX = paddles[1].x;
 
-  // Si la balle s'eloigne, viser le centre
+  // If the ball is moving away, aim for the center
   if (ball.vx < 0) {
     return VIEWPORT_HEIGHT / 2;
   }
@@ -36,7 +36,7 @@ function predictBallY(state: GameState): number {
 
   y += vy * timeToReach;
 
-  // Simuler les rebonds sur les murs haut/bas
+  // Simulate bounces on top/bottom walls
   while (y < BALL_RADIUS || y > VIEWPORT_HEIGHT - BALL_RADIUS) {
     if (y < BALL_RADIUS) {
       y = BALL_RADIUS + (BALL_RADIUS - y);
@@ -50,7 +50,7 @@ function predictBallY(state: GameState): number {
   return y;
 }
 
-// Met a jour l'IA: recalcule la cible periodiquement avec une marge d'erreur
+// Updates AI: recalculates target periodically with error margin
 export function updateAI(ai: AIState, state: GameState, now: number): void {
   if (state.phase !== 'playing') {
     ai.input.up = false;
@@ -61,11 +61,11 @@ export function updateAI(ai: AIState, state: GameState, now: number): void {
 
   const settings = AI_SETTINGS[ai.difficulty];
 
-  // Recalculer la cible a intervalles (simule le temps de reaction)
+  // Recalculate target at intervals (simulates reaction time)
   if (now - ai.lastPerceptionTime >= settings.perceptionInterval) {
     ai.lastPerceptionTime = now;
     const predictedY = predictBallY(state);
-    // Ajouter une erreur aleatoire selon la difficulte
+    // Add random error based on difficulty
     const error = (Math.random() * 2 - 1) * settings.errorRange;
     ai.targetY = predictedY + error;
   }
@@ -78,7 +78,7 @@ export function updateAI(ai: AIState, state: GameState, now: number): void {
   const paddle = state.paddles[1];
   const paddleCenter = paddle.y + paddle.height / 2;
 
-  // Deadzone pour eviter les micro-mouvements
+  // Deadzone to avoid micro-movements
   if (paddleCenter < ai.targetY - settings.deadzone) {
     ai.input.down = true;
   } else if (paddleCenter > ai.targetY + settings.deadzone) {

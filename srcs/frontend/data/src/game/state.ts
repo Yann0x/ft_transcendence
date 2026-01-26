@@ -1,4 +1,4 @@
-// STATE - Etat pour le rendu (donnees recues du serveur)
+// STATE - rendering state (data received from server)
 
 import { getWidth, getHeight } from './canvas';
 

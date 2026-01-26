@@ -13,20 +13,20 @@ export default defineConfig({
         main: path.resolve(__dirname, 'src/index.html')
       }
     },
-    // Copie les assets statiques
+    // copies static assets
     copyPublicDir: true,
     assetsInlineLimit: 0
   },
   plugins: [
     {
       name: 'copy-to-build',
-      // Dev server serves from src; copy only after build.
+      // dev server serves from src; copy only after build
       writeBundle() {
-        // Après le build, copie les fichiers HTML statiques
+        // after build, copy static HTML files
         const srcPath = path.resolve(__dirname, 'src')
         const buildPath = path.resolve(__dirname, 'build')
         
-        // Copie les dossiers components et pages
+        // copy components and pages folders
         const foldersToСopy = ['components', 'pages', 'css']
         foldersToСopy.forEach(folder => {
           const src = path.join(srcPath, folder)

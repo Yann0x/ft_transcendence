@@ -11,15 +11,6 @@ build : down init front
 down :
 	docker compose -f $(docker-compose-path) down
 
-wsl : init wsl-down front wsl-build
-	docker-compose -f $(docker-compose-path) up -d
-
-wsl-build : wsl-down init front
-	docker-compose -f $(docker-compose-path) build
-
-wsl-down :
-	docker-compose -f $(docker-compose-path) down
-
 restart: down run
 
 logs :

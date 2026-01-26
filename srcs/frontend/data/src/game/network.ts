@@ -1,4 +1,5 @@
-// NETWORK - Client WebSocket pour le mode réseau
+// NETWORK - WebSocket client for network mode
+import { getToken } from '../scripts/auth';
 
 type MessageHandler = (data: unknown) => void;
 
@@ -27,21 +28,19 @@ export interface TournamentMatchInfo {
   isPlayer1: boolean;
 }
 
-/*
- * Connecte au serveur de jeu
- * @param mode - 'solo' pour jouer contre l'IA, 'local' pour PvP local, 'pvp' pour le matchmaking, 'tournament' pour les tournois
- * @param difficulty - difficulte de l'IA (beginner, normal, hard)
- * @param tournamentInfo - info du match de tournoi (requis pour mode='tournament')
- */
+// connect to game server
+// mode - 'solo' for AI, 'local' for local PvP, 'pvp' for matchmaking, 'tournament' for tournaments
+// difficulty - AI difficulty (easy, normal, hard)
+// tournamentInfo - tournament match info (required for mode='tournament')
 export function connect(
   mode: 'solo' | 'local' | 'pvp' | 'tournament' = 'solo', 
   difficulty: AIDifficulty = 'hard',
   tournamentInfo?: TournamentMatchInfo
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    // Deconnecter d'abord si deja connecte
+    // disconnect first if already connected
     if (state.socket) {
-      // Detacher les handlers AVANT de fermer pour eviter les interferences
+      // detach handlers BEFORE closing to avoid interference
       state.socket.onopen = null;
       state.socket.onclose = null;
       state.socket.onerror = null;
@@ -66,17 +65,32 @@ export function connect(
     }
 
     console.log('[NETWORK] Connecting to', url, 'mode:', mode);
-    const newSocket = new WebSocket(url);
+    
+    // Get JWT token for authentication (allows stats tracking for logged-in users)
+    const token = getToken();
+    const subprotocols = token ? [`Bearer.${token}`] : undefined;
+    const newSocket = new WebSocket(url, subprotocols);
+
+    // Connection timeout to avoid stuck "Connecting..." state
+    const connectionTimeout = setTimeout(() => {
+      if (!state.connected) {
+        console.error('[NETWORK] Connection timeout');
+        newSocket.close();
+        reject(new Error('Connection timeout'));
+      }
+    }, 10000); // 10 second timeout
 
     newSocket.onopen = () => {
       console.log('[NETWORK] Connected');
+      clearTimeout(connectionTimeout);
       state.socket = newSocket;
       state.connected = true;
       resolve();
     };
 
     newSocket.onclose = () => {
-      // Seulement reagir si c'est le socket actif
+      clearTimeout(connectionTimeout);
+      // only react if this is the active socket
       if (state.socket === newSocket) {
         console.log('[NETWORK] Disconnected');
         state.connected = false;
@@ -88,6 +102,7 @@ export function connect(
 
     newSocket.onerror = (err) => {
       console.error('[NETWORK] Error:', err);
+      clearTimeout(connectionTimeout);
       reject(err);
     };
 
@@ -102,9 +117,7 @@ export function connect(
   });
 }
 
-/*
- * Deconnecte du serveur
- */
+// disconnect from server
 export function disconnect(): void {
   if (state.socket) {
     state.socket.close();
@@ -147,9 +160,7 @@ function handleMessage(message: { type: string; data?: unknown; message?: string
   }
 }
 
-/*
- * Envoie un input au serveur
- */
+// send input to server
 export function sendInput(up: boolean, down: boolean): void {
   if (!state.socket || !state.connected) return;
 
@@ -159,9 +170,7 @@ export function sendInput(up: boolean, down: boolean): void {
   }));
 }
 
-/*
- * Envoie les inputs des deux joueurs (mode local)
- */
+// send both players' inputs (local mode)
 export function sendInputBoth(p1: { up: boolean; down: boolean }, p2: { up: boolean; down: boolean }): void {
   if (!state.socket || !state.connected) return;
 
@@ -171,43 +180,33 @@ export function sendInputBoth(p1: { up: boolean; down: boolean }, p2: { up: bool
   }));
 }
 
-/*
- * Demande au serveur de demarrer la partie
- */
+// ask server to start the game
 export function sendStart(): void {
   if (!state.socket || !state.connected) return;
 
   state.socket.send(JSON.stringify({ type: 'start' }));
 }
 
-/*
- * Met la partie en pause
- */
+// pause the game
 export function sendPause(): void {
   if (!state.socket || !state.connected) return;
 
   state.socket.send(JSON.stringify({ type: 'pause' }));
 }
 
-/*
- * Reprend la partie
- */
+// resume the game
 export function sendResume(): void {
   if (!state.socket || !state.connected) return;
 
   state.socket.send(JSON.stringify({ type: 'resume' }));
 }
 
-/*
- * Enregistre un callback pour les mises a jour d'etat
- */
+// register callback for state updates
 export function onStateUpdate(handler: MessageHandler): void {
   state.onStateUpdate = handler;
 }
 
-/*
- * Enregistre un callback pour la deconnexion
- */
+// register callback for disconnection
 export function onDisconnected(handler: () => void): void {
   state.onDisconnected = handler;
 }
@@ -220,11 +219,7 @@ export function getSide(): 'left' | 'right' | null {
   return state.side;
 }
 
-/**
- * Connect to an invitation game room
- * @param invitationId - Invitation ID
- * @param gameRoomId - Game room ID
- */
+// connect to an invitation game room
 export function connectInvitation(invitationId: string, gameRoomId: string): Promise<void> {
   return new Promise((resolve, reject) => {
     // Disconnect if already connected

@@ -1,10 +1,6 @@
-/* ============================================
-   SETTINGS MODAL - Account Settings Management
-   ============================================ */
-
 import { User, UserPublic } from '../shared/types';
 
-// Forward declaration - will be set by App
+// forward declaration - will be set by App
 let getAppInstance: () => {
   me: User | null;
   logout: () => Promise<void>;
@@ -25,9 +21,7 @@ export const SettingsModal = {
   avatarInput: null as HTMLInputElement | null,
   avatarBase64: null as string | null,
 
-  /**
-   * Initialize the settings modal
-   */
+  // init the settings modal
   init(): void {
     this.modal = document.getElementById('settings-modal');
     this.form = document.getElementById('settings-form') as HTMLFormElement;
@@ -42,9 +36,7 @@ export const SettingsModal = {
     this.setupDeleteAccount();
   },
 
-  /**
-   * Setup close button and background click
-   */
+  // setup close btn and background click
   setupCloseListeners(): void {
     const closeBtn = document.getElementById('settings-modal-close');
     closeBtn?.addEventListener('click', () => {
@@ -58,9 +50,7 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Setup avatar upload functionality
-   */
+  // setup avatar upload
   setupAvatarUpload(): void {
     const avatarBtn = document.getElementById('settings-avatar-btn');
 
@@ -73,22 +63,20 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Handle avatar file selection
-   */
+  // handle avatar file selection
   handleAvatarChange(): void {
     const file = this.avatarInput?.files?.[0];
     if (!file) return;
 
-    // Validate file type
+    // validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Veuillez sélectionner une image valide');
+      alert('Please select a valid image');
       return;
     }
 
-    // Validate file size (max 5MB before compression)
+    // validate file size (max 5MB before compression)
     if (file.size > 5 * 1024 * 1024) {
-      alert('L\'image ne doit pas dépasser 5 Mo');
+      alert('Image must be under 5 MB');
       return;
     }
 
@@ -102,13 +90,11 @@ export const SettingsModal = {
       }
     }).catch((error) => {
       console.error('Error compressing image:', error);
-      alert('Erreur lors du traitement de l\'image');
+      alert('Error processing image');
     });
   },
 
-  /**
-   * Compress image to a maximum size and quality
-   */
+  // compress image to max size and quality
   compressImage(file: File, maxSize: number, quality: number): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -157,9 +143,7 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Setup form submission
-   */
+  // setup form submission
   setupFormSubmission(): void {
     this.form?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -167,13 +151,11 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Handle form submission
-   */
+  // handle form submission
   async handleSubmit(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me) {
-      alert('Vous devez être connecté');
+      alert('You must be logged in');
       return;
     }
 
@@ -189,28 +171,28 @@ export const SettingsModal = {
 
     // Validation
     if (!name || name.length === 0) {
-      alert('Le nom est requis');
+      alert('Name is required');
       return;
     }
 
     if (name.length > 50) {
-      alert('Le nom ne peut pas dépasser 50 caractères');
+      alert('Name cannot exceed 50 characters');
       return;
     }
 
     if (!email || !email.includes('@')) {
-      alert('Email invalide');
+      alert('Invalid email');
       return;
     }
 
     // Password validation (only if provided)
     if (password || passwordConfirm) {
       if (password !== passwordConfirm) {
-        alert('Les mots de passe ne correspondent pas');
+        alert('Passwords do not match');
         return;
       }
       if (password.length < 6) {
-        alert('Le mot de passe doit contenir au moins 6 caractères');
+        alert('Password must be at least 6 characters');
         return;
       }
     }
@@ -234,10 +216,10 @@ export const SettingsModal = {
       updateData.avatar = this.avatarBase64;
     }
 
-    // Check if anything changed
+    // check if anything changed
     if (Object.keys(updateData).length === 1) {
-      // Only id is present, nothing to update
-      alert('Aucune modification détectée');
+      // only id present, nothing to update
+      alert('No changes detected');
       return;
     }
 
@@ -254,7 +236,7 @@ export const SettingsModal = {
 
       if (!response.ok) {
         const errorData = await response.json();
-        alert(`Erreur: ${errorData.message || 'Mise à jour échouée'}`);
+        alert(`Error: ${errorData.message || 'Update failed'}`);
         return;
       }
 
@@ -273,20 +255,18 @@ export const SettingsModal = {
       if (passwordInput) passwordInput.value = '';
       if (passwordConfirmInput) passwordConfirmInput.value = '';
 
-      // Reset avatar pending state
+      // reset avatar pending state
       this.avatarBase64 = null;
 
-      alert('Modifications enregistrées avec succès');
+      alert('Changes saved successfully');
       this.close();
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Une erreur est survenue lors de la mise à jour');
+      alert('An error occurred while updating');
     }
   },
 
-  /**
-   * Setup delete account button
-   */
+  // setup delete account btn
   setupDeleteAccount(): void {
     const deleteBtn = document.getElementById('settings-delete-btn');
     deleteBtn?.addEventListener('click', () => {
@@ -294,28 +274,26 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Handle account deletion
-   */
+  // handle account deletion
   async handleDelete(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me) {
-      alert('Vous devez être connecté');
+      alert('You must be logged in');
       return;
     }
 
-    // Confirmation dialog
+    // confirmation dialog
     const confirmed = confirm(
-      'Êtes-vous sûr de vouloir supprimer votre compte ?\n\n' +
-      'Cette action est irréversible. Toutes vos données seront définitivement supprimées.'
+      'Are you sure you want to delete your account?\n\n' +
+      'This action is irreversible. All your data will be permanently deleted.'
     );
 
     if (!confirmed) return;
 
-    // Double confirmation for safety
+    // double confirmation for safety
     const doubleConfirm = confirm(
-      'Dernière confirmation :\n\n' +
-      'Voulez-vous vraiment supprimer définitivement votre compte ?'
+      'Final confirmation:\n\n' +
+      'Do you really want to permanently delete your account?'
     );
 
     if (!doubleConfirm) return;
@@ -333,28 +311,26 @@ export const SettingsModal = {
 
       if (!response.ok) {
         const errorData = await response.json();
-        alert(`Erreur: ${errorData.message || 'Suppression échouée'}`);
+        alert(`Error: ${errorData.message || 'Deletion failed'}`);
         return;
       }
 
-      alert('Votre compte a été supprimé');
+      alert('Your account has been deleted');
       this.close();
 
-      // Logout and redirect
+      // logout and redirect
       await app.logout();
     } catch (error) {
       console.error('Error deleting account:', error);
-      alert('Une erreur est survenue lors de la suppression');
+      alert('An error occurred while deleting');
     }
   },
 
-  /**
-   * Open the modal and populate with current user data
-   */
+  // open modal and populate w/ current user data
   open(): void {
     const app = getAppInstance?.();
     if (!app?.me) {
-      alert('Vous devez être connecté pour accéder aux paramètres');
+      alert('You must be logged in to access settings');
       return;
     }
 
@@ -363,9 +339,7 @@ export const SettingsModal = {
     this.modal?.classList.remove('hidden');
   },
 
-  /**
-   * Populate form with user data
-   */
+  // populate form w/ user data
   populateForm(user: User): void {
     const nameInput = document.getElementById('settings-name') as HTMLInputElement;
     const emailInput = document.getElementById('settings-email') as HTMLInputElement;
@@ -373,7 +347,7 @@ export const SettingsModal = {
     if (nameInput) nameInput.value = user.name || '';
     if (emailInput) emailInput.value = user.email || '';
 
-    // Set avatar preview
+    // set avatar preview
     if (this.avatarPreview) {
       if (user.avatar) {
         this.avatarPreview.src = user.avatar;
@@ -382,19 +356,17 @@ export const SettingsModal = {
       }
     }
 
-    // Reset pending avatar
+    // reset pending avatar
     this.avatarBase64 = null;
 
-    // Clear password fields
+    // clear password fields
     const passwordInput = document.getElementById('settings-password') as HTMLInputElement;
     const passwordConfirmInput = document.getElementById('settings-password-confirm') as HTMLInputElement;
     if (passwordInput) passwordInput.value = '';
     if (passwordConfirmInput) passwordConfirmInput.value = '';
   },
 
-  /**
-   * Load and display blocked users
-   */
+  // load and display blocked users
   async loadBlockedUsers(): Promise<void> {
     const app = getAppInstance?.();
     const blockedList = document.getElementById('settings-blocked-list');
@@ -403,7 +375,7 @@ export const SettingsModal = {
 
     if (!blockedList || !app?.me) return;
 
-    // Get blocked users from blockedUsersMap
+    // get blocked users from blockedUsersMap
     const blockedUsers = Array.from(app.blockedUsersMap.values());
 
     if (blockedUsers.length === 0) {
@@ -428,9 +400,7 @@ export const SettingsModal = {
     this.attachUnblockListeners();
   },
 
-  /**
-   * Create HTML for a blocked user card
-   */
+  // create HTML for a blocked user card
   createBlockedUserCard(user: UserPublic): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=ef4444&color=fff`;
     return `
@@ -440,15 +410,13 @@ export const SettingsModal = {
           <span class="text-sm text-neutral-400">${user.name || 'Unknown'}</span>
         </div>
         <button class="settings-unblock-btn px-2 py-1 bg-neutral-700 hover:bg-neutral-600 text-white rounded transition text-xs" data-user-id="${user.id}">
-          Débloquer
+          Unblock
         </button>
       </div>
     `;
   },
 
-  /**
-   * Attach click listeners to unblock buttons
-   */
+  // attach click listeners to unblock btns
   attachUnblockListeners(): void {
     document.querySelectorAll('#settings-blocked-list .settings-unblock-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -482,9 +450,7 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Close the modal
-   */
+  // close the modal
   close(): void {
     this.modal?.classList.add('hidden');
   }

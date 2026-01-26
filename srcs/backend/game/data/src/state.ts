@@ -42,7 +42,7 @@ function velocityFromAngle(speed: number, angle: number): { vx: number; vy: numb
 }
 
 function randomStartAngle(): number {
-  const maxAngle = Math.PI / 9; // ±20 degrés
+  const maxAngle = Math.PI / 9; // ±20 degrees
   const angle = (Math.random() * 2 - 1) * maxAngle;
   const goRight = Math.random() > 0.5;
   return goRight ? angle : Math.PI + angle;
@@ -93,7 +93,7 @@ const BALL_RESPAWN_DELAY = 1000;
 export function resetBall(state: GameState, serveToRight?: boolean): void {
   const w = state.viewport.width;
   const h = state.viewport.height;
-  const maxAngle = Math.PI / 9; // ±20 degrés
+  const maxAngle = Math.PI / 9; // ±20 degrees
   const angle = (Math.random() * 2 - 1) * maxAngle;
   const direction = serveToRight ?? Math.random() > 0.5;
   const finalAngle = direction ? angle : Math.PI + angle;

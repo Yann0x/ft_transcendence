@@ -1,11 +1,11 @@
-// INPUT - Gestion des entrees clavier
+// INPUT - keyboard input handling
 
 const keysDown = new Set<string>();
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
 
 export function bindKeyboard(): void {
-  // Retirer les anciens listeners d'abord
+  // remove old listeners first
   unbindKeyboard();
 
   keydownHandler = (e: KeyboardEvent) => {

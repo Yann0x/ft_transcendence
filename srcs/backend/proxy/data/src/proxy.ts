@@ -35,10 +35,10 @@ server.addHook('onRequest', async (request, reply) => {
   console.log(`[REQUEST] ${request.method} ${request.url}`);
 });
 
-// Fonction de vérification du JWT via le service authenticate
+// JWT verification function via the authenticate service
 async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
   try {
-    // si authenticate valide le JWT on set des headers avec l'identité de l'envoyeur
+    // if authenticate validates the JWT, set headers with the sender's identity
     const authHeader = request.headers.authorization
     const response = await fetch('http://authenticate:3000/check_jwt', {
       method: 'POST',
@@ -74,12 +74,18 @@ async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
 // Reusable WebSocket client options for forwarding auth headers
 const wsClientOptionsWithAuth = {
   rewriteRequestHeaders: (headers: any, request: any) => {
-    return {
-      ...headers,
-      'x-sender-id': request.headers['x-sender-id'],
-      'x-sender-name': request.headers['x-sender-name'],
-      'x-sender-email': request.headers['x-sender-email'],
-    };
+    const newHeaders = { ...headers };
+    // Only add auth headers if they exist (for authenticated users)
+    if (request.headers['x-sender-id']) {
+      newHeaders['x-sender-id'] = request.headers['x-sender-id'];
+    }
+    if (request.headers['x-sender-name']) {
+      newHeaders['x-sender-name'] = request.headers['x-sender-name'];
+    }
+    if (request.headers['x-sender-email']) {
+      newHeaders['x-sender-email'] = request.headers['x-sender-email'];
+    }
+    return newHeaders;
   }
 };
 
@@ -92,7 +98,7 @@ const wsClientOptionsWithAuth = {
 // 	  websocket: true,
 // })
   
-// Routes Privées avec vérification du JWT
+// Private routes with JWT verification
 server.register( async function contextPrivate(server) {
   // For HTTP requests, use preHandler hook
   server.addHook('preHandler', checkJWT);
@@ -132,7 +138,7 @@ server.register( async function contextPrivate(server) {
 
 })
 
-// Routes Publique pas de vérification du JWT
+// Public routes - no JWT verification
 
 server.register(proxy, {
   upstream: 'http://user:3000',
@@ -200,7 +206,8 @@ await server.register(async function publicDocs(instance) {
     http2: false,
   })
 
-// Game service (HTTP + WebSocket) - optional auth for user ID tracking
+// Game service (HTTP + WebSocket) - auth is handled by the game service itself
+// We just forward the subprotocol header and let game service validate the JWT
 server.register(proxy, {
   upstream: 'http://game:3000',
   prefix: '/api/game',

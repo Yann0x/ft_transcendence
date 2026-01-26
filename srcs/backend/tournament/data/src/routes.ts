@@ -338,4 +338,47 @@ export function registerRoutes(fastify: FastifyInstance): void {
       unregisterConnection(tournamentId, socket)
     })
   })
+  
+  // Get user tournament stats (tournaments won)
+  fastify.get<{ Querystring: { user_id: string } }>('/tournament/user-stats', {
+    schema: {
+      querystring: Type.Object({
+        user_id: Type.String()
+      }),
+      response: {
+        200: Type.Object({
+          tournaments_won: Type.Number(),
+          tournaments_played: Type.Number(),
+        }),
+        400: Type.Object({ error: Type.String() })
+      }
+    }
+  }, async (request: FastifyRequest<{ Querystring: { user_id: string } }>, reply: FastifyReply) => {
+    const { user_id } = request.query
+    
+    if (!user_id) {
+      return reply.status(400).send({ error: 'user_id is required' })
+    }
+    
+    const allTournaments = getAllTournaments()
+    
+    // Count finished tournaments where user is the winner
+    let tournaments_won = 0
+    let tournaments_played = 0
+    
+    for (const tournament of allTournaments) {
+      // Check if user participated in this tournament
+      const participated = tournament.odPlayers.some(p => p.odUserId === user_id)
+      if (participated) {
+        tournaments_played++
+        
+        // Check if user won this tournament
+        if (tournament.odStatus === 'finished' && tournament.odWinner?.odUserId === user_id) {
+          tournaments_won++
+        }
+      }
+    }
+    
+    return reply.send({ tournaments_won, tournaments_played })
+  })
 }

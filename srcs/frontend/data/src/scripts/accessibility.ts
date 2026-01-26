@@ -1,8 +1,3 @@
-/* ============================================
-   ACCESSIBILITY MODULE - ft_transcendance
-   Provides accessibility features for visually impaired users
-   ============================================ */
-
 import { I18n } from './i18n';
 
 // Storage keys
@@ -38,10 +33,6 @@ const state: AccessibilityState = {
   focusHighlight: true,
   panelOpen: false,
 };
-
-// ============================================
-// Core Functions
-// ============================================
 
 function applyHighContrast(): void {
   document.body.classList.toggle('hc', state.highContrast);
@@ -82,10 +73,6 @@ function applyAll(): void {
   applyFocusHighlight();
 }
 
-// ============================================
-// Toggle Functions
-// ============================================
-
 function toggleHighContrast(): void {
   state.highContrast = !state.highContrast;
   localStorage.setItem(STORAGE_KEYS.highContrast, String(state.highContrast));
@@ -113,10 +100,6 @@ function toggleFocusHighlight(): void {
   applyFocusHighlight();
   announceChange(state.focusHighlight ? 'accessibility.focus_enabled' : 'accessibility.focus_disabled');
 }
-
-// ============================================
-// Screen Reader Announcements
-// ============================================
 
 let announcer: HTMLElement | null = null;
 
@@ -157,10 +140,6 @@ function announce(message: string): void {
     }, 100);
   }
 }
-
-// ============================================
-// Panel Management
-// ============================================
 
 function togglePanel(): void {
   state.panelOpen = !state.panelOpen;
@@ -351,10 +330,6 @@ function bindPanelEvents(): void {
   });
 }
 
-// ============================================
-// Initialization
-// ============================================
-
 function loadSettings(): void {
   // High contrast
   const storedContrast = localStorage.getItem(STORAGE_KEYS.highContrast);
@@ -433,10 +408,6 @@ function bindControls(): void {
     if (panel) panel.classList.remove('hidden');
   }
 }
-
-// ============================================
-// Export
-// ============================================
 
 export const Accessibility = {
   init,

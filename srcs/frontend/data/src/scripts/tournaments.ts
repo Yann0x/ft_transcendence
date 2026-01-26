@@ -1,8 +1,4 @@
-/* ============================================
-   TOURNAMENTS - ft_transcendance
-   ============================================ */
-
-// Import types from shared folder (mounted from backend/shared/with_front in Docker)
+// import types from shared folder (mounted from backend/shared/with_front in Docker)
 import type { Tournament, TournamentPlayer, TournamentMatch } from '../shared/types.js'
 import { App } from './app'
 import Router from './router'
@@ -14,7 +10,7 @@ import {
   type LocalTournamentPlayer 
 } from './local-tournament'
 
-// Union type for both online and local tournaments
+// union type for both online and local tournaments
 type AnyTournament = Tournament | LocalTournament;
 type AnyMatch = TournamentMatch | LocalTournamentMatch;
 type AnyPlayer = TournamentPlayer | LocalTournamentPlayer;
@@ -50,18 +46,14 @@ const state: TournamentState = {
   pendingLocalTournament: null
 }
 
-/**
- * Helper to check if tournament is local
- */
+// helper to check if tournament is local
 function isLocalTournament(tournament: AnyTournament | null): tournament is LocalTournament {
   return tournament !== null && 'odIsLocal' in tournament && tournament.odIsLocal === true;
 }
 
 export const Tournaments = {
   
-  /**
-   * Initialize the tournaments page
-   */
+  // init the tournaments page
   init(): void {
     console.log('🏆 Tournaments module initialized')
     
@@ -112,9 +104,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Cleanup when leaving page
-   */
+  //
+  // Cleanup when leaving page
+
   cleanup(): void {
     if (state.ws) {
       state.ws.close()
@@ -126,9 +118,9 @@ export const Tournaments = {
     state.pendingLocalTournament = null
   },
 
-  /**
-   * Connect to tournament WebSocket for live updates
-   */
+  //
+  // Connect to tournament WebSocket for live updates
+
   connectWebSocket(): void {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     const wsUrl = `${protocol}//${window.location.host}/api/tournament/ws`
@@ -163,9 +155,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Handle WebSocket messages
-   */
+  //
+  // Handle WebSocket messages
+
   handleWebSocketMessage(message: { type: string; [key: string]: any }): void {
     console.log('[Tournament WS] Received message:', message.type)
     
@@ -186,9 +178,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Handle tournament update
-   */
+  //
+  // Handle tournament update
+
   handleTournamentUpdate(tournament: Tournament): void {
     // Update in lists
     this.updateTournamentInLists(tournament)
@@ -200,9 +192,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Update tournament in the appropriate list
-   */
+  //
+  // Update tournament in the appropriate list
+
   updateTournamentInLists(tournament: Tournament): void {
     // Remove from all lists first
     state.tournaments.waiting = state.tournaments.waiting.filter(t => t.odId !== tournament.odId)
@@ -225,9 +217,9 @@ export const Tournaments = {
     this.renderTournamentLists()
   },
 
-  /**
-   * Handle tournament deletion
-   */
+  //
+  // Handle tournament deletion
+
   handleTournamentDeleted(tournamentId: string): void {
     state.tournaments.waiting = state.tournaments.waiting.filter(t => t.odId !== tournamentId)
     state.tournaments.in_progress = state.tournaments.in_progress.filter(t => t.odId !== tournamentId)
@@ -243,9 +235,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Fetch tournaments from API
-   */
+  //
+  // Fetch tournaments from API
+
   async fetchTournaments(): Promise<void> {
     try {
       const response = await fetch('/api/tournament/list')
@@ -258,9 +250,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Setup event listeners
-   */
+  //
+  // Setup event listeners
+
   setupEventListeners(): void {
     // Create tournament button
     const createBtn = document.getElementById('btn-create-tournament')
@@ -312,9 +304,9 @@ export const Tournaments = {
     aliasesForm?.addEventListener('submit', (e) => this.handleCreateLocalTournament(e))
   },
   
-  /**
-   * Handle tournament mode change (online/local)
-   */
+  //
+  // Handle tournament mode change (online/local)
+
   handleModeChange(): void {
     const modeInputs = document.querySelectorAll('input[name="tournament-mode"]') as NodeListOf<HTMLInputElement>
     let isLocal = false
@@ -337,9 +329,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Open create tournament modal
-   */
+  //
+  // Open create tournament modal
+
   openCreateModal(): void {
     const modal = document.getElementById('create-tournament-modal')
     const aliasInput = document.getElementById('creator-alias-input') as HTMLInputElement
@@ -363,17 +355,17 @@ export const Tournaments = {
     modal?.classList.remove('hidden')
   },
 
-  /**
-   * Close create tournament modal
-   */
+  //
+  // Close create tournament modal
+
   closeCreateModal(): void {
     const modal = document.getElementById('create-tournament-modal')
     modal?.classList.add('hidden')
   },
   
-  /**
-   * Open aliases modal for local tournament
-   */
+  //
+  // Open aliases modal for local tournament
+
   openAliasesModal(maxPlayers: number, tournamentName?: string): void {
     const modal = document.getElementById('local-aliases-modal')
     const container = document.getElementById('aliases-inputs-container')
@@ -411,18 +403,18 @@ export const Tournaments = {
     modal?.classList.remove('hidden')
   },
   
-  /**
-   * Close aliases modal
-   */
+  //
+  // Close aliases modal
+
   closeAliasesModal(): void {
     const modal = document.getElementById('local-aliases-modal')
     modal?.classList.add('hidden')
     state.pendingLocalTournament = null
   },
 
-  /**
-   * Open join tournament modal
-   */
+  //
+  // Open join tournament modal
+
   openJoinModal(tournamentId: string): void {
     const modal = document.getElementById('join-tournament-modal')
     const tournamentIdInput = document.getElementById('join-tournament-id') as HTMLInputElement
@@ -440,17 +432,17 @@ export const Tournaments = {
     modal?.classList.remove('hidden')
   },
 
-  /**
-   * Close join tournament modal
-   */
+  //
+  // Close join tournament modal
+
   closeJoinModal(): void {
     const modal = document.getElementById('join-tournament-modal')
     modal?.classList.add('hidden')
   },
 
-  /**
-   * Handle create tournament form submission
-   */
+  //
+  // Handle create tournament form submission
+
   async handleCreateTournament(e: Event): Promise<void> {
     e.preventDefault()
     
@@ -518,9 +510,9 @@ export const Tournaments = {
     }
   },
   
-  /**
-   * Handle create local tournament (from aliases modal)
-   */
+  //
+  // Handle create local tournament (from aliases modal)
+
   handleCreateLocalTournament(e: Event): void {
     e.preventDefault()
     
@@ -568,9 +560,9 @@ export const Tournaments = {
     this.renderTournamentDetail()
   },
 
-  /**
-   * Handle join tournament form submission
-   */
+  //
+  // Handle join tournament form submission
+
   async handleJoinTournament(e: Event): Promise<void> {
     e.preventDefault()
     
@@ -616,9 +608,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Join tournament directly (for logged in users)
-   */
+  //
+  // Join tournament directly (for logged in users)
+
   async joinTournamentDirect(tournamentId: string): Promise<void> {
     if (!App.me?.name) {
       this.openJoinModal(tournamentId)
@@ -656,9 +648,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Leave tournament
-   */
+  //
+  // Leave tournament
+
   async leaveTournament(tournamentId: string): Promise<void> {
     const playerId = sessionStorage.getItem(`tournament_player_${tournamentId}`)
     if (!playerId) {
@@ -691,9 +683,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * View tournament details
-   */
+  //
+  // View tournament details
+
   async viewTournament(tournamentId: string): Promise<void> {
     try {
       const response = await fetch(`/api/tournament/${tournamentId}`)
@@ -725,9 +717,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Show list view
-   */
+  //
+  // Show list view
+
   showListView(): void {
     // Unsubscribe from tournament updates (only for online tournaments)
     if (state.currentTournament && !isLocalTournament(state.currentTournament) && state.ws?.readyState === WebSocket.OPEN) {
@@ -748,17 +740,17 @@ export const Tournaments = {
     document.getElementById('tournament-detail-view')?.classList.add('hidden')
   },
 
-  /**
-   * Show detail view
-   */
+  //
+  // Show detail view
+
   showDetailView(): void {
     document.getElementById('tournament-lists-view')?.classList.add('hidden')
     document.getElementById('tournament-detail-view')?.classList.remove('hidden')
   },
 
-  /**
-   * Load finished local tournaments from localStorage
-   */
+  //
+  // Load finished local tournaments from localStorage
+
   loadLocalFinishedTournaments(): void {
     try {
       const stored = localStorage.getItem('local_finished_tournaments')
@@ -773,9 +765,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Save a finished local tournament to localStorage
-   */
+  //
+  // Save a finished local tournament to localStorage
+
   saveLocalFinishedTournament(tournament: LocalTournament): void {
     console.log('[Tournaments] Saving finished local tournament:', tournament.odId)
     // Add to state
@@ -795,9 +787,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Render tournament lists
-   */
+  //
+  // Render tournament lists
+
   renderTournamentLists(): void {
     this.renderTournamentList('available-tournaments', state.tournaments.waiting, 'waiting')
     this.renderTournamentList('active-tournaments', state.tournaments.in_progress, 'in_progress')
@@ -806,9 +798,9 @@ export const Tournaments = {
     this.renderLocalFinishedTournaments()
   },
 
-  /**
-   * Render a single tournament list
-   */
+  //
+  // Render a single tournament list
+
   renderTournamentList(containerId: string, tournaments: Tournament[], status: string): void {
     const container = document.getElementById(containerId)
     if (!container) return
@@ -844,9 +836,9 @@ export const Tournaments = {
     })
   },
 
-  /**
-   * Render local finished tournaments in the finished list
-   */
+  //
+  // Render local finished tournaments in the finished list
+
   renderLocalFinishedTournaments(): void {
     console.log('[Tournaments] renderLocalFinishedTournaments called, count:', state.localFinishedTournaments.length)
     const container = document.getElementById('finished-tournaments')
@@ -873,9 +865,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Create a local tournament card element
-   */
+  //
+  // Create a local tournament card element
+
   createLocalTournamentCard(tournament: LocalTournament): HTMLElement {
     const card = document.createElement('div')
     card.className = 'tournament-card local-tournament-card bg-neutral-900 rounded-lg border border-neutral-800 p-4 hover:border-neutral-600 transition cursor-pointer'
@@ -931,9 +923,9 @@ export const Tournaments = {
     return card
   },
 
-  /**
-   * View a finished local tournament
-   */
+  //
+  // View a finished local tournament
+
   viewLocalTournament(tournament: LocalTournament): void {
     state.currentTournament = tournament
     state.currentLocalTournament = tournament
@@ -941,9 +933,9 @@ export const Tournaments = {
     this.renderTournamentDetail()
   },
 
-  /**
-   * Create a tournament card element
-   */
+  //
+  // Create a tournament card element
+
   createTournamentCard(tournament: Tournament, status: string): HTMLElement {
     const card = document.createElement('div')
     card.className = 'tournament-card bg-neutral-900 rounded-lg border border-neutral-800 p-4 hover:border-neutral-600 transition cursor-pointer'
@@ -1015,9 +1007,9 @@ export const Tournaments = {
     return card
   },
 
-  /**
-   * Handle join button click
-   */
+  //
+  // Handle join button click
+
   handleJoinClick(tournamentId: string): void {
     // Check if already in this tournament
     const existingPlayerId = sessionStorage.getItem(`tournament_player_${tournamentId}`)
@@ -1034,9 +1026,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Render tournament detail view
-   */
+  //
+  // Render tournament detail view
+
   renderTournamentDetail(): void {
     const tournament = state.currentTournament
     if (!tournament) return
@@ -1146,9 +1138,9 @@ export const Tournaments = {
     this.renderBracket(tournament as Tournament)
   },
 
-  /**
-   * Render players list
-   */
+  //
+  // Render players list
+
   renderPlayersList(tournament: Tournament): void {
     const container = document.getElementById('detail-players-list')
     if (!container) return
@@ -1185,9 +1177,9 @@ export const Tournaments = {
     }
   },
 
-  /**
-   * Render tournament bracket
-   */
+  //
+  // Render tournament bracket
+
   renderBracket(tournament: Tournament): void {
     const container = document.getElementById('bracket-container')
     if (!container) return
@@ -1261,9 +1253,9 @@ export const Tournaments = {
     container.innerHTML = html
   },
 
-  /**
-   * Start my match - navigate to game via SPA router (online tournaments)
-   */
+  //
+  // Start my match - navigate to game via SPA router (online tournaments)
+
   startMyMatch(): void {
     const tournament = state.currentTournament
     if (!tournament || !state.myPlayerId || isLocalTournament(tournament)) return
@@ -1283,9 +1275,9 @@ export const Tournaments = {
     Router.navigate(`/play?tournament=${tournament.odId}&match=${currentMatch.odId}`)
   },
   
-  /**
-   * Start a local tournament match - navigate to game with local mode
-   */
+  //
+  // Start a local tournament match - navigate to game with local mode
+
   startLocalMatch(): void {
     const tournament = state.currentLocalTournament
     if (!tournament) return
@@ -1311,9 +1303,9 @@ export const Tournaments = {
     Router.navigate(`/play?local_tournament=${tournament.odId}&match=${currentMatch.odId}`)
   },
   
-  /**
-   * Called when a local tournament match ends (from game module)
-   */
+  //
+  // Called when a local tournament match ends (from game module)
+
   onLocalMatchEnd(matchId: string, score1: number, score2: number): void {
     const tournament = state.currentLocalTournament
     if (!tournament) return
@@ -1343,9 +1335,9 @@ export const Tournaments = {
     }
   },
   
-  /**
-   * Update local tournament stats (non-persistent but counted globally)
-   */
+  //
+  // Update local tournament stats (non-persistent but counted globally)
+
   updateLocalStats(score1: number, score2: number, _hasWinner: boolean): void {
     // Get existing local stats from session
     const existingStats = sessionStorage.getItem('local_tournament_stats')
@@ -1363,24 +1355,24 @@ export const Tournaments = {
     sessionStorage.setItem('local_tournament_stats', JSON.stringify(stats))
   },
   
-  /**
-   * Get current local tournament (for game module)
-   */
+  //
+  // Get current local tournament (for game module)
+
   getCurrentLocalTournament(): LocalTournament | null {
     return state.currentLocalTournament
   },
   
-  /**
-   * Restore local tournament state (after returning from game)
-   */
+  //
+  // Restore local tournament state (after returning from game)
+
   restoreLocalTournament(tournamentData: LocalTournament): void {
     state.currentLocalTournament = tournamentData
     state.currentTournament = tournamentData
   },
 
-  /**
-   * Escape HTML to prevent XSS
-   */
+  //
+  // Escape HTML to prevent XSS
+
   escapeHtml(text: string): string {
     const div = document.createElement('div')
     div.textContent = text
