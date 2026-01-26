@@ -94,26 +94,26 @@
         <!-- 2FA Setup Section (hidden by default) -->
         <div id="settings-2fa-setup-section" class="hidden space-y-4">
           <div class="text-center">
-            <p class="text-sm text-neutral-400 mb-4" data-i18n="settings.2fa_scan_qr">Scannez ce QR code avec votre application d'authentification</p>
+            <p class="text-sm text-secondary mb-4" data-i18n="settings.2fa_scan_qr">Scannez ce QR code avec votre application d'authentification</p>
             <div id="settings-2fa-qr-container" class="bg-white p-4 rounded-lg inline-block mb-4">
               <img id="settings-2fa-qr" src="" alt="QR Code" class="w-48 h-48">
             </div>
-            <p class="text-xs text-neutral-500 mb-4" data-i18n="settings.2fa_manual_code">Ou entrez ce code manuellement :</p>
+            <p class="text-xs text-tertiary mb-4" data-i18n="settings.2fa_manual_code">Ou entrez ce code manuellement :</p>
             <code id="settings-2fa-secret" class="block bg-neutral-800 px-4 py-2 rounded-lg text-sm font-mono text-blue-400 select-all"></code>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="settings.2fa_enter_code">Entrez le code de vérification</label>
+            <label class="block text-sm font-medium text-secondary mb-2" data-i18n="settings.2fa_enter_code">Entrez le code de vérification</label>
             <input type="text" id="settings-2fa-code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric"
-                   class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white text-center text-xl tracking-widest font-mono placeholder-neutral-600 focus:outline-none focus:border-blue-500 transition"
+                   class="input text-center text-xl tracking-widest font-mono"
                    placeholder="000000">
           </div>
 
           <div class="flex gap-2">
             <button type="button" id="settings-2fa-cancel-btn"
-                    class="flex-1 bg-neutral-700 hover:bg-neutral-600 text-white font-semibold py-2 rounded-lg transition" data-i18n="settings.cancel">Annuler</button>
+                    class="btn btn-outline flex-1" data-i18n="settings.cancel">Annuler</button>
             <button type="button" id="settings-2fa-confirm-btn"
-                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="settings.enable">Activer</button>
+                    class="btn flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" data-i18n="settings.enable">Activer</button>
           </div>
         </div>
 
@@ -127,9 +127,9 @@
           </div>
 
           <div class="space-y-3">
-            <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="settings.2fa_disable_prompt">Entrez votre code 2FA pour désactiver</label>
+            <label class="block text-sm font-medium text-secondary mb-2" data-i18n="settings.2fa_disable_prompt">Entrez votre code 2FA pour désactiver</label>
             <input type="text" id="settings-2fa-disable-code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric"
-                   class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white text-center text-lg tracking-widest font-mono placeholder-neutral-600 focus:outline-none focus:border-blue-500 transition"
+                   class="input text-center text-lg tracking-widest font-mono"
                    placeholder="000000">
             <button type="button" id="settings-2fa-disable-btn"
                     class="w-full bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 font-semibold py-2 rounded-lg border border-red-600/50 transition" data-i18n="settings.2fa_disable">Désactiver la 2FA</button>
@@ -141,12 +141,12 @@
     <!-- Blocked Users Section -->
     <div class="mt-8 pt-6 border-t border-neutral-800">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-medium text-neutral-300" data-i18n="settings.blocked_users">Utilisateurs bloqués</h3>
-        <span id="settings-blocked-count" class="text-xs text-neutral-500 bg-neutral-800 px-2 py-1 rounded-full">0</span>
+        <h3 class="text-sm font-medium text-primary" data-i18n="settings.blocked_users">Utilisateurs bloqués</h3>
+        <span id="settings-blocked-count" class="text-xs text-tertiary bg-neutral-800 px-2 py-1 rounded-full">0</span>
       </div>
       <div id="settings-blocked-list" class="space-y-2 max-h-48 overflow-y-auto">
         <!-- Empty state -->
-        <div id="settings-blocked-empty" class="text-center py-4 text-neutral-500 text-sm">
+        <div id="settings-blocked-empty" class="text-center py-4 text-tertiary text-sm">
           <p data-i18n="settings.no_blocked_users">Aucun utilisateur bloqué</p>
         </div>
         <!-- Blocked users will be inserted here -->
