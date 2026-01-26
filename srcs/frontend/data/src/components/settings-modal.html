@@ -72,18 +72,12 @@
         <p class="text-xs text-neutral-500 mt-2" data-i18n="settings.password_hint">Laissez vide pour garder le mot de passe actuel</p>
       </div>
 
+      <!-- Save Button -->
+      <button type="submit" id="settings-save-btn"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="settings.save">Enregistrer les modifications</button>
+
       <!-- 2FA Section -->
       <div class="border-t border-neutral-800 pt-6">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h3 class="text-sm font-medium text-neutral-300" data-i18n="settings.2fa_title">Authentification à deux facteurs</h3>
-            <p class="text-xs text-neutral-500 mt-1" data-i18n="settings.2fa_description">Protégez votre compte avec une vérification supplémentaire</p>
-          </div>
-          <div id="settings-2fa-status" class="flex items-center gap-2">
-            <span id="settings-2fa-badge" class="text-xs px-2 py-1 rounded-full bg-neutral-700 text-neutral-400" data-i18n="settings.2fa_disabled">Désactivé</span>
-          </div>
-        </div>
-
         <!-- 2FA Disabled State -->
         <div id="settings-2fa-enable-section">
           <button type="button" id="settings-2fa-enable-btn"
@@ -102,12 +96,12 @@
             <div id="settings-2fa-qr-container" class="bg-white p-4 rounded-lg inline-block mb-4">
               <img id="settings-2fa-qr" src="" alt="QR Code" class="w-48 h-48">
             </div>
-            <p class="text-xs text-neutral-500 mb-4" data-i18n="settings.2fa_manual_entry">Ou entrez ce code manuellement :</p>
+            <p class="text-xs text-neutral-500 mb-4" data-i18n="settings.2fa_manual_code">Ou entrez ce code manuellement :</p>
             <code id="settings-2fa-secret" class="block bg-neutral-800 px-4 py-2 rounded-lg text-sm font-mono text-blue-400 select-all"></code>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="settings.2fa_verify_code">Entrez le code de vérification</label>
+            <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="settings.2fa_enter_code">Entrez le code de vérification</label>
             <input type="text" id="settings-2fa-code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric"
                    class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white text-center text-xl tracking-widest font-mono placeholder-neutral-600 focus:outline-none focus:border-blue-500 transition"
                    placeholder="000000">
@@ -115,13 +109,9 @@
 
           <div class="flex gap-2">
             <button type="button" id="settings-2fa-cancel-btn"
-                    class="flex-1 bg-neutral-700 hover:bg-neutral-600 text-white font-semibold py-2 rounded-lg transition" data-i18n="settings.cancel">
-              Annuler
-            </button>
+                    class="flex-1 bg-neutral-700 hover:bg-neutral-600 text-white font-semibold py-2 rounded-lg transition" data-i18n="settings.cancel">Annuler</button>
             <button type="button" id="settings-2fa-confirm-btn"
-                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="settings.2fa_confirm">
-              Activer
-            </button>
+                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="settings.enable">Activer</button>
           </div>
         </div>
 
@@ -131,27 +121,19 @@
             <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
             </svg>
-            <span class="text-sm text-emerald-400" data-i18n="settings.2fa_active_message">Votre compte est protégé par l'authentification à deux facteurs</span>
+            <span class="text-sm text-emerald-400" data-i18n="settings.2fa_protected">Votre compte est protégé par l'authentification à deux facteurs</span>
           </div>
 
           <div class="space-y-3">
-            <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="settings.2fa_disable_code">Entrez votre code 2FA pour désactiver</label>
+            <label class="block text-sm font-medium text-neutral-300 mb-2" data-i18n="settings.2fa_disable_prompt">Entrez votre code 2FA pour désactiver</label>
             <input type="text" id="settings-2fa-disable-code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric"
                    class="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2 text-white text-center text-lg tracking-widest font-mono placeholder-neutral-600 focus:outline-none focus:border-blue-500 transition"
                    placeholder="000000">
             <button type="button" id="settings-2fa-disable-btn"
-                    class="w-full bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 font-semibold py-2 rounded-lg border border-red-600/50 transition" data-i18n="settings.2fa_disable">
-              Désactiver la 2FA
-            </button>
+                    class="w-full bg-red-600/20 hover:bg-red-600/30 text-red-400 hover:text-red-300 font-semibold py-2 rounded-lg border border-red-600/50 transition" data-i18n="settings.2fa_disable">Désactiver la 2FA</button>
           </div>
         </div>
       </div>
-
-      <!-- Save Button -->
-      <button type="submit" id="settings-save-btn"
-              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition" data-i18n="settings.save">
-        Enregistrer les modifications
-      </button>
     </form>
 
     <!-- Blocked Users Section -->
