@@ -24,9 +24,20 @@ export const Social = {
     await Chat.loadChannels();
 
     this.setupSocketListeners();
+    this.setupLanguageListener();
     socialClient.connect(token);
 
     Chat.updateNavbarBadge();
+  },
+
+  /* LANGUAGE LISTENER */
+
+  setupLanguageListener(): void {
+    document.addEventListener('i18n:languageChanged', () => {
+      if (Chat.currentChannel) {
+        Chat.displayChannel(Chat.currentChannel.id);
+      }
+    });
   },
 
   /* INIT */
