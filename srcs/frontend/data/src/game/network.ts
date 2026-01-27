@@ -64,12 +64,17 @@ export function connect(
       url += `&isPlayer1=${tournamentInfo.isPlayer1}`;
     }
 
-    console.log('[NETWORK] Connecting to', url, 'mode:', mode);
-    
     // Get JWT token for authentication (allows stats tracking for logged-in users)
     const token = getToken();
-    const subprotocols = token ? [`Bearer.${token}`] : undefined;
-    const newSocket = new WebSocket(url, subprotocols);
+    
+    // Add token as query param for server-side validation
+    if (token) {
+      url += `&token=${encodeURIComponent(token)}`;
+    }
+
+    console.log('[NETWORK] Connecting to', url, 'mode:', mode);
+    
+    const newSocket = new WebSocket(url);
 
     // Connection timeout to avoid stuck "Connecting..." state
     const connectionTimeout = setTimeout(() => {
