@@ -13,15 +13,16 @@ export const AuthModal = {
 
   // init the auth modal
   init(): void {
-    // handle oauth callback first - doesn't need the modal
-    this.handleOAuthCallback();
-
+    // Initialize modal elements first (needed for OAuth 2FA callback)
     this.modal = document.getElementById('auth-modal');
     this.loginTab = document.getElementById('auth-login-tab');
     this.signupTab = document.getElementById('auth-signup-tab');
     this.loginForm = document.getElementById('auth-login-form');
     this.signupForm = document.getElementById('auth-signup-form');
     this.twoFAForm = document.getElementById('auth-2fa-form');
+
+    // Handle OAuth callback (may need modal for 2FA)
+    this.handleOAuthCallback();
 
     if (!this.modal) return;
 
@@ -472,6 +473,8 @@ export const AuthModal = {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const oauthError = urlParams.get('oauth_error');
+    const oauthRequires2FA = urlParams.get('oauth_requires_2fa');
+    const oauthUserId = urlParams.get('userId');
 
     // Handle OAuth error
     if (oauthError) {
@@ -488,6 +491,17 @@ export const AuthModal = {
       alert(errorMessages[oauthError] || `Login failed: ${oauthError}`);
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
+    // Handle OAuth with 2FA required
+    if (oauthRequires2FA === 'true' && oauthUserId) {
+      console.log('[AUTH] OAuth 2FA required for user:', oauthUserId);
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+      // Open modal and show 2FA form
+      this.modal?.classList.remove('hidden');
+      this.show2FA(oauthUserId);
       return;
     }
 

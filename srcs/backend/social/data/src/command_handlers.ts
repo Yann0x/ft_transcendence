@@ -310,7 +310,10 @@ export async function handleSendMessage(user: SocketUser, socket: WebSocket, dat
     };
 
     channel.members.forEach((memberId : UserPublic.id) => {
-      connexionManager.sendToUser(memberId, messageNewEvent);
+      // Skip sender - they'll get the message via command_success response
+      if (memberId !== userId) {
+        connexionManager.sendToUser(memberId, messageNewEvent);
+      }
     });
 
     console.log(`[COMMAND] Message sent to channel ${channelId}`);

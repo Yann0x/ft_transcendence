@@ -46,21 +46,43 @@ export const Social = {
                     App.addToOnlineUsersMap(user);
                 });
                 this.display();
+                // Update chat header if viewing a private channel (for duel button)
+                if (Chat.currentChannel?.type === 'private') {
+                    Chat.updateChatHeader(Chat.currentChannel);
+                }
             }
         });
         socialClient.on('user_online', (event: SocialEvent) => {
             if (event.data && event.data.user) {
                 const user = event.data.user as UserPublic;
                 if (user.id && App.isUserBlocked(user.id)) return;
-                    App.addToOnlineUsersMap(user);
-                    this.display();
+                App.addToOnlineUsersMap(user);
+                this.display();
+                // Update chat header if this user is in the current private chat (for duel button)
+                if (Chat.currentChannel?.type === 'private') {
+                    const otherUserId = Chat.currentChannel.members.find(
+                        (id: string) => String(id) !== String(App.me?.id)
+                    );
+                    if (otherUserId === user.id) {
+                        Chat.updateChatHeader(Chat.currentChannel);
+                    }
+                }
             }
         });
         socialClient.on('user_offline', (event: SocialEvent) => {
             if (event.data && event.data.id) {
-                const userId = event.data.id as string;
-                App.removeFromOnlineUsersMap(userId);
+                const offlineUserId = event.data.id as string;
+                App.removeFromOnlineUsersMap(offlineUserId);
                 this.display();
+                // Update chat header if this user is in the current private chat (for duel button)
+                if (Chat.currentChannel?.type === 'private') {
+                    const otherUserId = Chat.currentChannel.members.find(
+                        (id: string) => String(id) !== String(App.me?.id)
+                    );
+                    if (otherUserId === offlineUserId) {
+                        Chat.updateChatHeader(Chat.currentChannel);
+                    }
+                }
             }
         });
         socialClient.on('user_update', async (event: SocialEvent) => {

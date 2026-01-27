@@ -25,6 +25,10 @@ export const Chat =
             this.cachedChannelsMap.clear();
 
             for (const channel of channels) {
+                // Normalize messages to ensure proper type handling
+                if (channel.messages) {
+                    channel.messages = channel.messages.map((msg: Message) => this.normalizeMessage(msg));
+                }
                 this.updateChannel(channel);
                 if (channel.members) {
                     const membersToFetch = channel.members.filter(m => !App.cachedUsers.has(m.id));
@@ -35,6 +39,38 @@ export const Chat =
         } catch (error) {
             console.error('[SOCIAL] Error loading channels:', error);
         }
+    },
+
+    // Normalize message to ensure consistent type and metadata handling
+    normalizeMessage(message: Message): Message {
+        // Parse metadata if it's a string
+        if (message.metadata && typeof message.metadata === 'string') {
+            try {
+                message.metadata = JSON.parse(message.metadata);
+            } catch (e) {
+                console.warn('[CHAT] Failed to parse message metadata:', e);
+            }
+        }
+        
+        // Infer message type from metadata if not set correctly
+        if (message.metadata) {
+            const metadata = message.metadata as any;
+            if (metadata.invitationId && metadata.inviterId && !metadata.winnerId) {
+                // This is a game invitation
+                if (message.type !== 'game_invitation') {
+                    console.log('[CHAT] Fixing message type to game_invitation:', message.id);
+                    message.type = 'game_invitation';
+                }
+            } else if (metadata.winnerId && metadata.loserId) {
+                // This is a game result
+                if (message.type !== 'game_result') {
+                    console.log('[CHAT] Fixing message type to game_result:', message.id);
+                    message.type = 'game_result';
+                }
+            }
+        }
+        
+        return message;
     },
 
     updateInvitationStatus(invitationId: string, status: string, gameRoomId?: string): void {
@@ -110,7 +146,13 @@ export const Chat =
         if (!channel) {
             return;
         }
-        channel.messages.push(message);
+        // Prevent duplicate messages
+        if (channel.messages.some((m: Message) => m.id === message.id)) {
+            return;
+        }
+        // Normalize the message before adding
+        const normalizedMessage = this.normalizeMessage(message);
+        channel.messages.push(normalizedMessage);
         this.displayChannels();
 
         // If this is the currently open channel, re-render messages to show the new message
@@ -396,6 +438,7 @@ export const Chat =
             headerAvatar.onclick = null;
         }
 
+        headerActions.classList.remove('hidden'); // Remove Tailwind hidden class
         headerActions.style.display = 'flex';
         headerActions.innerHTML = ''; // Clear existing buttons
 
@@ -405,11 +448,21 @@ export const Chat =
             const isOnline = otherUserId && App.onlineUsersMap.has(otherUserId);
             const isFriend = otherUserId && App.isFriend(otherUserId);
 
+            console.log('[CHAT] Duel button check:', {
+                channelType: channel.type,
+                otherUserId,
+                isOnline,
+                isFriend,
+                onlineUsersMapKeys: Array.from(App.onlineUsersMap.keys()),
+                friendsMapKeys: Array.from(App.friendsMap.keys()),
+                myId: App.me?.id
+            });
+
             if (isFriend && isOnline) {
                 const inviteBtn = `
                     <button
                         id="chat-invite-game"
-                        class="btn btn-sm bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-1"
+                        class="btn btn-sm bg-transparent text-orange-400 border border-orange-500/30 shadow-[0_0_8px_rgba(249,115,22,0.4)] hover:shadow-[0_0_12px_rgba(249,115,22,0.6)] hover:border-orange-400 flex items-center gap-1 transition-all"
                         title="Invite to play">
                         <span>Duel</span>
                     </button>
@@ -439,6 +492,10 @@ export const Chat =
         try {
             const result = await SocialCommands.sendMessage(this.currentChannel.id, content);
             input.value = '';
+            // Add the sent message to the UI from the success response
+            if (result?.message) {
+                this.addMessageToChannel(result.message);
+            }
         } catch (error) {
             console.error('[CHAT] Error sending message:', error);
             alert('Failed to send message');
@@ -513,34 +570,18 @@ export const Chat =
         // Handle special message types
         if (message.type === 'game_invitation') {
             const card = this.createInvitationCard(message);
-            // If invitation card creation failed, show a fallback instead of plain text
+            // If invitation card creation failed, hide the message
             if (!card) {
-                return `
-                    <div class="p-4 bg-purple-900/50 rounded-lg border border-purple-600 text-neutral-400" data-message-id="${message.id}">
-                        Game invitation (details unavailable)
-                    </div>
-                `;
+                return '';
             }
             return card;
         } else if (message.type === 'game_result') {
             const card = this.createResultCard(message);
+            // If result card creation failed, hide the message
             if (!card) {
-                return `
-                    <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-600 text-neutral-400" data-message-id="${message.id}">
-                        Game result (details unavailable)
-                    </div>
-                `;
+                return '';
             }
             return card;
-        }
-
-        // Check if content looks like a game invitation but type wasn't set properly
-        if (message.content?.includes('challenges you to a duel')) {
-            return `
-                <div class="p-4 bg-purple-900/50 rounded-lg border border-purple-600 text-neutral-400" data-message-id="${message.id}">
-                    ${message.content}
-                </div>
-            `;
         }
 
         // Default text message
@@ -569,13 +610,28 @@ export const Chat =
     },
 
     createInvitationCard(message: Message) {
-        if (!message.metadata) return '';
+        if (!message.metadata) {
+            console.warn('[CHAT] Invitation message missing metadata:', message.id);
+            return '';
+        }
 
-        const metadata = typeof message.metadata === 'string'
-            ? JSON.parse(message.metadata) as GameInvitationData
-            : message.metadata as GameInvitationData;
+        let metadata: GameInvitationData;
+        try {
+            metadata = typeof message.metadata === 'string'
+                ? JSON.parse(message.metadata) as GameInvitationData
+                : message.metadata as GameInvitationData;
+        } catch (e) {
+            console.warn('[CHAT] Failed to parse invitation metadata:', e);
+            return '';
+        }
 
         const { invitationId, inviterId, status } = metadata;
+        
+        // Validate required fields
+        if (!invitationId || !inviterId) {
+            console.warn('[CHAT] Invitation missing required fields:', metadata);
+            return '';
+        }
 
         const inviterUser = App.cachedUsers.get(inviterId);
         const inviterName = inviterUser?.name || 'Someone';
@@ -597,57 +653,76 @@ export const Chat =
                     actionsHtml = `
                         <div class="flex gap-2 mt-3">
                             <button
-                                class="invitation-accept flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
+                                class="invitation-accept flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-green-600/20 text-green-400 border border-green-600/30 hover:border-green-500 rounded transition text-sm font-medium"
                                 data-invitation-id="${invitationId}">
                                 Accept
                             </button>
                             <button
-                                class="invitation-decline flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
+                                class="invitation-decline flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-red-600/20 text-red-400 border border-red-600/30 hover:border-red-500 rounded transition text-sm font-medium"
                                 data-invitation-id="${invitationId}">
                                 Decline
                             </button>
                         </div>
                     `;
-                    statusDisplay = '<p class="text-yellow-400 text-sm mt-2">Waiting for your response...</p>';
+                    statusDisplay = '<p class="text-amber-500/80 text-xs mt-1">Waiting for your response...</p>';
                 } else {
-                    statusDisplay = '<p class="text-yellow-400 text-sm mt-2">Waiting for response...</p>';
+                    statusDisplay = '<p class="text-neutral-400 text-xs mt-1">Waiting for response...</p>';
                 }
                 break;
             case 'accepted':
-                statusDisplay = '<p class="text-green-400 text-sm mt-2">Accepted - Starting game...</p>';
+                statusDisplay = '<p class="text-green-500/80 text-xs mt-1">Accepted - Starting game...</p>';
                 break;
             case 'declined':
-                statusDisplay = '<p class="text-red-400 text-sm mt-2">Declined</p>';
+                statusDisplay = '<p class="text-red-500/80 text-xs mt-1">Declined</p>';
                 break;
             case 'expired':
-                statusDisplay = '<p class="text-gray-400 text-sm mt-2">Expired</p>';
+                statusDisplay = '<p class="text-neutral-500 text-xs mt-1">Expired</p>';
                 break;
         }
 
         return `
-            <div class="invitation-card p-4 bg-gradient-to-r from-purple-900 to-purple-800 rounded-lg border-2 border-purple-600 shadow-lg"
+            <div class="invitation-card p-4 bg-neutral-800 rounded-lg border border-neutral-700"
                  data-message-id="${message.id}"
                  data-invitation-id="${invitationId}">
-                <div class="flex items-start gap-3">
-                    <div class="flex-1">
-                        <p class="text-white font-semibold text-lg">${inviterName} challenges you to a duel!</p>
-                        ${statusDisplay}
+                <div class="flex flex-col items-center text-center gap-2">
+                    <div class="w-12 h-12 bg-orange-600/20 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
                     </div>
+                    <p class="text-white font-medium">${inviterName} challenges you to a duel!</p>
+                    ${statusDisplay}
                 </div>
                 ${actionsHtml}
-                <div class="text-xs text-neutral-300 mt-2">${timestamp}</div>
+                <div class="text-xs text-neutral-500 mt-3 text-center">${timestamp}</div>
             </div>
         `;
     },
 
     createResultCard(message: Message) {
-        if (!message.metadata) return '';
+        if (!message.metadata) {
+            console.warn('[CHAT] Result message missing metadata:', message.id);
+            return '';
+        }
 
-        const metadata = typeof message.metadata === 'string'
-            ? JSON.parse(message.metadata) as GameResultData
-            : message.metadata as GameResultData;
+        let metadata: GameResultData;
+        try {
+            metadata = typeof message.metadata === 'string'
+                ? JSON.parse(message.metadata) as GameResultData
+                : message.metadata as GameResultData;
+        } catch (e) {
+            console.warn('[CHAT] Failed to parse result metadata:', e);
+            return '';
+        }
 
         const { winnerId, loserId, score1, score2 } = metadata;
+        
+        // Validate required fields
+        if (!winnerId || !loserId || score1 === undefined || score2 === undefined) {
+            console.warn('[CHAT] Result missing required fields:', metadata);
+            return '';
+        }
 
         const winnerUser = App.cachedUsers.get(winnerId);
         const loserUser = App.cachedUsers.get(loserId);
@@ -657,22 +732,14 @@ export const Chat =
         const isWinner = winnerId === App.me?.id;
         const isLoser = loserId === App.me?.id;
         
-        // Color scheme based on outcome for current user
-        let bgGradient: string;
-        let borderColor: string;
+        // Result text based on outcome for current user
         let resultText: string;
 
         if (isWinner) {
-            bgGradient = 'from-green-900 to-green-800';
-            borderColor = 'border-green-600';
             resultText = `You defeated ${loserName}!`;
         } else if (isLoser) {
-            bgGradient = 'from-red-900 to-red-800';
-            borderColor = 'border-red-600';
             resultText = `${winnerName} defeated you!`;
         } else {
-            bgGradient = 'from-blue-900 to-blue-800';
-            borderColor = 'border-blue-600';
             resultText = `${winnerName} defeated ${loserName}!`;
         }
 
@@ -682,26 +749,29 @@ export const Chat =
         });
 
         return `
-            <div class="result-card p-4 bg-gradient-to-r ${bgGradient} rounded-lg border-2 ${borderColor} shadow-lg"
+            <div class="result-card p-4 bg-neutral-800 rounded-lg border border-orange-500/30 shadow-[0_0_10px_rgba(249,115,22,0.3)]"
                  data-message-id="${message.id}">
-                <div class="flex items-start gap-3">
-                    <div class="flex-1">
-                        <p class="text-white font-semibold text-lg">Match Complete!</p>
-                        <p class="text-white mt-1">${resultText}</p>
-                        <div class="flex items-center gap-4 mt-2">
-                            <div class="text-center">
-                                <p class="text-2xl font-bold text-white">${score1}</p>
-                                <p class="text-xs text-neutral-300">${winnerName}</p>
-                            </div>
-                            <span class="text-neutral-400">vs</span>
-                            <div class="text-center">
-                                <p class="text-2xl font-bold text-white">${score2}</p>
-                                <p class="text-xs text-neutral-300">${loserName}</p>
-                            </div>
+                <div class="flex flex-col items-center text-center gap-2">
+                    <div class="w-12 h-12 bg-orange-600/20 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-white font-medium">Match Complete!</p>
+                    <p class="text-neutral-300 text-sm">${resultText}</p>
+                    <div class="flex items-center justify-center gap-6 mt-2">
+                        <div class="text-center">
+                            <p class="text-xl font-bold text-white">${score1}</p>
+                            <p class="text-xs text-neutral-400">${winnerName}</p>
+                        </div>
+                        <span class="text-neutral-500">vs</span>
+                        <div class="text-center">
+                            <p class="text-xl font-bold text-white">${score2}</p>
+                            <p class="text-xs text-neutral-400">${loserName}</p>
                         </div>
                     </div>
                 </div>
-                <div class="text-xs text-neutral-300 mt-2">${timestamp}</div>
+                <div class="text-xs text-neutral-500 mt-3 text-center">${timestamp}</div>
             </div>
         `;
     },
