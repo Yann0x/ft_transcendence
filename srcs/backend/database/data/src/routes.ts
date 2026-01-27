@@ -203,4 +203,13 @@ export function databaseRoutes(server: FastifyInstance) {
   server.get('/database/stats', db.getUserStats)
 
   server.get('/database/match_history', db.getMatchHistory)
+
+  // Tournament persistence endpoints
+  server.post('/database/tournament', db.saveTournament)
+
+  server.get('/database/tournament', db.getTournaments)
+
+  server.get('/database/tournament/:id', db.getTournamentById)
+
+  server.delete('/database/tournament/:id', db.deleteTournament)
 }

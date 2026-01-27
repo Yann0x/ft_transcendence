@@ -192,6 +192,23 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
         console.error('[DATABASE] Error during match table migration:', error);
     }
 
+    // Create tournament table for persistence
+    db.prepare(`
+        CREATE TABLE IF NOT EXISTS tournament (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            status TEXT CHECK(status IN ('waiting','in_progress','finished')) NOT NULL,
+            max_players INTEGER NOT NULL,
+            created_by TEXT,
+            winner_id TEXT,
+            winner_name TEXT,
+            data TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            finished_at DATETIME DEFAULT NULL
+        )
+    `).run();
+    db.prepare(`CREATE INDEX IF NOT EXISTS idx_tournament_status ON tournament(status)`).run();
+
     return db;
 }
 export function getUser(req, reply): User[] {
@@ -993,5 +1010,142 @@ export function putGameInvitation(req: FastifyRequest, reply: FastifyReply) {
     } catch (error: any) {
         console.error('[DATABASE] putGameInvitation error:', error);
         return reply.status(500).send({ error: 'Failed to update game invitation' });
+    }
+}
+
+// ============================================
+// Tournament persistence methods
+// ============================================
+
+export interface TournamentRecord {
+    id: string;
+    name: string;
+    status: 'waiting' | 'in_progress' | 'finished';
+    max_players: number;
+    created_by: string | null;
+    winner_id: string | null;
+    winner_name: string | null;
+    data: string; // JSON stringified tournament object
+    created_at: string;
+    finished_at: string | null;
+}
+
+/**
+ * Save a tournament to the database
+ */
+export function saveTournament(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const body = req.body as {
+            id: string;
+            name: string;
+            status: 'waiting' | 'in_progress' | 'finished';
+            max_players: number;
+            created_by?: string;
+            winner_id?: string;
+            winner_name?: string;
+            data: string;
+        };
+
+        const { id, name, status, max_players, created_by, winner_id, winner_name, data } = body;
+
+        if (!id || !name || !status || !max_players || !data) {
+            return reply.status(400).send({ error: 'Missing required fields' });
+        }
+
+        const stmt = db.prepare(`
+            INSERT INTO tournament (id, name, status, max_players, created_by, winner_id, winner_name, data, finished_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+                status = excluded.status,
+                winner_id = excluded.winner_id,
+                winner_name = excluded.winner_name,
+                data = excluded.data,
+                finished_at = excluded.finished_at
+        `);
+
+        const finished_at = status === 'finished' ? new Date().toISOString() : null;
+        stmt.run(id, name, status, max_players, created_by || null, winner_id || null, winner_name || null, data, finished_at);
+
+        return reply.status(200).send({ success: true, id });
+    } catch (error: any) {
+        console.error('[DATABASE] saveTournament error:', error);
+        return reply.status(500).send({ error: 'Failed to save tournament' });
+    }
+}
+
+/**
+ * Get tournaments by status
+ */
+export function getTournaments(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const query = req.query as { status?: string };
+
+        let sql = 'SELECT * FROM tournament';
+        const values: string[] = [];
+
+        if (query.status) {
+            sql += ' WHERE status = ?';
+            values.push(query.status);
+        }
+
+        sql += ' ORDER BY created_at DESC';
+
+        const stmt = db.prepare(sql);
+        const tournaments = values.length > 0 ? stmt.all(...values) : stmt.all();
+
+        return reply.status(200).send(tournaments);
+    } catch (error: any) {
+        console.error('[DATABASE] getTournaments error:', error);
+        return reply.status(500).send({ error: 'Failed to get tournaments' });
+    }
+}
+
+/**
+ * Get a specific tournament by ID
+ */
+export function getTournamentById(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const params = req.params as { id: string };
+
+        if (!params.id) {
+            return reply.status(400).send({ error: 'Tournament ID required' });
+        }
+
+        const stmt = db.prepare('SELECT * FROM tournament WHERE id = ?');
+        const tournament = stmt.get(params.id);
+
+        if (!tournament) {
+            return reply.status(404).send({ error: 'Tournament not found' });
+        }
+
+        return reply.status(200).send(tournament);
+    } catch (error: any) {
+        console.error('[DATABASE] getTournamentById error:', error);
+        return reply.status(500).send({ error: 'Failed to get tournament' });
+    }
+}
+
+/**
+ * Delete a tournament
+ */
+export function deleteTournament(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const params = req.params as { id: string };
+
+        if (!params.id) {
+            return reply.status(400).send({ error: 'Tournament ID required' });
+        }
+
+        const stmt = db.prepare('DELETE FROM tournament WHERE id = ?');
+        const result = stmt.run(params.id);
+
+        if (result.changes === 0) {
+            return reply.status(404).send({ error: 'Tournament not found' });
+        }
+
+        return reply.status(200).send({ success: true });
+    } catch (error: any) {
+        console.error('[DATABASE] deleteTournament error:', error);
+        return reply.status(500).send({ error: 'Failed to delete tournament' });
     }
 }

@@ -3,6 +3,7 @@ import fastifyWebsocket from '@fastify/websocket'
 import swagger from '@fastify/swagger'
 import swaggerUi from '@fastify/swagger-ui'
 import { registerRoutes } from './routes.js'
+import { loadFinishedTournamentsFromDatabase } from './tournament_methods.js'
 
 const fastify = Fastify({ logger: true })
 
@@ -37,6 +38,11 @@ const start = async () => {
   try {
     await fastify.listen({ port: 3000, host: '0.0.0.0' })
     console.log('Tournament service running on port 3000')
+    
+    // Load finished tournaments from database after a short delay to ensure database is ready
+    setTimeout(async () => {
+      await loadFinishedTournamentsFromDatabase()
+    }, 2000)
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)
