@@ -494,6 +494,69 @@ function broadcastTournamentUpdate(tournament: Tournament): void {
   
   // Notify social service for chat card updates
   notifySocialService(tournament)
+  
+  // Save to database when tournament finishes
+  if (tournament.odStatus === 'finished') {
+    saveTournamentToDatabase(tournament)
+  }
+}
+
+/**
+ * Save a tournament to the database for persistence
+ */
+async function saveTournamentToDatabase(tournament: Tournament): Promise<void> {
+  try {
+    const payload = {
+      id: tournament.odId,
+      name: tournament.odName || `Tournament #${tournament.odId.slice(-6)}`,
+      status: tournament.odStatus,
+      max_players: tournament.odMaxPlayers,
+      created_by: tournament.odCreatedBy?.odUserId || null,
+      winner_id: tournament.odWinner?.odUserId || null,
+      winner_name: tournament.odWinner?.odAlias || null,
+      data: JSON.stringify(tournament)
+    }
+
+    await fetch('http://database:3000/database/tournament', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    console.log(`[TOURNAMENT] Saved finished tournament ${tournament.odId} to database`)
+  } catch (error) {
+    console.error('[TOURNAMENT] Failed to save tournament to database:', error)
+  }
+}
+
+/**
+ * Load finished tournaments from database on startup
+ */
+export async function loadFinishedTournamentsFromDatabase(): Promise<void> {
+  try {
+    const response = await fetch('http://database:3000/database/tournament?status=finished')
+    if (!response.ok) {
+      console.error('[TOURNAMENT] Failed to load tournaments from database:', response.status)
+      return
+    }
+
+    const records = await response.json() as Array<{ id: string; data: string }>
+    
+    for (const record of records) {
+      try {
+        const tournament = JSON.parse(record.data) as Tournament
+        if (!tournaments.has(tournament.odId)) {
+          tournaments.set(tournament.odId, tournament)
+          tournamentConnections.set(tournament.odId, new Set())
+        }
+      } catch (e) {
+        console.error(`[TOURNAMENT] Failed to parse tournament ${record.id}:`, e)
+      }
+    }
+
+    console.log(`[TOURNAMENT] Loaded ${records.length} finished tournaments from database`)
+  } catch (error) {
+    console.error('[TOURNAMENT] Failed to load tournaments from database:', error)
+  }
 }
 
 /**
