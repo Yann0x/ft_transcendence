@@ -741,7 +741,7 @@ export const Chat =
                     actionsHtml = `
                         <div class="flex gap-2 mt-3">
                             <button
-                                class="invitation-accept flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-green-600/20 text-green-400 border border-green-600/30 hover:border-green-500 rounded transition text-sm font-medium"
+                                class="invitation-accept flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-blue-600/20 text-blue-400 border border-blue-600/30 hover:border-blue-500 rounded transition text-sm font-medium"
                                 data-invitation-id="${invitationId}">
                                 Accept
                             </button>
