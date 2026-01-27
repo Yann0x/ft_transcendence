@@ -348,3 +348,145 @@ export async function notifyGameInvitationComplete(request: FastifyRequest, repl
     return reply.status(500).send({ success: false, message: 'Internal server error' });
   }
 }
+
+/**
+ * Handle tournament update notifications from tournament service
+ * Updates tournament invitation cards in chat with current tournament state
+ */
+export async function notifyTournamentUpdate(req: FastifyRequest, reply: FastifyReply) {
+  try {
+    const { tournamentId, status, currentMatch, winner, players } = req.body as {
+      tournamentId: string;
+      status: 'waiting' | 'in_progress' | 'finished';
+      currentMatch?: {
+        matchId: string;
+        player1Id: string;
+        player1Name: string;
+        player2Id: string;
+        player2Name: string;
+        status: string;
+      };
+      winner?: {
+        odId: string;
+        odAlias: string;
+        odUserId?: string;
+      };
+      players: Array<{
+        odId: string;
+        odAlias: string;
+        odUserId?: string;
+      }>;
+    };
+
+    console.log(`[SOCIAL] Tournament update received: ${tournamentId}, status: ${status}`);
+
+    // Find all tournament invitations for this tournament
+    const invitationsToUpdate: Array<{
+      invitationId: string;
+      invitedId: string;
+      inviterId: string;
+      channelId: string;
+      messageId?: number;
+      tournamentName?: string;
+    }> = [];
+
+    for (const [invitationId, invitation] of connexionManager.tournamentInvitations) {
+      if (invitation.tournamentId === tournamentId && invitation.status === 'accepted') {
+        invitationsToUpdate.push({
+          invitationId,
+          invitedId: invitation.invitedId,
+          inviterId: invitation.inviterId,
+          channelId: invitation.channelId,
+          messageId: invitation.messageId,
+          tournamentName: invitation.tournamentName
+        });
+      }
+    }
+
+    if (invitationsToUpdate.length === 0) {
+      console.log(`[SOCIAL] No accepted invitations found for tournament ${tournamentId}`);
+      return reply.status(200).send({ success: true, updated: 0 });
+    }
+
+    // Update each invitation with tournament status
+    for (const inv of invitationsToUpdate) {
+      // Find the player ID for the invited user
+      const invitedPlayer = players.find(p => p.odUserId === inv.invitedId);
+      
+      // Check if it's the invited user's turn to play
+      let matchReady = false;
+      let matchId: string | undefined;
+      let opponentName: string | undefined;
+      
+      if (currentMatch && currentMatch.status === 'ready') {
+        if (invitedPlayer && (currentMatch.player1Id === invitedPlayer.odId || currentMatch.player2Id === invitedPlayer.odId)) {
+          matchReady = true;
+          matchId = currentMatch.matchId;
+          opponentName = currentMatch.player1Id === invitedPlayer.odId 
+            ? currentMatch.player2Name 
+            : currentMatch.player1Name;
+        }
+      }
+
+      // Build updated metadata
+      const updatedMetadata = {
+        invitationId: inv.invitationId,
+        tournamentId,
+        tournamentName: inv.tournamentName,
+        inviterId: inv.inviterId,
+        invitedId: inv.invitedId,
+        status: 'accepted',
+        tournamentStatus: status,
+        matchReady,
+        matchId,
+        opponentName,
+        winnerName: winner?.odAlias,
+        winnerId: winner?.odUserId,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: new Date().toISOString()
+      };
+
+      // Update message in database if we have a message ID
+      if (inv.messageId) {
+        try {
+          await customFetch('http://database:3000/database/message', 'PUT', {
+            id: inv.messageId,
+            metadata: JSON.stringify(updatedMetadata)
+          });
+        } catch (err) {
+          console.error(`[SOCIAL] Failed to update message ${inv.messageId}:`, err);
+        }
+      }
+
+      // Broadcast update to channel members
+      try {
+        const channel = await customFetch('http://database:3000/database/channel', 'GET',
+          { id: inv.channelId }) as any;
+
+        if (channel && channel.members) {
+          const updateEvent: SocialEvent = {
+            type: 'tournament_card_update',
+            data: {
+              invitationId: inv.invitationId,
+              tournamentId,
+              ...updatedMetadata
+            },
+            timestamp: new Date().toISOString()
+          };
+
+          channel.members.forEach((memberId: string) => {
+            connexionManager.sendToUser(memberId, updateEvent);
+          });
+        }
+      } catch (err) {
+        console.error(`[SOCIAL] Failed to broadcast tournament update for channel ${inv.channelId}:`, err);
+      }
+    }
+
+    console.log(`[SOCIAL] Updated ${invitationsToUpdate.length} tournament invitations`);
+    return reply.status(200).send({ success: true, updated: invitationsToUpdate.length });
+  } catch (error) {
+    console.error('[SOCIAL] Error processing tournament update:', error);
+    return reply.status(500).send({ success: false, message: 'Internal server error' });
+  }
+}

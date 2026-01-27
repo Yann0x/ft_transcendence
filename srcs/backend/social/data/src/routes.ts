@@ -22,4 +22,7 @@ export function socialRoutes(server: FastifyInstance) {
 
   // REST endpoint for game invitation completion (called by game service)
   server.post('/social/game-invitation/complete', handlers.notifyGameInvitationComplete);
+
+  // REST endpoint for tournament updates (called by tournament service)
+  server.post('/social/tournament/update', handlers.notifyTournamentUpdate);
 }
