@@ -8,7 +8,7 @@ type SupportedLang = (typeof SUPPORTED_LANGS)[number];
 const translations: Record<SupportedLang, TranslationMap> = {
   fr: {
     // App
-    'app.title': 'ft_transcendance',
+    'app.title': 'ft_transcendence',
     
     // Navigation
     'nav.play': 'Jouer',
@@ -23,7 +23,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'nav.social': 'Social',
     
     // Footer
-    'footer.copy': '© 2025 ft_transcendence - École 42',
+    'footer.copy': '© 2025 ft_transcendence - 42 Paris',
     'footer.about': 'À propos',
     'footer.rules': 'Règles',
     'footer.contact': 'Contact',
@@ -47,7 +47,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'auth.email_placeholder': 'votre@email.com',
     'auth.password_placeholder': '••••••••',
     'auth.username_placeholder': 'votre_username',
-    
+    'auth.signup_success': 'Compte créé avec succès !',
+    'auth.signup_failed': "Échec de l'inscription : {message}",
+    'auth.error_password_min_length': 'Le mot de passe doit contenir au moins {min} caractères',
+
     // Home
     'home.game_title': 'Pong Arena',
     'home.status_online': 'En ligne',
@@ -130,6 +133,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     
     // Friends
     'friends.title': 'Mes Amis',
+    'friends.title_upper': 'MES AMIS',
+    'friends.title_with_count': 'MES AMIS ({count} amis)',
     'friends.subtitle': 'Gérez vos amis et consultez leur profil',
     'friends.list_title': 'Liste des amis',
     'friends.empty_title': "Vous n'avez pas encore d'amis",
@@ -140,7 +145,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'friends.my_friends': 'Mes amis',
     'friends.no_friends': "Pas encore d'amis",
     'friends.search_to_add': 'Cherchez des utilisateurs pour en ajouter !',
-    
+    'friends.search_none': 'Aucun utilisateur trouvé',
+
     // Chat / Social
     'chat.direct': 'Direct',
     'chat.tournaments': 'Tournois',
@@ -168,7 +174,9 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'chat.type_message': 'Tapez un message...',
     'chat.search_users': 'Chercher des utilisateurs...',
     'chat.search_results': 'RÉSULTATS DE RECHERCHE',
-    
+    'chat.empty_title': 'Aucune conversation',
+    'chat.empty_subtitle': 'Ajoutez des amis pour commencer à discuter !',
+
     // Tournaments
     'tournaments.title': 'Tournois',
     'tournaments.create': 'Créer un tournoi',
@@ -313,7 +321,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
   
   en: {
     // App
-    'app.title': 'ft_transcendance',
+    'app.title': 'ft_transcendence',
     
     // Navigation
     'nav.play': 'Play',
@@ -328,7 +336,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'nav.social': 'Social',
     
     // Footer
-    'footer.copy': '© 2025 ft_transcendence - Ecole 42',
+    'footer.copy': '© 2025 ft_transcendence - 42 Paris',
     'footer.about': 'About',
     'footer.rules': 'Rules',
     'footer.contact': 'Contact',
@@ -352,7 +360,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'auth.email_placeholder': 'you@email.com',
     'auth.password_placeholder': '••••••••',
     'auth.username_placeholder': 'your_username',
-    
+    'auth.signup_success': 'Account created successfully!',
+    'auth.signup_failed': 'Signup failed: {message}',
+    'auth.error_password_min_length': 'Password must be at least {min} characters',
+
     // Home
     'home.game_title': 'Pong Arena',
     'home.status_online': 'Online',
@@ -390,7 +401,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'game.press_esc_resume': 'Press ESC to resume',
     'game.opponent_disconnected': 'OPPONENT DISCONNECTED',
     'game.waiting_reconnection': 'Waiting for reconnection...',
-    'game.victory': '🏆 Victory!',
+    'game.victory': 'Victory!',
     'game.defeat': 'Defeated',
     'game.you_advance': 'You advance! Returning to tournament...',
     'game.you_advance_tournament': 'You advance! Returning to tournament...',
@@ -435,6 +446,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     
     // Friends
     'friends.title': 'My Friends',
+    'friends.title_upper': 'MY FRIENDS',
+    'friends.title_with_count': 'MY FRIENDS ({count} friends)',
     'friends.subtitle': 'Manage your friends and view their profiles',
     'friends.list_title': 'Friends list',
     'friends.empty_title': "You don't have friends yet",
@@ -445,7 +458,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'friends.my_friends': 'My friends',
     'friends.no_friends': 'No friends yet',
     'friends.search_to_add': 'Search users to add friends!',
-    
+    'friends.search_none': 'No users found',
+
     // Chat / Social
     'chat.direct': 'Direct',
     'chat.tournaments': 'Tournaments',
@@ -460,7 +474,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'chat.view_profile': 'View profile',
     'chat.invite_play': 'Invite to play',
     'chat.block_user': 'Block user',
-    'chat.welcome': '💬 Select a conversation to begin',
+    'chat.welcome': 'Select a conversation to begin',
     'chat.welcome_subtitle': 'Or start a new discussion',
     'chat.message_placeholder': 'Write your message...',
     'chat.send': 'Send',
@@ -473,7 +487,9 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'chat.type_message': 'Type a message...',
     'chat.search_users': 'Search users...',
     'chat.search_results': 'SEARCH RESULTS',
-    
+    'chat.empty_title': 'No conversations',
+    'chat.empty_subtitle': 'Add friends to start chatting!',
+
     // Tournaments
     'tournaments.title': 'Tournaments',
     'tournaments.create': 'Create a tournament',
@@ -508,7 +524,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'tournaments.join_btn': 'Join',
     'tournaments.view_btn': 'View',
     'tournaments.leave_btn': 'Leave',
-    'tournaments.play_match': '🎮 Play match',
+    'tournaments.play_match': 'Play match',
     'tournaments.created_by': 'Created by',
     'tournaments.status_waiting': 'Waiting',
     'tournaments.status_in_progress': 'In progress',
@@ -618,7 +634,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
   
   es: {
     // App
-    'app.title': 'ft_transcendance',
+    'app.title': 'ft_transcendence',
     
     // Navigation
     'nav.play': 'Jugar',
@@ -633,7 +649,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'nav.social': 'Social',
     
     // Footer
-    'footer.copy': '© 2025 ft_transcendence - Ecole 42',
+    'footer.copy': '© 2025 ft_transcendence - 42 Paris',
     'footer.about': 'Acerca de',
     'footer.rules': 'Reglas',
     'footer.contact': 'Contacto',
@@ -657,7 +673,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'auth.email_placeholder': 'tu@email.com',
     'auth.password_placeholder': '••••••••',
     'auth.username_placeholder': 'tu_usuario',
-    
+    'auth.signup_success': '¡Cuenta creada con éxito!',
+    'auth.signup_failed': 'Error al registrarse: {message}',
+    'auth.error_password_min_length': 'La contraseña debe tener al menos {min} caracteres',
+
     // Home
     'home.game_title': 'Pong Arena',
     'home.status_online': 'En línea',
@@ -695,7 +714,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'game.press_esc_resume': 'Presiona ESC para continuar',
     'game.opponent_disconnected': 'OPONENTE DESCONECTADO',
     'game.waiting_reconnection': 'Esperando reconexión...',
-    'game.victory': '🏆 ¡Victoria!',
+    'game.victory': '¡Victoria!',
     'game.defeat': 'Derrotado',
     'game.you_advance': '¡Avanzas! Volviendo al torneo...',
     'game.you_advance_tournament': '¡Avanzas! Volviendo al torneo...',
@@ -740,6 +759,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     
     // Friends
     'friends.title': 'Mis Amigos',
+    'friends.title_upper': 'MIS AMIGOS',
+    'friends.title_with_count': 'MIS AMIGOS ({count} amigos)',
     'friends.subtitle': 'Gestiona tus amigos y consulta sus perfiles',
     'friends.list_title': 'Lista de amigos',
     'friends.empty_title': 'Aún no tienes amigos',
@@ -750,7 +771,8 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'friends.my_friends': 'Mis amigos',
     'friends.no_friends': 'Sin amigos aún',
     'friends.search_to_add': '¡Busca usuarios para añadir amigos!',
-    
+    'friends.search_none': 'No se encontraron usuarios',
+
     // Chat / Social
     'chat.direct': 'Directo',
     'chat.tournaments': 'Torneos',
@@ -765,7 +787,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'chat.view_profile': 'Ver perfil',
     'chat.invite_play': 'Invitar a jugar',
     'chat.block_user': 'Bloquear usuario',
-    'chat.welcome': '💬 Selecciona una conversación para comenzar',
+    'chat.welcome': 'Selecciona una conversación para comenzar',
     'chat.welcome_subtitle': 'O inicia una nueva discusión',
     'chat.message_placeholder': 'Escribe tu mensaje...',
     'chat.send': 'Enviar',
@@ -778,7 +800,9 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'chat.type_message': 'Escribe un mensaje...',
     'chat.search_users': 'Buscar usuarios...',
     'chat.search_results': 'RESULTADOS DE BÚSQUEDA',
-    
+    'chat.empty_title': 'No hay conversaciones',
+    'chat.empty_subtitle': '¡Añade amigos para empezar a chatear!',
+
     // Tournaments
     'tournaments.title': 'Torneos',
     'tournaments.create': 'Crear un torneo',
@@ -813,7 +837,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'tournaments.join_btn': 'Unirse',
     'tournaments.view_btn': 'Ver',
     'tournaments.leave_btn': 'Salir',
-    'tournaments.play_match': '🎮 Jugar mi partido',
+    'tournaments.play_match': 'Jugar mi partido',
     'tournaments.created_by': 'Creado por',
     'tournaments.status_waiting': 'En espera',
     'tournaments.status_in_progress': 'En curso',
@@ -944,11 +968,35 @@ function translate(key: string): string {
 }
 
 function applyTranslations(root: ParentNode = document): void {
-  root.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+  const processElement = (el: HTMLElement) => {
     const key = el.getAttribute('data-i18n');
-    if (key) {
-      el.textContent = translate(key);
+    if (!key) return;
+    let text = translate(key);
+    // If element defines params for replacement, apply them
+    const paramsAttr = el.getAttribute('data-i18n-params');
+    if (paramsAttr) {
+      try {
+        const params = JSON.parse(paramsAttr) as Record<string, string>;
+        for (const p in params) {
+          const re = new RegExp('\\{' + p + '\\}', 'g');
+          text = text.replace(re, params[p]);
+        }
+      } catch (e) {
+        // ignore JSON parse errors
+      }
     }
+    el.textContent = text;
+  };
+
+  // If root itself has data-i18n, process it too
+  if (root instanceof HTMLElement && root.hasAttribute('data-i18n')) {
+    processElement(root as HTMLElement);
+  }
+
+  root.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+    // skip the root if it was already processed
+    if (el === root) return;
+    processElement(el);
   });
 
   root.querySelectorAll<HTMLElement>('[data-i18n-placeholder]').forEach((el) => {
@@ -1000,6 +1048,12 @@ function setLanguage(lang: string, persist = true): void {
   }
   applyTranslations(document);
   updateFlagSelection();
+  // Notify listeners that language changed so modules can refresh dynamic views
+  try {
+    document.dispatchEvent(new CustomEvent('i18n:languageChanged', { detail: currentLang }));
+  } catch (e) {
+    // ignore if dispatch fails
+  }
 }
 
 function getLanguage(): string {
