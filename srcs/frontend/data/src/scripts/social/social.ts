@@ -171,5 +171,23 @@ export const Social = {
                 Chat.displayChannel(Chat.currentChannel.id);
             }
         });
+
+        // Tournament invitation events
+        socialClient.on('tournament_invitation_update', (event: SocialEvent) => {
+            const { invitationId, status, tournamentId } = event.data;
+
+            // Update the invitation status in the cached message
+            Chat.updateTournamentInvitationStatus(invitationId, status);
+
+            // Re-render channel to update invitation card
+            if (Chat.currentChannel) {
+                Chat.displayChannel(Chat.currentChannel.id);
+            }
+
+            // If accepted and we're the inviter, show notification
+            if (status === 'accepted' && event.data.inviterId === App.me?.id) {
+                console.log('[SOCIAL] Tournament invitation accepted, friend joined tournament:', tournamentId);
+            }
+        });
     }
 };

@@ -85,7 +85,8 @@ export type Stats = Static<typeof StatsSchema>;
 export const MessageTypeSchema = Type.Union([
   Type.Literal('text'),
   Type.Literal('game_invitation'),
-  Type.Literal('game_result')
+  Type.Literal('game_result'),
+  Type.Literal('tournament_invitation')
 ]);
 export type MessageType = Static<typeof MessageTypeSchema>;
 
@@ -105,6 +106,25 @@ export const GameInvitationDataSchema = Type.Object({
   createdAt: Type.String({ format: 'date-time' })
 });
 export type GameInvitationData = Static<typeof GameInvitationDataSchema>;
+
+// Tournament invitation metadata
+export const TournamentInvitationDataSchema = Type.Object({
+  invitationId: Type.String(),
+  tournamentId: Type.String(),
+  tournamentName: Type.Optional(Type.String()),
+  inviterId: Type.String(),
+  inviterName: Type.Optional(Type.String()),
+  invitedId: Type.String(),
+  status: Type.Union([
+    Type.Literal('pending'),
+    Type.Literal('accepted'),
+    Type.Literal('declined'),
+    Type.Literal('expired')
+  ]),
+  expiresAt: Type.String({ format: 'date-time' }),
+  createdAt: Type.String({ format: 'date-time' })
+});
+export type TournamentInvitationData = Static<typeof TournamentInvitationDataSchema>;
 
 // Game result metadata
 export const GameResultDataSchema = Type.Object({
@@ -308,6 +328,21 @@ export const RespondGameInvitationCommandSchema = Type.Object({
   commandId: Type.Optional(Type.String()),
 });
 export type RespondGameInvitationCommand = Static<typeof RespondGameInvitationCommandSchema>;
+
+// Tournament invitation commands
+export const SendTournamentInvitationCommandSchema = Type.Object({
+  tournamentId: Type.String(),
+  invitedUserId: Type.String(),
+  commandId: Type.Optional(Type.String()),
+});
+export type SendTournamentInvitationCommand = Static<typeof SendTournamentInvitationCommandSchema>;
+
+export const RespondTournamentInvitationCommandSchema = Type.Object({
+  invitationId: Type.String(),
+  accept: Type.Boolean(),
+  commandId: Type.Optional(Type.String()),
+});
+export type RespondTournamentInvitationCommand = Static<typeof RespondTournamentInvitationCommandSchema>;
 
 // Command response (Server → Client)
 export const CommandResponseSchema = Type.Object({

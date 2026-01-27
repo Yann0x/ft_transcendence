@@ -10,6 +10,8 @@ import {
   MarkReadCommand,
   SendGameInvitationCommand,
   RespondGameInvitationCommand,
+  SendTournamentInvitationCommand,
+  RespondTournamentInvitationCommand,
   Channel,
   Message
 } from './shared/with_front/types';
@@ -809,5 +811,336 @@ export async function handleDeclineGameInvitation(
   } catch (error) {
     console.error('[COMMAND] handleDeclineGameInvitation error:', error);
     sendError(socket, 'game_invitation_decline', 'Internal server error', commandId);
+  }
+}
+
+/**
+ * Handle tournament_invitation_send command
+ */
+export async function handleSendTournamentInvitation(
+  user: SocketUser,
+  socket: WebSocket,
+  data: SendTournamentInvitationCommand
+): Promise<void> {
+  const { tournamentId, invitedUserId, commandId } = data;
+  const inviterId = user.id;
+
+  console.log(`[COMMAND] tournament_invitation_send: ${inviterId} -> ${invitedUserId} for tournament ${tournamentId}`);
+
+  // Validations
+  if (inviterId === invitedUserId) {
+    return sendError(socket, 'tournament_invitation_send', 'Cannot invite yourself', commandId);
+  }
+
+  if (!tournamentId || !invitedUserId) {
+    return sendError(socket, 'tournament_invitation_send', 'tournamentId and invitedUserId are required', commandId);
+  }
+
+  try {
+    // Check if both are friends
+    const friends = await customFetch('http://database:3000/database/friends', 'GET',
+      { user_id: inviterId }) as any[];
+    if (!friends || !friends.some((f: any) => f.id === invitedUserId)) {
+      return sendError(socket, 'tournament_invitation_send', 'Can only invite friends', commandId);
+    }
+
+    // Check blocking
+    if (await areUsersBlocked(inviterId, invitedUserId)) {
+      return sendError(socket, 'tournament_invitation_send', 'Cannot invite blocked user', commandId);
+    }
+
+    // Fetch tournament info
+    let tournament: any;
+    try {
+      const response = await fetch(`http://tournament:3000/tournament/${tournamentId}`);
+      if (!response.ok) {
+        return sendError(socket, 'tournament_invitation_send', 'Tournament not found', commandId);
+      }
+      tournament = await response.json();
+    } catch (err) {
+      console.error('[COMMAND] Failed to fetch tournament:', err);
+      return sendError(socket, 'tournament_invitation_send', 'Failed to fetch tournament', commandId);
+    }
+
+    // Verify tournament is in waiting state
+    if (tournament.odStatus !== 'waiting') {
+      return sendError(socket, 'tournament_invitation_send', 'Tournament has already started', commandId);
+    }
+
+    // Verify tournament is not full
+    if (tournament.odPlayers.length >= tournament.odMaxPlayers) {
+      return sendError(socket, 'tournament_invitation_send', 'Tournament is full', commandId);
+    }
+
+    // Check if invited user is already in the tournament
+    if (tournament.odPlayers.some((p: any) => p.odUserId === invitedUserId)) {
+      return sendError(socket, 'tournament_invitation_send', 'User is already in this tournament', commandId);
+    }
+
+    // Find or create DM channel with invited user
+    let channelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET',
+      { user1_id: inviterId, user2_id: invitedUserId }) as string | null;
+
+    if (!channelId) {
+      // Create DM channel
+      const newChannelId = randomUUID();
+      await customFetch('http://database:3000/database/channel', 'POST', {
+        id: newChannelId,
+        name: null,
+        type: 'private',
+        created_by: inviterId
+      });
+
+      // Add both users to channel
+      await customFetch('http://database:3000/database/channel/member', 'POST', {
+        channel_id: newChannelId,
+        user_id: inviterId,
+        role: 'owner'
+      });
+      await customFetch('http://database:3000/database/channel/member', 'POST', {
+        channel_id: newChannelId,
+        user_id: invitedUserId,
+        role: 'member'
+      });
+
+      channelId = newChannelId;
+    }
+
+    // Create invitation
+    const invitationId = randomUUID();
+    const inviterUser = await getUserPublic(inviterId);
+    const tournamentName = tournament.odName || `Tournament #${tournamentId.slice(-6)}`;
+    const messageContent = `${inviterUser?.name || 'Someone'} invites you to join the tournament "${tournamentName}"!`;
+
+    const invitationMetadata = {
+      invitationId,
+      tournamentId,
+      tournamentName,
+      inviterId,
+      inviterName: inviterUser?.name,
+      invitedId: invitedUserId,
+      status: 'pending',
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(), // 10 minute expiry
+      createdAt: new Date().toISOString()
+    };
+
+    // Save message to database
+    const messageData = {
+      channel_id: channelId,
+      sender_id: inviterId,
+      content: messageContent,
+      type: 'tournament_invitation',
+      metadata: JSON.stringify(invitationMetadata),
+      sent_at: new Date().toISOString(),
+      read_at: null
+    };
+
+    const messageId = await customFetch('http://database:3000/database/message', 'POST',
+      messageData) as number;
+
+    if (!messageId) {
+      return sendError(socket, 'tournament_invitation_send', 'Failed to create invitation message', commandId);
+    }
+
+    // Track invitation in memory
+    connexionManager.createTournamentInvitation(invitationId, inviterId, invitedUserId,
+      tournamentId, channelId, messageId, tournamentName);
+
+    // Broadcast message to channel members
+    const channel = await customFetch('http://database:3000/database/channel', 'GET',
+      { id: channelId }) as Channel;
+
+    if (channel) {
+      const messageNewEvent: SocialEvent = {
+        type: 'message_new',
+        data: { ...messageData, id: messageId },
+        timestamp: new Date().toISOString()
+      };
+
+      channel.members.forEach((memberId: string) => {
+        connexionManager.sendToUser(memberId, messageNewEvent);
+      });
+    }
+
+    console.log(`[COMMAND] Tournament invitation ${invitationId} sent successfully`);
+    sendSuccess(socket, 'tournament_invitation_send', { invitationId }, commandId);
+
+  } catch (error) {
+    console.error('[COMMAND] handleSendTournamentInvitation error:', error);
+    sendError(socket, 'tournament_invitation_send', 'Internal server error', commandId);
+  }
+}
+
+/**
+ * Handle tournament_invitation_accept command
+ */
+export async function handleAcceptTournamentInvitation(
+  user: SocketUser,
+  socket: WebSocket,
+  data: RespondTournamentInvitationCommand
+): Promise<void> {
+  const { invitationId, commandId } = data;
+  const userId = user.id;
+
+  console.log(`[COMMAND] tournament_invitation_accept: ${userId} -> ${invitationId}`);
+
+  try {
+    const invitation = connexionManager.getTournamentInvitation(invitationId);
+
+    if (!invitation) {
+      return sendError(socket, 'tournament_invitation_accept', 'Invitation not found or expired', commandId);
+    }
+
+    if (invitation.invitedId !== userId) {
+      return sendError(socket, 'tournament_invitation_accept', 'You are not the invited user', commandId);
+    }
+
+    if (invitation.status !== 'pending') {
+      return sendError(socket, 'tournament_invitation_accept', `Invitation already ${invitation.status}`, commandId);
+    }
+
+    // Get user's name for the tournament
+    const userPublic = await getUserPublic(userId);
+    const alias = userPublic?.name || `Player_${userId.slice(-6)}`;
+
+    // Join the tournament
+    try {
+      const response = await fetch(`http://tournament:3000/tournament/${invitation.tournamentId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alias, userId })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        return sendError(socket, 'tournament_invitation_accept', error.error || 'Failed to join tournament', commandId);
+      }
+
+      const result = await response.json();
+      
+      // Update invitation status
+      connexionManager.updateTournamentInvitationStatus(invitationId, 'accepted');
+
+      // Update message metadata in database
+      if (invitation.messageId) {
+        await customFetch('http://database:3000/database/message', 'PUT', {
+          id: invitation.messageId,
+          metadata: JSON.stringify({
+            invitationId,
+            tournamentId: invitation.tournamentId,
+            tournamentName: invitation.tournamentName,
+            inviterId: invitation.inviterId,
+            invitedId: invitation.invitedId,
+            status: 'accepted'
+          })
+        });
+      }
+
+      // Broadcast update to channel members
+      const channel = await customFetch('http://database:3000/database/channel', 'GET',
+        { id: invitation.channelId }) as Channel;
+
+      if (channel) {
+        const updateEvent: SocialEvent = {
+          type: 'tournament_invitation_update',
+          data: { 
+            invitationId, 
+            status: 'accepted',
+            tournamentId: invitation.tournamentId,
+            playerId: result.playerId
+          },
+          timestamp: new Date().toISOString()
+        };
+
+        channel.members.forEach((memberId: string) => {
+          connexionManager.sendToUser(memberId, updateEvent);
+        });
+      }
+
+      console.log(`[COMMAND] Tournament invitation ${invitationId} accepted, joined tournament ${invitation.tournamentId}`);
+      sendSuccess(socket, 'tournament_invitation_accept', { 
+        tournamentId: invitation.tournamentId,
+        playerId: result.playerId
+      }, commandId);
+
+    } catch (err) {
+      console.error('[COMMAND] Failed to join tournament:', err);
+      return sendError(socket, 'tournament_invitation_accept', 'Failed to join tournament', commandId);
+    }
+
+  } catch (error) {
+    console.error('[COMMAND] handleAcceptTournamentInvitation error:', error);
+    sendError(socket, 'tournament_invitation_accept', 'Internal server error', commandId);
+  }
+}
+
+/**
+ * Handle tournament_invitation_decline command
+ */
+export async function handleDeclineTournamentInvitation(
+  user: SocketUser,
+  socket: WebSocket,
+  data: RespondTournamentInvitationCommand
+): Promise<void> {
+  const { invitationId, commandId } = data;
+  const userId = user.id;
+
+  console.log(`[COMMAND] tournament_invitation_decline: ${userId} -> ${invitationId}`);
+
+  try {
+    const invitation = connexionManager.getTournamentInvitation(invitationId);
+
+    if (!invitation) {
+      return sendError(socket, 'tournament_invitation_decline', 'Invitation not found or expired', commandId);
+    }
+
+    if (invitation.invitedId !== userId) {
+      return sendError(socket, 'tournament_invitation_decline', 'You are not the invited user', commandId);
+    }
+
+    if (invitation.status !== 'pending') {
+      return sendError(socket, 'tournament_invitation_decline', `Invitation already ${invitation.status}`, commandId);
+    }
+
+    // Update invitation status
+    connexionManager.updateTournamentInvitationStatus(invitationId, 'declined');
+
+    // Update message metadata in database
+    if (invitation.messageId) {
+      await customFetch('http://database:3000/database/message', 'PUT', {
+        id: invitation.messageId,
+        metadata: JSON.stringify({
+          invitationId,
+          tournamentId: invitation.tournamentId,
+          tournamentName: invitation.tournamentName,
+          inviterId: invitation.inviterId,
+          invitedId: invitation.invitedId,
+          status: 'declined'
+        })
+      });
+    }
+
+    // Broadcast update to channel members
+    const channel = await customFetch('http://database:3000/database/channel', 'GET',
+      { id: invitation.channelId }) as Channel;
+
+    if (channel) {
+      const updateEvent: SocialEvent = {
+        type: 'tournament_invitation_update',
+        data: { invitationId, status: 'declined' },
+        timestamp: new Date().toISOString()
+      };
+
+      channel.members.forEach((memberId: string) => {
+        connexionManager.sendToUser(memberId, updateEvent);
+      });
+    }
+
+    console.log(`[COMMAND] Tournament invitation ${invitationId} declined`);
+    sendSuccess(socket, 'tournament_invitation_decline', {}, commandId);
+
+  } catch (error) {
+    console.error('[COMMAND] handleDeclineTournamentInvitation error:', error);
+    sendError(socket, 'tournament_invitation_decline', 'Internal server error', commandId);
   }
 }

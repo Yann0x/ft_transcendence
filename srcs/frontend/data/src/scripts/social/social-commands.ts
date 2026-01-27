@@ -81,3 +81,16 @@ export async function acceptGameInvitation(invitationId: string): Promise<{ game
 export async function declineGameInvitation(invitationId: string): Promise<void> {
   return sendCommand('game_invitation_decline', { invitationId, accept: false });
 }
+
+// Tournament invitation commands
+export async function sendTournamentInvitation(tournamentId: string, invitedUserId: string): Promise<{ invitationId: string }> {
+  return sendCommand('tournament_invitation_send', { tournamentId, invitedUserId });
+}
+
+export async function acceptTournamentInvitation(invitationId: string): Promise<{ tournamentId: string; playerId: string }> {
+  return sendCommand('tournament_invitation_accept', { invitationId, accept: true });
+}
+
+export async function declineTournamentInvitation(invitationId: string): Promise<void> {
+  return sendCommand('tournament_invitation_decline', { invitationId, accept: false });
+}

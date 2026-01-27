@@ -20,9 +20,24 @@ interface GameInvitation {
     expirationTimer?: NodeJS.Timeout;
 }
 
+interface TournamentInvitation {
+    invitationId: string;
+    tournamentId: string;
+    tournamentName?: string;
+    inviterId: string;
+    invitedId: string;
+    channelId: string;
+    status: 'pending' | 'accepted' | 'declined' | 'expired';
+    expiresAt: Date;
+    createdAt: Date;
+    messageId: number;
+    expirationTimer?: NodeJS.Timeout;
+}
+
 export const connexionManager = {
     connected: new Map<UserPublic.id, ConnectedUser>(),
     invitations: new Map<string, GameInvitation>(),
+    tournamentInvitations: new Map<string, TournamentInvitation>(),
 
     addConnected(user: UserPublic, socket: WebSocket)
     {
@@ -194,5 +209,82 @@ export const connexionManager = {
             }
         }
         return false;
+    },
+
+    // Tournament invitation management methods
+    getTournamentInvitation(invitationId: string): TournamentInvitation | undefined {
+        return this.tournamentInvitations.get(invitationId);
+    },
+
+    createTournamentInvitation(
+        invitationId: string, 
+        inviterId: string, 
+        invitedId: string,
+        tournamentId: string, 
+        channelId: string, 
+        messageId: number,
+        tournamentName?: string
+    ): TournamentInvitation {
+        const invitation: TournamentInvitation = {
+            invitationId,
+            tournamentId,
+            tournamentName,
+            inviterId,
+            invitedId,
+            channelId,
+            status: 'pending',
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+            createdAt: new Date(),
+            messageId
+        };
+
+        // Set auto-expiration timer
+        const timer = setTimeout(async () => {
+            await this.expireTournamentInvitation(invitationId);
+        }, 10 * 60 * 1000);
+
+        invitation.expirationTimer = timer;
+        this.tournamentInvitations.set(invitationId, invitation);
+        console.log(`[CONNEXION_MANAGER] Created tournament invitation ${invitationId}`);
+        return invitation;
+    },
+
+    async expireTournamentInvitation(invitationId: string): Promise<void> {
+        const invitation = this.tournamentInvitations.get(invitationId);
+        if (!invitation || invitation.status !== 'pending') return;
+
+        console.log(`[CONNEXION_MANAGER] Expiring tournament invitation ${invitationId}`);
+        invitation.status = 'expired';
+        if (invitation.expirationTimer) {
+            clearTimeout(invitation.expirationTimer);
+        }
+
+        // Update database message
+        try {
+            await customFetch('http://database:3000/database/message', 'PUT', {
+                id: invitation.messageId,
+                metadata: JSON.stringify({
+                    invitationId,
+                    tournamentId: invitation.tournamentId,
+                    tournamentName: invitation.tournamentName,
+                    inviterId: invitation.inviterId,
+                    invitedId: invitation.invitedId,
+                    status: 'expired'
+                })
+            });
+        } catch (error) {
+            console.error('[CONNEXION_MANAGER] Error updating expired tournament invitation:', error);
+        }
+    },
+
+    updateTournamentInvitationStatus(invitationId: string, status: 'accepted' | 'declined'): void {
+        const invitation = this.tournamentInvitations.get(invitationId);
+        if (!invitation) return;
+
+        console.log(`[CONNEXION_MANAGER] Updating tournament invitation ${invitationId} to ${status}`);
+        invitation.status = status;
+        if (invitation.expirationTimer) {
+            clearTimeout(invitation.expirationTimer);
+        }
     },
 }

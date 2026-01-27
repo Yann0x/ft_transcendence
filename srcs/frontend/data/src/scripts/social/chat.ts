@@ -1,5 +1,5 @@
 import {App} from '../app.ts'
-import {Message, Channel, SocialEvent, UserPublic, GameInvitationData, GameResultData} from '../shared/types'
+import {Message, Channel, SocialEvent, UserPublic, GameInvitationData, GameResultData, TournamentInvitationData} from '../shared/types'
 import {ProfileModal} from '../profile-modal.ts'
 import {Router} from '../router.ts'
 import * as SocialCommands from './social-commands';
@@ -55,7 +55,13 @@ export const Chat =
         // Infer message type from metadata if not set correctly
         if (message.metadata) {
             const metadata = message.metadata as any;
-            if (metadata.invitationId && metadata.inviterId && !metadata.winnerId) {
+            if (metadata.tournamentId && metadata.inviterId && !metadata.winnerId) {
+                // This is a tournament invitation
+                if (message.type !== 'tournament_invitation') {
+                    console.log('[CHAT] Fixing message type to tournament_invitation:', message.id);
+                    message.type = 'tournament_invitation';
+                }
+            } else if (metadata.invitationId && metadata.inviterId && !metadata.winnerId && !metadata.tournamentId) {
                 // This is a game invitation
                 if (message.type !== 'game_invitation') {
                     console.log('[CHAT] Fixing message type to game_invitation:', message.id);
@@ -117,6 +123,26 @@ export const Chat =
                             completedAt: new Date().toISOString()
                         };
                         console.log(`[CHAT] Updated invitation ${invitationId} to game result`);
+                        return;
+                    }
+                }
+            }
+        }
+    },
+
+    updateTournamentInvitationStatus(invitationId: string, status: string): void {
+        // Find and update the tournament invitation message in all channels
+        for (const channel of this.cachedChannelsMap.values()) {
+            for (const message of channel.messages) {
+                if (message.type === 'tournament_invitation' && message.metadata) {
+                    const metadata = typeof message.metadata === 'string' 
+                        ? JSON.parse(message.metadata) 
+                        : message.metadata;
+                    
+                    if (metadata.invitationId === invitationId) {
+                        metadata.status = status;
+                        message.metadata = metadata;
+                        console.log(`[CHAT] Updated tournament invitation ${invitationId} status to ${status}`);
                         return;
                     }
                 }
@@ -244,6 +270,21 @@ export const Chat =
             btn.addEventListener('click', async (e) => {
                 const invitationId = (e.target as HTMLElement).dataset.invitationId;
                 if (invitationId) await this.handleDeclineInvitation(invitationId);
+            });
+        });
+
+        // Attach tournament invitation button listeners
+        document.querySelectorAll('.tournament-invitation-accept').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const invitationId = (e.target as HTMLElement).dataset.invitationId;
+                if (invitationId) await this.handleAcceptTournamentInvitation(invitationId);
+            });
+        });
+
+        document.querySelectorAll('.tournament-invitation-decline').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const invitationId = (e.target as HTMLElement).dataset.invitationId;
+                if (invitationId) await this.handleDeclineTournamentInvitation(invitationId);
             });
         });
     },
@@ -582,6 +623,12 @@ export const Chat =
                 return '';
             }
             return card;
+        } else if (message.type === 'tournament_invitation') {
+            const card = this.createTournamentInvitationCard(message);
+            if (!card) {
+                return '';
+            }
+            return card;
         }
 
         // Default text message
@@ -776,6 +823,96 @@ export const Chat =
         `;
     },
 
+    createTournamentInvitationCard(message: Message) {
+        if (!message.metadata) {
+            console.warn('[CHAT] Tournament invitation message missing metadata:', message.id);
+            return '';
+        }
+
+        let metadata: any;
+        try {
+            metadata = typeof message.metadata === 'string'
+                ? JSON.parse(message.metadata)
+                : message.metadata;
+        } catch (e) {
+            console.warn('[CHAT] Failed to parse tournament invitation metadata:', e);
+            return '';
+        }
+
+        const { invitationId, tournamentId, tournamentName, inviterId, inviterName, status } = metadata;
+        
+        // Validate required fields
+        if (!invitationId || !tournamentId || !inviterId) {
+            console.warn('[CHAT] Tournament invitation missing required fields:', metadata);
+            return '';
+        }
+
+        const displayInviterName = inviterName || App.cachedUsers.get(inviterId)?.name || 'Someone';
+        const displayTournamentName = tournamentName || `Tournament #${tournamentId.slice(-6)}`;
+
+        const isInviter = inviterId === App.me.id;
+        const canRespond = !isInviter && status === 'pending';
+
+        const timestamp = new Date(message.sent_at).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        let statusDisplay = '';
+        let actionsHtml = '';
+
+        switch (status) {
+            case 'pending':
+                if (canRespond) {
+                    actionsHtml = `
+                        <div class="flex gap-2 mt-3">
+                            <button
+                                class="tournament-invitation-accept flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-green-600/20 text-green-400 border border-green-600/30 hover:border-green-500 rounded transition text-sm font-medium"
+                                data-invitation-id="${invitationId}"
+                                data-tournament-id="${tournamentId}">
+                                Join Tournament
+                            </button>
+                            <button
+                                class="tournament-invitation-decline flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-red-600/20 text-red-400 border border-red-600/30 hover:border-red-500 rounded transition text-sm font-medium"
+                                data-invitation-id="${invitationId}">
+                                Decline
+                            </button>
+                        </div>
+                    `;
+                    statusDisplay = '<p class="text-amber-500/80 text-xs mt-1">Waiting for your response...</p>';
+                } else {
+                    statusDisplay = '<p class="text-neutral-400 text-xs mt-1">Waiting for response...</p>';
+                }
+                break;
+            case 'accepted':
+                statusDisplay = '<p class="text-green-500/80 text-xs mt-1">Joined the tournament!</p>';
+                break;
+            case 'declined':
+                statusDisplay = '<p class="text-red-500/80 text-xs mt-1">Declined</p>';
+                break;
+            case 'expired':
+                statusDisplay = '<p class="text-neutral-500 text-xs mt-1">Expired</p>';
+                break;
+        }
+
+        return `
+            <div class="tournament-invitation-card p-4 bg-neutral-800 rounded-lg border border-neutral-700"
+                 data-message-id="${message.id}"
+                 data-invitation-id="${invitationId}">
+                <div class="flex flex-col items-center text-center gap-2">
+                    <div class="w-12 h-12 bg-amber-600/20 rounded-full flex items-center justify-center">
+                        <span class="text-2xl">🏆</span>
+                    </div>
+                    <p class="text-white font-medium">${displayInviterName} invites you to join</p>
+                    <p class="text-amber-400 font-semibold">"${displayTournamentName}"</p>
+                    ${statusDisplay}
+                </div>
+                ${actionsHtml}
+                <div class="text-xs text-neutral-500 mt-3 text-center">${timestamp}</div>
+            </div>
+        `;
+    },
+
     async handleInviteToGame(invitedUserId: string): Promise<void> {
         if (!this.currentChannel) return;
 
@@ -831,6 +968,36 @@ export const Chat =
         } catch (error) {
             console.error('[CHAT] Failed to decline invitation:', error);
             alert('Failed to decline invitation');
+        }
+    },
+
+    async handleAcceptTournamentInvitation(invitationId: string): Promise<void> {
+        try {
+            console.log('[CHAT] Accepting tournament invitation:', invitationId);
+            const result = await SocialCommands.acceptTournamentInvitation(invitationId);
+            
+            // Navigate to tournament page
+            if (result?.tournamentId) {
+                sessionStorage.setItem('selectedTournamentId', result.tournamentId);
+                // Store the player ID so the tournament page knows we're a participant
+                if (result.playerId) {
+                    sessionStorage.setItem(`tournament_player_${result.tournamentId}`, result.playerId);
+                }
+                Router.navigate('/tournaments');
+            }
+        } catch (error) {
+            console.error('[CHAT] Failed to accept tournament invitation:', error);
+            alert('Failed to accept tournament invitation');
+        }
+    },
+
+    async handleDeclineTournamentInvitation(invitationId: string): Promise<void> {
+        try {
+            console.log('[CHAT] Declining tournament invitation:', invitationId);
+            await SocialCommands.declineTournamentInvitation(invitationId);
+        } catch (error) {
+            console.error('[CHAT] Failed to decline tournament invitation:', error);
+            alert('Failed to decline tournament invitation');
         }
     },
 }
