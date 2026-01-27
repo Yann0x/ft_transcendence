@@ -1,10 +1,12 @@
+/* ROUTES */
+
 import { FastifyInstance } from 'fastify'
-import { 
-  buildCheckJwtHandler, 
-  buildGetJwtHandler, 
-  hashPassword, 
-  validHashPassword, 
-  buildOAuth42UrlHandler, 
+import {
+  buildCheckJwtHandler,
+  buildGetJwtHandler,
+  hashPassword,
+  validHashPassword,
+  buildOAuth42UrlHandler,
   buildOAuth42CallbackHandler,
   build2FASetupHandler,
   build2FAVerifyHandler,
@@ -14,6 +16,8 @@ import {
 } from './authenticate_methods'
 import { ErrorResponseSchema, UserSchema } from './shared/with_front/types'
 import { Type } from '@sinclair/typebox'
+
+/* SCHEMAS */
 
 const getJwtSchema = {
   schema: {
@@ -51,15 +55,17 @@ const checkJwtSchema = {
     },
   },
 }
+
 const hashPassSchema = {
   schema: {
-    body : Type.String(), 
+    body : Type.String(),
     response: {
       200: Type.String(),
       401: ErrorResponseSchema,
     },
   },
 }
+
 const checkPassSchema = {
   schema: {
     body : Type.Object({
@@ -73,17 +79,17 @@ const checkPassSchema = {
   },
 }
 
+/* REGISTER ROUTES */
+
 export function authenticateRoutes(server: FastifyInstance) {
   server.post('/get_jwt', getJwtSchema, buildGetJwtHandler(server))
   server.post('/check_jwt', checkJwtSchema, buildCheckJwtHandler(server))
   server.post('/hash_pass', hashPassSchema, hashPassword(server))
   server.post('/check_pass_match', checkPassSchema, validHashPassword(server))
 
-  // OAuth 2.0 with 42 API
   server.get('/authenticate/oauth/42', buildOAuth42UrlHandler(server))
   server.get('/authenticate/oauth/42/callback', buildOAuth42CallbackHandler(server))
 
-  // 2FA (TOTP) routes
   server.post('/authenticate/2fa/setup', {
     schema: {
       body: Type.Object({

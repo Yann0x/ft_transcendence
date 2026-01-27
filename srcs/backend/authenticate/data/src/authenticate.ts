@@ -1,3 +1,5 @@
+/* AUTHENTICATE */
+
 import fastify from 'fastify'
 import jwt from '@fastify/jwt'
 import swagger from '@fastify/swagger'
@@ -5,6 +7,8 @@ import bcrypt from 'fastify-bcrypt'
 import swaggerUI from '@fastify/swagger-ui'
 import { authenticateRoutes } from './routes'
 import handleThisError from './shared/utils/error';
+
+/* SERVER */
 
 const server = fastify({
   logger: false,
@@ -18,16 +22,18 @@ const server = fastify({
   },
 })
 
-// Log incoming requests
+/* HOOKS */
+
 server.addHook('onRequest', async (request, reply) => {
   console.log(`[REQUEST] ${request.method} ${request.url}`);
 });
+
+/* PLUGINS */
 
 server.register(jwt, {
   secret: 'MOCKsupersecret',
 })
 
-// Swagger documentation
 await server.register(swagger, {
   exposeRoute: true,
   swagger: {
@@ -48,9 +54,12 @@ await server.register(swaggerUI, {
   staticCSP: true
 })
 
-// Routes
+/* ROUTES */
+
 server.register(bcrypt);
 server.register(authenticateRoutes)
+
+/* START */
 
 server.listen({ port: 3000, host: '0.0.0.0' }, (err, address) => {
   if (err) {

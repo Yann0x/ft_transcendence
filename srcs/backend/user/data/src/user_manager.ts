@@ -1,3 +1,5 @@
+/* USER MANAGER */
+
 import { User, UserPublic, Channel, Friendship, BlockedUser, generateFriendshipKey, Message } from './shared/with_front/types';
 import { randomUUID } from 'crypto';
 import customFetch from './shared/utils/fetch';
@@ -8,6 +10,9 @@ export const userManager = {
   friends: new Map<string, Friendship>(),
   blockeds: new Map<string, BlockedUser>(),
 
+  /* FRIENDS */
+
+  /* Récupère la liste des amis d'un utilisateur */
   async getFriends(userId: string): Promise<UserPublic[]> {
     const userFriends: UserPublic[] = [];
 
@@ -54,6 +59,75 @@ export const userManager = {
     return userFriends;
   },
 
+  /* Ajoute un ami */
+  async addFriend(userId: string, friendId: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    const friend = await this.getUser(friendId);
+
+    if (!user || !friend) return false;
+
+    const friendshipKey = generateFriendshipKey(userId, friendId);
+
+    if (this.friends.has(friendshipKey)) {
+      console.log(`[UserManager] Friendship already exists`);
+      return false;
+    }
+
+    try {
+      const success = await customFetch('http://database:3000/database/friends', 'POST', {
+        user_id: userId,
+        friend_id: friendId
+      }) as boolean;
+
+      if (!success) {
+        return false;
+      }
+
+      const friendship: Friendship = {
+        user1: user,
+        user2: friend,
+        status: 'accepted',
+        createdAt: new Date().toISOString()
+      };
+
+      this.friends.set(friendshipKey, friendship);
+
+      console.log(`[UserManager] Added friendship ${friendshipKey} to cache`);
+      return true;
+    } catch (error) {
+      console.error('[UserManager] Failed to add friendship:', error);
+      return false;
+    }
+  },
+
+  /* Supprime un ami */
+  async removeFriend(userId: string, friendId: string): Promise<boolean> {
+    const friendshipKey = generateFriendshipKey(userId, friendId);
+
+    try {
+      const success = await customFetch('http://database:3000/database/friends', 'DELETE', {
+        user_id: userId,
+        friend_id: friendId
+      }) as boolean;
+
+      if (!success) {
+        console.log(`[UserManager] Friendship does not exist between ${userId} and ${friendId}`);
+        return false;
+      }
+
+      this.friends.delete(friendshipKey);
+
+      console.log(`[UserManager] Removed friendship ${friendshipKey} from cache`);
+      return true;
+    } catch (error) {
+      console.error('[UserManager] Failed to remove friendship:', error);
+      return false;
+    }
+  },
+
+  /* BLOCKED USERS */
+
+  /* Récupère la liste des utilisateurs bloqués */
   async getBlockedUsers(userId: string): Promise<UserPublic[]> {
     const blockedUsers: UserPublic[] = [];
 
@@ -98,100 +172,7 @@ export const userManager = {
     return blockedUsers;
   },
 
-  async getUsers(userIds: string[]): Promise<UserPublic[]> {
-    const users: UserPublic[] = [];
-    for (const userId of userIds) {
-      const user = await this.getUser(userId);
-      if (user) {
-        users.push(user);
-      }
-    }
-    return users;
-  },
-
-  async getUser(userId: string): Promise<User | null> {
-    if (this.users.has(userId)) {
-      return this.users.get(userId)!;
-    }
-    try {
-      const users = await customFetch(`http://database:3000/database/user`, 'GET', { id: userId }) as User[];
-      if (!users || users.length === 0) {
-        console.error(`[UserManager] User ${userId} not found in database`);
-        return null;
-      }
-      const user = users[0];
-      this.users.set(userId, user);
-      return user;
-    } catch (error) {
-      console.error(`[UserManager] Failed to load user ${userId}:`, error);
-      return null;
-    }
-  },
-
-  async addFriend(userId: string, friendId: string): Promise<boolean> {
-    const user = await this.getUser(userId);
-    const friend = await this.getUser(friendId);
-
-    if (!user || !friend) return false;
-
-    const friendshipKey = generateFriendshipKey(userId, friendId);
-
-    if (this.friends.has(friendshipKey)) {
-      console.log(`[UserManager] Friendship already exists`);
-      return false;
-    }
-
-    try {
-      const success = await customFetch('http://database:3000/database/friends', 'POST', {
-        user_id: userId,
-        friend_id: friendId
-      }) as boolean;
-
-      if (!success) {
-        return false;
-      }
-
-      const friendship: Friendship = {
-        user1: user,
-        user2: friend,
-        status: 'accepted',
-        createdAt: new Date().toISOString()
-      };
-
-      this.friends.set(friendshipKey, friendship);
-
-      console.log(`[UserManager] Added friendship ${friendshipKey} to cache`);
-      return true;
-    } catch (error) {
-      console.error('[UserManager] Failed to add friendship:', error);
-      return false;
-    }
-  },
-
-  async removeFriend(userId: string, friendId: string): Promise<boolean> {
-    const friendshipKey = generateFriendshipKey(userId, friendId);
-
-    try {
-      const success = await customFetch('http://database:3000/database/friends', 'DELETE', {
-        user_id: userId,
-        friend_id: friendId
-      }) as boolean;
-
-      if (!success) {
-        console.log(`[UserManager] Friendship does not exist between ${userId} and ${friendId}`);
-        return false;
-      }
-
-      this.friends.delete(friendshipKey);
-
-      console.log(`[UserManager] Removed friendship ${friendshipKey} from cache`);
-      return true;
-    } catch (error) {
-      console.error('[UserManager] Failed to remove friendship:', error);
-      return false;
-    }
-  },
-
+  /* Bloque un utilisateur */
   async blockUser(blockerId: string, blockedId: string): Promise<boolean> {
     const blocker = await this.getUser(blockerId);
     const blocked = await this.getUser(blockedId);
@@ -229,6 +210,7 @@ export const userManager = {
     }
   },
 
+  /* Débloque un utilisateur */
   async unblockUser(blockerId: string, blockedId: string): Promise<boolean> {
     const blockKey = generateFriendshipKey(blockerId, blockedId);
 
@@ -253,11 +235,49 @@ export const userManager = {
     }
   },
 
+  /* USERS */
+
+  /* Récupère plusieurs utilisateurs */
+  async getUsers(userIds: string[]): Promise<UserPublic[]> {
+    const users: UserPublic[] = [];
+    for (const userId of userIds) {
+      const user = await this.getUser(userId);
+      if (user) {
+        users.push(user);
+      }
+    }
+    return users;
+  },
+
+  /* Récupère un utilisateur */
+  async getUser(userId: string): Promise<User | null> {
+    if (this.users.has(userId)) {
+      return this.users.get(userId)!;
+    }
+    try {
+      const users = await customFetch(`http://database:3000/database/user`, 'GET', { id: userId }) as User[];
+      if (!users || users.length === 0) {
+        console.error(`[UserManager] User ${userId} not found in database`);
+        return null;
+      }
+      const user = users[0];
+      this.users.set(userId, user);
+      return user;
+    } catch (error) {
+      console.error(`[UserManager] Failed to load user ${userId}:`, error);
+      return null;
+    }
+  },
+
+  /* CHANNELS */
+
+  /* Récupère les membres d'un channel */
   async getUsersFromChannel(channel_id: number): Promise<string[]> {
     const channel = await this.getChannel(String(channel_id));
     return channel?.members || [];
   },
 
+  /* Récupère un channel */
   async getChannel(channel_id: string): Promise<Channel | null> {
     if (this.channels.has(channel_id)) {
       return this.channels.get(channel_id)!;
@@ -276,6 +296,7 @@ export const userManager = {
     }
   },
 
+  /* Récupère les channels d'un utilisateur */
   async getChannels(user_id: string): Promise<Channel[]> {
     try {
       const response = await customFetch(`http://database:3000/database/user/channels`, 'GET', { user_id }) as Channel[];
@@ -286,6 +307,7 @@ export const userManager = {
     }
   },
 
+  /* Enregistre un channel */
   async setChannel(channel: Channel): Promise<boolean | null> {
     if (!channel || !channel.id)
       return false;
@@ -301,6 +323,9 @@ export const userManager = {
     return true;
   },
 
+  /* MESSAGES */
+
+  /* Envoie un message */
   async sendMessage(message: Message): Promise<{ success: boolean, message: Message | undefined }> {
     const senderUser = await this.getUser(message.sender_id);
     if (!senderUser) {

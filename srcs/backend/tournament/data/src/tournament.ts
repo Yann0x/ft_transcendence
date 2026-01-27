@@ -1,3 +1,5 @@
+/* TOURNAMENT */
+
 import Fastify from 'fastify'
 import fastifyWebsocket from '@fastify/websocket'
 import swagger from '@fastify/swagger'
@@ -5,12 +7,16 @@ import swaggerUi from '@fastify/swagger-ui'
 import { registerRoutes } from './routes.js'
 import { loadFinishedTournamentsFromDatabase } from './tournament_methods.js'
 
+/* SERVER */
+
 const fastify = Fastify({ logger: true })
 
-// Register WebSocket support
+/* WEBSOCKET */
+
 await fastify.register(fastifyWebsocket)
 
-// Swagger documentation
+/* SWAGGER */
+
 await fastify.register(swagger, {
   openapi: {
     info: {
@@ -25,21 +31,23 @@ await fastify.register(swaggerUi, {
   routePrefix: '/tournament/docs',
 })
 
-// Health check
+/* HEALTH CHECK */
+
 fastify.get('/tournament', async () => {
   return { status: 'ok', service: 'tournament' }
 })
 
-// Register all routes
+/* ROUTES */
+
 registerRoutes(fastify)
 
-// Start server
+/* START */
+
 const start = async () => {
   try {
     await fastify.listen({ port: 3000, host: '0.0.0.0' })
     console.log('Tournament service running on port 3000')
-    
-    // Load finished tournaments from database after a short delay to ensure database is ready
+
     setTimeout(async () => {
       await loadFinishedTournamentsFromDatabase()
     }, 2000)

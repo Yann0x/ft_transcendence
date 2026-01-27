@@ -1,12 +1,12 @@
-<!-- Navbar Component -->
+<!-- Navbar -->
 <nav class="bg-neutral-900/60 backdrop-blur border-b border-white/5 px-6 py-4">
   <div class="max-w-7xl mx-auto flex items-center justify-between">
-    
+
     <!-- Logo -->
     <a href="/play" class="flex items-center gap-3">
       <span class="text-xl font-bold bg-gradient-to-r from-blue-400 via-white to-rose-400 bg-clip-text text-transparent" data-i18n="app.title">ft_transcendence</span>
     </a>
-    
+
     <!-- Navigation Links -->
     <div class="flex items-center gap-2">
       <a href="/play" class="nav-link active">
@@ -17,7 +17,6 @@
       </a>
       <a href="/social_hub" class="nav-link relative">
         <span>Social</span>
-        <!-- Unread badge (hidden by default, shown only when NOT on social page) -->
         <span id="chat-unread-badge" class="absolute -top-1 -right-1 hidden items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-blue-600 text-white text-xs font-bold">
           0
         </span>
@@ -26,10 +25,10 @@
         <span data-i18n="nav.stats">Stats</span>
       </a>
     </div>
-    
+
     <!-- User Actions -->
     <div class="flex items-center gap-4">
-      <!-- Authenticated user button -->
+      <!-- Authenticated User -->
       <div id="user-account-section" class="relative hidden">
         <button id="user-account-button" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-neutral-800 transition" type="button">
           <img id="user-avatar" src="" alt="Avatar" class="w-8 h-8 rounded-full object-cover border-2 border-blue-500">
@@ -39,7 +38,7 @@
           </svg>
         </button>
 
-        <!-- Dropdown menu -->
+        <!-- Dropdown Menu -->
         <div id="user-dropdown" class="absolute right-0 mt-2 w-48 bg-neutral-800 border border-neutral-700 rounded-lg shadow-lg hidden z-50">
           <div class="py-2">
             <a href="#" id="user-settings" class="flex items-center gap-2 px-4 py-2 text-neutral-300 hover:bg-neutral-700 hover:text-white transition">
@@ -59,7 +58,7 @@
         </div>
       </div>
 
-      <!-- Language and accessibility (always visible) -->
+      <!-- Language & Accessibility -->
       <div class="flex items-center gap-3">
         <!-- Language Selector -->
         <div class="relative">
@@ -72,7 +71,7 @@
             <button class="lang-option block w-full px-4 py-2 text-sm text-left hover:bg-neutral-700 transition" data-lang="es" role="menuitem">Español</button>
           </div>
         </div>
-        
+
         <!-- Accessibility Toggle -->
         <button id="a11y-toggle" class="a11y-toggle" type="button"
                 aria-expanded="false"
@@ -85,7 +84,7 @@
         </button>
       </div>
 
-      <!-- Auth buttons (hidden when logged in) -->
+      <!-- Auth Buttons -->
       <div id="auth-buttons" class="flex items-center gap-3">
         <button class="btn btn-outline" type="button" data-auth="login" data-i18n="nav.login">Connexion</button>
         <button class="btn btn-primary" type="button" data-auth="signup" data-i18n="nav.signup">Inscription</button>

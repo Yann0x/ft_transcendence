@@ -1,9 +1,13 @@
+/* STATE */
+
 import {
   type Ball, type Paddle,
   BALL_RADIUS, BALL_INITIAL_SPEED,
   PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_MARGIN,
   VIEWPORT_WIDTH, VIEWPORT_HEIGHT
 } from './config.js';
+
+/* TYPES */
 
 export type GamePhase = 'waiting' | 'ready' | 'playing' | 'paused' | 'ended';
 
@@ -34,6 +38,8 @@ export interface GameState {
   ballFrozenUntil: number;
 }
 
+/* HELPERS */
+
 function velocityFromAngle(speed: number, angle: number): { vx: number; vy: number } {
   return {
     vx: Math.cos(angle) * speed,
@@ -42,11 +48,13 @@ function velocityFromAngle(speed: number, angle: number): { vx: number; vy: numb
 }
 
 function randomStartAngle(): number {
-  const maxAngle = Math.PI / 9; // ±20 degrees
+  const maxAngle = Math.PI / 9;
   const angle = (Math.random() * 2 - 1) * maxAngle;
   const goRight = Math.random() > 0.5;
   return goRight ? angle : Math.PI + angle;
 }
+
+/* CREATE */
 
 export function createGameState(): GameState {
   const w = VIEWPORT_WIDTH;
@@ -88,12 +96,14 @@ export function createGameState(): GameState {
   };
 }
 
+/* RESET BALL */
+
 const BALL_RESPAWN_DELAY = 1000;
 
 export function resetBall(state: GameState, serveToRight?: boolean): void {
   const w = state.viewport.width;
   const h = state.viewport.height;
-  const maxAngle = Math.PI / 9; // ±20 degrees
+  const maxAngle = Math.PI / 9;
   const angle = (Math.random() * 2 - 1) * maxAngle;
   const direction = serveToRight ?? Math.random() > 0.5;
   const finalAngle = direction ? angle : Math.PI + angle;

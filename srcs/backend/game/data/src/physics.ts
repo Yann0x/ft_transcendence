@@ -1,12 +1,15 @@
+/* PHYSICS */
+
 import type { GameState } from './state.js';
 import { resetBall } from './state.js';
 import type { Ball, Paddle } from './config.js';
 import { PADDLE_SPEED, WIN_SCORE, BALL_ACCELERATION, BALL_MAX_SPEED } from './config.js';
 
+/* BALL */
+
 export function updateBall(state: GameState, dt: number): void {
   if (state.phase !== 'playing') return;
 
-  // Delay after a goal before relaunching the ball
   if (state.ballFrozenUntil > 0 && Date.now() < state.ballFrozenUntil) {
     return;
   }
@@ -18,6 +21,8 @@ export function updateBall(state: GameState, dt: number): void {
   ball.x += ball.vx * dtSec;
   ball.y += ball.vy * dtSec;
 }
+
+/* WALLS */
 
 export function bounceWalls(state: GameState): void {
   if (state.phase !== 'playing') return;
@@ -33,6 +38,8 @@ export function bounceWalls(state: GameState): void {
     ball.vy = -ball.vy;
   }
 }
+
+/* PADDLES */
 
 export function updatePaddles(state: GameState, dt: number): void {
   if (state.phase !== 'playing') return;
@@ -53,7 +60,9 @@ export function updatePaddles(state: GameState, dt: number): void {
   }
 }
 
-// Circle-rectangle collision: finds the closest point on the rectangle to the circle
+/* COLLISION */
+
+/* Collision cercle-rectangle */
 function circleRectCollision(ball: Ball, rect: Paddle): boolean {
   const closestX = Math.max(rect.x, Math.min(ball.x, rect.x + rect.width));
   const closestY = Math.max(rect.y, Math.min(ball.y, rect.y + rect.height));
@@ -61,6 +70,8 @@ function circleRectCollision(ball: Ball, rect: Paddle): boolean {
   const dy = ball.y - closestY;
   return (dx * dx + dy * dy) < (ball.radius * ball.radius);
 }
+
+/* PADDLE BOUNCE */
 
 export function bouncePaddles(state: GameState): void {
   if (state.phase !== 'playing') return;
@@ -83,13 +94,11 @@ export function bouncePaddles(state: GameState): void {
       ball.x = paddle.x - ball.radius;
     }
 
-    // The bounce angle depends on where the ball hits the paddle
     const paddleCenter = paddle.y + paddle.height / 2;
-    const hitOffset = (ball.y - paddleCenter) / (paddle.height / 2); // -1 to 1
-    const maxAngle = Math.PI / 4; // 45 degrees max
+    const hitOffset = (ball.y - paddleCenter) / (paddle.height / 2);
+    const maxAngle = Math.PI / 4;
     const angle = hitOffset * maxAngle;
 
-    // Calculate current speed for acceleration
     const currentSpeed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
     const newSpeed = Math.min(currentSpeed * BALL_ACCELERATION, BALL_MAX_SPEED);
 
@@ -98,6 +107,8 @@ export function bouncePaddles(state: GameState): void {
     ball.vy = Math.sin(angle) * newSpeed;
   }
 }
+
+/* GOAL */
 
 export function checkGoal(state: GameState): void {
   if (state.phase !== 'playing') return;
@@ -127,6 +138,8 @@ export function checkGoal(state: GameState): void {
     }
   }
 }
+
+/* TICK */
 
 export function physicsTick(state: GameState, dt: number): void {
   updateBall(state, dt);
