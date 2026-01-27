@@ -102,6 +102,16 @@ export const Tournaments = {
         this.viewTournament(tournamentToView)
       }, 500)
     }
+
+    // Check if we should view a specific tournament (after accepting invite from chat)
+    const selectedTournamentId = sessionStorage.getItem('selectedTournamentId')
+    if (selectedTournamentId) {
+      sessionStorage.removeItem('selectedTournamentId')
+      // Wait for tournaments to load, then view the specific tournament
+      setTimeout(() => {
+        this.viewTournament(selectedTournamentId)
+      }, 500)
+    }
   },
 
   //
@@ -684,6 +694,97 @@ export const Tournaments = {
   },
 
   //
+  // Show invite friend modal
+
+  async showInviteFriendModal(tournamentId: string): Promise<void> {
+    // Get online friends
+    const onlineFriends: Array<{id: string; name: string; avatar?: string}> = []
+    
+    App.friendsMap.forEach((friend, friendId) => {
+      if (App.onlineUsersMap.has(friendId)) {
+        onlineFriends.push({
+          id: friendId,
+          name: friend.name || 'Unknown',
+          avatar: friend.avatar
+        })
+      }
+    })
+
+    if (onlineFriends.length === 0) {
+      alert(I18n.translate('tournaments.no_online_friends') || 'No online friends to invite')
+      return
+    }
+
+    // Create modal
+    const existingModal = document.getElementById('invite-friend-modal')
+    if (existingModal) existingModal.remove()
+
+    const modal = document.createElement('div')
+    modal.id = 'invite-friend-modal'
+    modal.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50'
+    modal.innerHTML = `
+      <div class="bg-neutral-800 rounded-lg p-6 max-w-md w-full mx-4 border border-neutral-700">
+        <h3 class="text-xl font-bold text-white mb-4">${I18n.translate('tournaments.invite_friend') || 'Invite Friend'}</h3>
+        <p class="text-neutral-400 text-sm mb-4">${I18n.translate('tournaments.select_friend') || 'Select a friend to invite to this tournament'}</p>
+        <div class="space-y-2 max-h-64 overflow-y-auto">
+          ${onlineFriends.map(friend => `
+            <button class="invite-friend-btn w-full flex items-center gap-3 p-3 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition" data-friend-id="${friend.id}">
+              <img src="${friend.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name)}&background=3b82f6&color=fff`}" 
+                   alt="${friend.name}" class="w-10 h-10 rounded-full object-cover">
+              <div class="text-left">
+                <p class="text-white font-medium">${this.escapeHtml(friend.name)}</p>
+                <p class="text-green-400 text-xs">Online</p>
+              </div>
+            </button>
+          `).join('')}
+        </div>
+        <div class="flex justify-end mt-4">
+          <button id="invite-modal-cancel" class="btn btn-outline">${I18n.translate('cancel') || 'Cancel'}</button>
+        </div>
+      </div>
+    `
+
+    document.body.appendChild(modal)
+
+    // Bind events
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove()
+    })
+
+    document.getElementById('invite-modal-cancel')?.addEventListener('click', () => {
+      modal.remove()
+    })
+
+    modal.querySelectorAll('.invite-friend-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const friendId = (btn as HTMLElement).dataset.friendId
+        if (friendId) {
+          await this.sendTournamentInvite(tournamentId, friendId)
+          modal.remove()
+        }
+      })
+    })
+  },
+
+  //
+  // Send tournament invitation
+
+  async sendTournamentInvite(tournamentId: string, friendId: string): Promise<void> {
+    try {
+      // Import dynamically to avoid circular dependencies
+      const { sendTournamentInvitation } = await import('./social/social-commands')
+      
+      await sendTournamentInvitation(tournamentId, friendId)
+      
+      const friend = App.cachedUsers.get(friendId)
+      alert(`${I18n.translate('tournaments.invitation_sent') || 'Invitation sent to'} ${friend?.name || 'friend'}!`)
+    } catch (error: any) {
+      console.error('Failed to send tournament invitation:', error)
+      alert(error.message || I18n.translate('tournaments.invitation_failed') || 'Failed to send invitation')
+    }
+  },
+
+  //
   // View tournament details
 
   async viewTournament(tournamentId: string): Promise<void> {
@@ -1103,7 +1204,9 @@ export const Tournaments = {
         
         if (tournament.odStatus === 'waiting') {
           if (isParticipant) {
-            actionsHtml = `<button id="btn-leave-tournament" class="btn btn-outline text-red-400 border-red-400 hover:bg-red-400/10">${I18n.translate('tournaments.leave_btn')}</button>`
+            actionsHtml = `
+              <button id="btn-leave-tournament" class="btn btn-outline text-red-400 border-red-400 hover:bg-red-400/10">${I18n.translate('tournaments.leave_btn')}</button>
+            `
           } else {
             actionsHtml = `<button id="btn-join-detail" class="btn btn-secondary">${I18n.translate('tournaments.join_btn')}</button>`
           }
@@ -1156,6 +1259,10 @@ export const Tournaments = {
     
     container.innerHTML = ''
     
+    // Check if current user is a participant (can invite others)
+    const isParticipant = tournament.odPlayers.some((p: TournamentPlayer) => p.odId === state.myPlayerId)
+    const canInvite = isParticipant && tournament.odStatus === 'waiting'
+    
     for (let i = 0; i < tournament.odMaxPlayers; i++) {
       const player = tournament.odPlayers[i]
       const card = document.createElement('div')
@@ -1172,6 +1279,16 @@ export const Tournaments = {
             ${isMe ? `<span class="text-xs text-blue-400">${I18n.translate('tournaments.you')}</span>` : ''}
           </div>
         `
+      } else if (canInvite) {
+        // Show invite button for empty slots when user is a participant
+        card.className = 'p-3 rounded-lg border border-dashed border-orange-500/30 bg-neutral-800/50 hover:bg-orange-500/10 hover:border-orange-400/50 transition-all cursor-pointer invite-slot-btn'
+        card.dataset.tournamentId = tournament.odId
+        card.innerHTML = `
+          <div class="flex items-center gap-2 text-orange-400">
+            <span class="text-lg">➕</span>
+            <span>${I18n.translate('tournaments.invite_friend') || 'Invite Friend'}</span>
+          </div>
+        `
       } else {
         card.className = 'p-3 rounded-lg border border-dashed border-neutral-700 bg-neutral-800/50'
         card.innerHTML = `
@@ -1183,6 +1300,18 @@ export const Tournaments = {
       }
       
       container.appendChild(card)
+    }
+    
+    // Bind invite slot button events
+    if (canInvite) {
+      container.querySelectorAll('.invite-slot-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tournamentId = (btn as HTMLElement).dataset.tournamentId
+          if (tournamentId) {
+            this.showInviteFriendModal(tournamentId)
+          }
+        })
+      })
     }
   },
 

@@ -85,6 +85,15 @@ function setSocketListeners(user: User, socket: WebSocket){
         case 'game_invitation_decline':
           await commandHandlers.handleDeclineGameInvitation(user, socket, event.data);
           break;
+        case 'tournament_invitation_send':
+          await commandHandlers.handleSendTournamentInvitation(user, socket, event.data);
+          break;
+        case 'tournament_invitation_accept':
+          await commandHandlers.handleAcceptTournamentInvitation(user, socket, event.data);
+          break;
+        case 'tournament_invitation_decline':
+          await commandHandlers.handleDeclineTournamentInvitation(user, socket, event.data);
+          break;
         default:
           console.log(`[SOCIAL] Unknown event type: ${event.type}`);
           socket.send(JSON.stringify({
