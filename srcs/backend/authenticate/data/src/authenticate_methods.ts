@@ -183,7 +183,20 @@ export function buildOAuth42CallbackHandler(server: FastifyInstance) {
       // Find or create user in our database
       const user = await findOrCreateOAuthUser(ftUser);
 
-      // Generate JWT
+      // Check if 2FA is enabled for this user
+      const userSettingsResponse = await fetch(`http://database:3000/database/user?id=${user.id}`);
+      const usersWithSettings = await userSettingsResponse.json() as Array<{ twoAuth_enabled?: number }>;
+      const userWith2FA = usersWithSettings[0];
+
+      console.log('[OAUTH] 2FA check for user:', user.id, 'twoAuth_enabled:', userWith2FA?.twoAuth_enabled, 'raw data:', JSON.stringify(userWith2FA));
+
+      if (userWith2FA?.twoAuth_enabled) {
+        // 2FA is enabled - redirect to frontend with requires2FA flag
+        console.log('[OAUTH] 2FA required for user:', user.name);
+        return reply.redirect(`/?oauth_requires_2fa=true&userId=${user.id}`);
+      }
+
+      // No 2FA required - generate JWT
       const token = server.jwt.sign({
         id: user.id,
         name: user.name,
@@ -350,7 +363,8 @@ export function build2FAEnableHandler(server: FastifyInstance) {
         body: JSON.stringify({
           id: userId,
           twoAuth_secret: secret,
-          twoAuth_enabled: true
+          twoAuth_enabled: true,
+          _allow2FAUpdate: true  // Flag to allow 2FA field updates
         })
       });
 
@@ -419,7 +433,8 @@ export function build2FADisableHandler(server: FastifyInstance) {
         body: JSON.stringify({
           id: userId,
           twoAuth_secret: null,
-          twoAuth_enabled: false
+          twoAuth_enabled: false,
+          _allow2FAUpdate: true  // Flag to allow 2FA field updates
         })
       });
 

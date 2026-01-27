@@ -288,7 +288,34 @@ export async function findUserHandler(
       return [];
     }
 
+    // Get blocked users in both directions to filter them out of search results
+    let blockedByMe: string[] = [];
+    let blockedMe: string[] = [];
+
+    if (requestingUserId) {
+      // Users that I have blocked
+      const blockedByMeResponse = await customFetch(
+        `http://database:3000/database/blocked?user_id=${requestingUserId}`,
+        'GET'
+      ) as string[] | null;
+      blockedByMe = blockedByMeResponse || [];
+
+      // Users who have blocked me
+      const blockedMeResponse = await customFetch(
+        `http://database:3000/database/blocked?blocked_user_id=${requestingUserId}`,
+        'GET'
+      ) as string[] | null;
+      blockedMe = blockedMeResponse || [];
+    }
+
+    const blockedSet = new Set([...blockedByMe, ...blockedMe]);
+
     const result = await Promise.all(users.map(async (user) => {
+      // Filter out blocked users
+      if (user.id && blockedSet.has(user.id)) {
+        return null;
+      }
+
       const userWith2FA = user as User & { twoAuth_enabled?: number };
       const isOwnData = requestingUserId && user.id && requestingUserId === user.id;
       console.log('[USER] findUserHandler - user.id:', user.id, 'isOwnData:', isOwnData, 'twoAuth_enabled:', userWith2FA.twoAuth_enabled);
@@ -299,9 +326,10 @@ export async function findUserHandler(
       } else {
         return user as UserPublic;
       }
-   }
-));
-    return result;
+    }));
+
+    // Filter out null values (blocked users)
+    return result.filter(user => user !== null);
 
   } catch (error: any) {
     const statusCode = error.statusCode || 500;

@@ -722,8 +722,10 @@ export const SettingsModal = {
 
       if (response.ok) {
         const users = await response.json();
+        console.log('[SETTINGS] load2FAStatus - users response:', users);
         if (users && users.length > 0) {
           const user = users[0] as User & { twoAuth_enabled?: number };
+          console.log('[SETTINGS] load2FAStatus - twoAuth_enabled:', user.twoAuth_enabled);
           this.update2FAStatus(!!user.twoAuth_enabled);
         }
       }
@@ -1001,8 +1003,10 @@ export const SettingsModal = {
 
       if (response.ok) {
         const users = await response.json();
+        console.log('[SETTINGS] load2FAStatus - users response:', users);
         if (users && users.length > 0) {
           const user = users[0] as User & { twoAuth_enabled?: number };
+          console.log('[SETTINGS] load2FAStatus - twoAuth_enabled:', user.twoAuth_enabled);
           this.update2FAStatus(!!user.twoAuth_enabled);
         }
       }

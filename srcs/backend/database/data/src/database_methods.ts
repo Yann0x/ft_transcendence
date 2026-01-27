@@ -251,15 +251,19 @@ export function updateUser(req, reply): boolean | string {
         fields.push('ft_id = ?');
         values.push(req.body.ft_id);
     }
-    if (req.body.twoAuth_secret !== undefined) {
-        fields.push('twoAuth_secret = ?');
-        values.push(req.body.twoAuth_secret);
-        console.log('[DATABASE] Updating twoAuth_secret');
-    }
-    if (req.body.twoAuth_enabled !== undefined) {
-        fields.push('twoAuth_enabled = ?');
-        values.push(req.body.twoAuth_enabled ? 1 : 0);
-        console.log('[DATABASE] Updating twoAuth_enabled to:', req.body.twoAuth_enabled ? 1 : 0);
+    // Only allow 2FA field updates if _allow2FAUpdate flag is set
+    // This prevents accidental overwrites from stale cached user data
+    if (req.body._allow2FAUpdate) {
+        if (req.body.twoAuth_secret !== undefined) {
+            fields.push('twoAuth_secret = ?');
+            values.push(req.body.twoAuth_secret);
+            console.log('[DATABASE] Updating twoAuth_secret');
+        }
+        if (req.body.twoAuth_enabled !== undefined) {
+            fields.push('twoAuth_enabled = ?');
+            values.push(req.body.twoAuth_enabled ? 1 : 0);
+            console.log('[DATABASE] Updating twoAuth_enabled to:', req.body.twoAuth_enabled ? 1 : 0);
+        }
     }
 
     if (fields.length === 0) {
@@ -468,6 +472,17 @@ export function deleteChannelMember( req: FastifyRequest, reply: FastifyReply )
 export function getBlockedUsers( req: FastifyRequest, reply: FastifyReply )
 {
     const user_id = (req.query as any).user_id;
+    const blocked_user_id = (req.query as any).blocked_user_id;
+
+    // Query by blocked_user_id - find who has blocked this user
+    if (blocked_user_id && !user_id) {
+        const blockers = db.prepare(
+            `SELECT user_id FROM blocked_user WHERE blocked_user_id = ?`
+        ).all(blocked_user_id) as {user_id: string}[];
+        return blockers.map(b => b.user_id);
+    }
+
+    // Query by user_id - find who this user has blocked
     const blocked = db.prepare(
         `SELECT blocked_user_id FROM blocked_user WHERE user_id = ?`
     ).all(user_id) as {blocked_user_id: string}[];
@@ -513,7 +528,7 @@ export function getUserChannels( req: FastifyRequest, reply: FastifyReply )
         if (channel) {
             // Get messages for this channel
             channel.messages = db.prepare(
-                `SELECT id, channel_id, sender_id, content, sent_at, read_at FROM message
+                `SELECT id, channel_id, sender_id, content, type, metadata, sent_at, read_at FROM message
                  WHERE channel_id = ?
                  ORDER BY sent_at ASC
                  LIMIT 100`
