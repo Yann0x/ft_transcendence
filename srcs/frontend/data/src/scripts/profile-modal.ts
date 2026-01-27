@@ -5,6 +5,7 @@ import { App } from './app';
 import { Router } from './router';
 import * as SocialCommands from './social/social-commands';
 import { StatsService } from './stats-service';
+import { Friends } from './social/friends';
 
 /* MODAL */
 
@@ -276,6 +277,9 @@ export const ProfileModal = {
         const nowBlocked = App.isUserBlocked(user.id);
         blockBtn.textContent = nowBlocked ? 'Unblock' : 'Block';
       }
+
+      // Refresh search results to hide/show blocked user
+      Friends.displaySearchResults();
 
       // Also refresh friend buttons since blocking removes friend
       const addFriendBtn = document.getElementById('profile-add-friend');

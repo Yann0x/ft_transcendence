@@ -110,19 +110,19 @@ const App = {
 
       const blocked: string[] = await response.json();
 
-      const blockedToFetch = blocked.filter(b => !App.cachedUsers.has(b));
+      const blockedToFetch = blocked.filter(b => !this.cachedUsers.has(b));
       await this.fetchAndCacheUsers(blockedToFetch);
 
       this.blockedUsersMap.clear();
       blocked.forEach(enemy => {
         if (enemy) {
-          const cachedBlocked = this.cachedUsers.get(enemy);
-          if (cachedBlocked) {
-            this.blockedUsersMap.set(enemy, cachedBlocked);
+          let cachedBlocked = this.cachedUsers.get(enemy);
+          // If user still not in cache, create a placeholder
+          if (!cachedBlocked) {
+            cachedBlocked = { id: enemy, name: 'Unknown User' };
+            this.cachedUsers.set(enemy, cachedBlocked);
           }
-          else {
-            console.log('Something went wrong in App.loadBlockedUsers()');
-          }
+          this.blockedUsersMap.set(enemy, cachedBlocked);
         }
       });
 
@@ -260,7 +260,7 @@ const App = {
       this.me = JSON.parse(currentUser);
       
       // Connect to social websocket and load channels for notifications
-      Social.connect();
+      await Social.connect();
     }
     else
     {
@@ -516,6 +516,10 @@ const App = {
       console.error('Failed to call logout endpoint:', error);
     } finally {
       this.me = null;
+      this.friendsMap.clear();
+      this.blockedUsersMap.clear();
+      this.onlineUsersMap.clear();
+      this.cachedUsers.clear();
       sessionStorage.removeItem('authToken');
       sessionStorage.removeItem('currentUser');
       this.updateNavbar();

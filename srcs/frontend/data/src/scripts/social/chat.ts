@@ -5,6 +5,7 @@ import { Message, Channel, SocialEvent, UserPublic, GameInvitationData, GameResu
 import { ProfileModal } from '../profile-modal.ts'
 import { Router } from '../router.ts'
 import * as SocialCommands from './social-commands';
+import { I18n } from '../i18n';
 
 /* CHAT MODULE */
 
@@ -416,7 +417,15 @@ export const Chat = {
       return;
     this.updateChatHeader(channel);
     let messagesHTML = channel.messages.map((message: Message) => this.createMessageCard(message)).join('');
-    const isBlocked = (channel as any).isBlocked || false;
+    
+    // Check if the other user in a private channel is blocked
+    let isBlocked = (channel as any).isBlocked || false;
+    if (channel.type === 'private') {
+      const otherUserId = channel.members.find((id: string) => String(id) !== String(App.me?.id));
+      if (otherUserId && App.isUserBlocked(otherUserId)) {
+        isBlocked = true;
+      }
+    }
 
     messageList.classList.remove('items-center', 'justify-center', 'flex');
     messageList.classList.add('flex', 'flex-col');
@@ -730,38 +739,40 @@ export const Chat = {
               <button
                 class="invitation-accept flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-blue-600/20 text-blue-400 border border-blue-600/30 hover:border-blue-500 rounded transition text-sm font-medium"
                 data-invitation-id="${invitationId}">
-                Accept
+                ${I18n.translate('chat.accept')}
               </button>
               <button
                 class="invitation-decline flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-red-600/20 text-red-400 border border-red-600/30 hover:border-red-500 rounded transition text-sm font-medium"
                 data-invitation-id="${invitationId}">
-                Decline
+                ${I18n.translate('chat.decline')}
               </button>
             </div>
           `;
-          statusDisplay = '<p class="text-amber-500/80 text-xs mt-1">Waiting for your response...</p>';
+          statusDisplay = `<p class="text-amber-500/80 text-xs mt-1">${I18n.translate('chat.waiting_your_response')}</p>`;
         } else {
-          statusDisplay = '<p class="text-neutral-400 text-xs mt-1">Waiting for response...</p>';
+          statusDisplay = `<p class="text-neutral-400 text-xs mt-1">${I18n.translate('chat.waiting_response')}</p>`;
         }
         break;
       case 'accepted':
-        statusDisplay = '<p class="text-green-500/80 text-xs mt-1">Accepted - Starting game...</p>';
+        statusDisplay = `<p class="text-green-500/80 text-xs mt-1">${I18n.translate('chat.accepted_starting')}</p>`;
         break;
       case 'declined':
-        statusDisplay = '<p class="text-red-500/80 text-xs mt-1">Declined</p>';
+        statusDisplay = `<p class="text-red-500/80 text-xs mt-1">${I18n.translate('chat.declined')}</p>`;
         break;
       case 'expired':
-        statusDisplay = '<p class="text-neutral-500 text-xs mt-1">Expired</p>';
+        statusDisplay = `<p class="text-neutral-500 text-xs mt-1">${I18n.translate('chat.expired')}</p>`;
         break;
     }
+
+    const challengeText = I18n.translate('chat.challenges_you').replace('{name}', inviterName);
 
     return `
       <div class="invitation-card p-4 bg-neutral-800 rounded-lg"
            data-message-id="${message.id}"
            data-invitation-id="${invitationId}">
         <div class="flex flex-col items-center text-center gap-2">
-          <p class="text-white font-medium text-lg">Duel Invitation</p>
-          <p class="text-neutral-300">${inviterName} challenges you to a duel!</p>
+          <p class="text-white font-medium text-lg">${I18n.translate('chat.duel_invitation')}</p>
+          <p class="text-neutral-300">${challengeText}</p>
           ${statusDisplay}
         </div>
         ${actionsHtml}
@@ -806,11 +817,11 @@ export const Chat = {
     let resultText: string;
 
     if (isWinner) {
-      resultText = `You defeated ${loserName}!`;
+      resultText = I18n.translate('chat.you_defeated').replace('{name}', loserName);
     } else if (isLoser) {
-      resultText = `${winnerName} defeated you!`;
+      resultText = I18n.translate('chat.defeated_you').replace('{name}', winnerName);
     } else {
-      resultText = `${winnerName} defeated ${loserName}!`;
+      resultText = I18n.translate('chat.defeated').replace('{winner}', winnerName).replace('{loser}', loserName);
     }
 
     const timestamp = new Date(message.sent_at).toLocaleTimeString('en-US', {
@@ -831,14 +842,14 @@ export const Chat = {
       <div class="${cardClasses}"
            data-message-id="${message.id}">
         <div class="flex flex-col items-center text-center gap-2">
-          <p class="text-white font-medium text-lg">Match Complete</p>
+          <p class="text-white font-medium text-lg">${I18n.translate('chat.match_complete')}</p>
           <p class="${isWinner ? 'text-blue-400' : isLoser ? 'text-red-400' : 'text-neutral-300'} text-sm">${resultText}</p>
           <div class="flex items-center justify-center gap-6 mt-2">
             <div class="text-center">
               <p class="text-xl font-bold text-white">${score1}</p>
               <p class="text-xs text-neutral-400">${winnerName}</p>
             </div>
-            <span class="text-neutral-500">vs</span>
+            <span class="text-neutral-500">${I18n.translate('chat.vs')}</span>
             <div class="text-center">
               <p class="text-xl font-bold text-white">${score2}</p>
               <p class="text-xs text-neutral-400">${loserName}</p>
@@ -890,7 +901,7 @@ export const Chat = {
       minute: '2-digit'
     });
 
-    let headerText = `${displayInviterName} invites you to join`;
+    let headerText = I18n.translate('chat.invites_tournament').replace('{name}', displayInviterName);
     let statusDisplay = '';
     let actionsHtml = '';
     let cardClasses = 'tournament-invitation-card p-4 bg-neutral-800 rounded-lg';
@@ -898,15 +909,16 @@ export const Chat = {
     if (tournamentStatus === 'finished' && winnerName) {
       const isWinner = winnerId === App.me?.id;
       const isLoser = status === 'accepted' && !isWinner && isInvited;
-      headerText = 'Tournament Completed';
+      headerText = I18n.translate('chat.tournament_completed');
       if (isWinner) {
         cardClasses += ' border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]';
       } else if (isLoser) {
         cardClasses += ' border border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.3)]';
       }
+      const winnerText = isWinner ? I18n.translate('chat.you_won') : I18n.translate('chat.winner').replace('{name}', winnerName);
       statusDisplay = `
         <div class="flex flex-col items-center gap-1">
-          <p class="${isWinner ? 'text-blue-400' : isLoser ? 'text-red-400' : 'text-neutral-300'} font-bold text-lg">${isWinner ? 'You Won!' : `Winner: ${winnerName}`}</p>
+          <p class="${isWinner ? 'text-blue-400' : isLoser ? 'text-red-400' : 'text-neutral-300'} font-bold text-lg">${winnerText}</p>
           <p class="text-neutral-400 text-xs">${displayTournamentName}</p>
         </div>
       `;
@@ -914,16 +926,16 @@ export const Chat = {
         <button
           class="tournament-view-btn w-full mt-3 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white border border-neutral-600 rounded transition text-sm font-medium"
           data-tournament-id="${tournamentId}">
-          View Results
+          ${I18n.translate('chat.view_results')}
         </button>
       `;
     }
     else if (status === 'accepted' && matchReady && isInvited) {
-      headerText = 'Your Match is Ready';
+      headerText = I18n.translate('chat.match_ready');
       statusDisplay = `
         <div class="flex flex-col items-center gap-1">
           <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
-          <p class="text-white">vs <span class="text-neutral-300 font-medium">${opponentName || 'Opponent'}</span></p>
+          <p class="text-white">${I18n.translate('chat.vs')} <span class="text-neutral-300 font-medium">${opponentName || 'Opponent'}</span></p>
         </div>
       `;
       actionsHtml = `
@@ -931,39 +943,39 @@ export const Chat = {
           class="tournament-play-match-btn w-full mt-3 px-3 py-2 bg-neutral-700 hover:bg-neutral-600 text-white border border-neutral-600 rounded transition text-sm font-bold"
           data-tournament-id="${tournamentId}"
           data-match-id="${matchId || ''}">
-          Play Match Now
+          ${I18n.translate('chat.play_match_now')}
         </button>
       `;
     }
     else if (status === 'accepted' && tournamentStatus === 'in_progress') {
-      headerText = 'Tournament In Progress';
+      headerText = I18n.translate('chat.tournament_in_progress');
       statusDisplay = `
         <div class="flex flex-col items-center gap-1">
           <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
-          <p class="text-neutral-400 text-xs">Waiting for your next match...</p>
+          <p class="text-neutral-400 text-xs">${I18n.translate('chat.waiting_next_match')}</p>
         </div>
       `;
       actionsHtml = `
         <button
           class="tournament-view-btn w-full mt-3 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white border border-neutral-600 rounded transition text-sm font-medium"
           data-tournament-id="${tournamentId}">
-          View Tournament
+          ${I18n.translate('chat.view_tournament')}
         </button>
       `;
     }
     else if (status === 'accepted') {
-      headerText = 'Joined Tournament';
+      headerText = I18n.translate('chat.joined_tournament');
       statusDisplay = `
         <div class="flex flex-col items-center gap-1">
           <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
-          <p class="text-green-500/80 text-xs">Waiting for tournament to start...</p>
+          <p class="text-green-500/80 text-xs">${I18n.translate('chat.waiting_start')}</p>
         </div>
       `;
       actionsHtml = `
         <button
           class="tournament-view-btn w-full mt-3 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white border border-neutral-600 rounded transition text-sm font-medium"
           data-tournament-id="${tournamentId}">
-          View Tournament
+          ${I18n.translate('chat.view_tournament')}
         </button>
       `;
     }
@@ -975,45 +987,45 @@ export const Chat = {
               class="tournament-invitation-accept flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-green-600/20 text-green-400 border border-green-600/30 hover:border-green-500 rounded transition text-sm font-medium"
               data-invitation-id="${invitationId}"
               data-tournament-id="${tournamentId}">
-              Join Tournament
+              ${I18n.translate('chat.join_tournament')}
             </button>
             <button
               class="tournament-invitation-decline flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-red-600/20 text-red-400 border border-red-600/30 hover:border-red-500 rounded transition text-sm font-medium"
               data-invitation-id="${invitationId}">
-              Decline
+              ${I18n.translate('chat.decline')}
             </button>
           </div>
         `;
         statusDisplay = `
           <div class="flex flex-col items-center gap-1">
             <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
-            <p class="text-amber-500/80 text-xs">Waiting for your response...</p>
+            <p class="text-amber-500/80 text-xs">${I18n.translate('chat.waiting_your_response')}</p>
           </div>
         `;
       } else {
         statusDisplay = `
           <div class="flex flex-col items-center gap-1">
             <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
-            <p class="text-neutral-400 text-xs">Waiting for response...</p>
+            <p class="text-neutral-400 text-xs">${I18n.translate('chat.waiting_response')}</p>
           </div>
         `;
       }
     }
     else if (status === 'declined') {
-      headerText = 'Tournament Invitation';
+      headerText = I18n.translate('chat.tournament_invitation');
       statusDisplay = `
         <div class="flex flex-col items-center gap-1">
           <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
-          <p class="text-red-500/80 text-xs">Declined</p>
+          <p class="text-red-500/80 text-xs">${I18n.translate('chat.declined')}</p>
         </div>
       `;
     }
     else if (status === 'expired') {
-      headerText = 'Tournament Invitation';
+      headerText = I18n.translate('chat.tournament_invitation');
       statusDisplay = `
         <div class="flex flex-col items-center gap-1">
           <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
-          <p class="text-neutral-500 text-xs">Expired</p>
+          <p class="text-neutral-500 text-xs">${I18n.translate('chat.expired')}</p>
         </div>
       `;
     }
