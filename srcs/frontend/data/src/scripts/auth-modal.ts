@@ -1,5 +1,9 @@
+/* AUTH MODAL */
+
 import { PongGame } from '../game';
 import { LoginResponse } from '../shared/types';
+
+/* MODAL */
 
 export const AuthModal = {
   modal: null as HTMLElement | null,
@@ -11,9 +15,8 @@ export const AuthModal = {
   pending2FAUserId: null as string | null,
   onLoginSuccess: null as ((loginResponse: LoginResponse) => void) | null,
 
-  // init the auth modal
+  /* Initialise le modal d'authentification */
   init(): void {
-    // Initialize modal elements first (needed for OAuth 2FA callback)
     this.modal = document.getElementById('auth-modal');
     this.loginTab = document.getElementById('auth-login-tab');
     this.signupTab = document.getElementById('auth-signup-tab');
@@ -21,7 +24,6 @@ export const AuthModal = {
     this.signupForm = document.getElementById('auth-signup-form');
     this.twoFAForm = document.getElementById('auth-2fa-form');
 
-    // Handle OAuth callback (may need modal for 2FA)
     this.handleOAuthCallback();
 
     if (!this.modal) return;
@@ -34,8 +36,9 @@ export const AuthModal = {
     this.setup2FAListeners();
   },
 
-  
-  // set up tab switching
+  /* TABS */
+
+  /* Configure le changement d'onglets */
   setupTabListeners(): void {
     this.loginTab?.addEventListener('click', () => {
       this.showLogin();
@@ -46,7 +49,7 @@ export const AuthModal = {
     });
   },
 
-  // set up close button and background click
+  /* Configure les boutons de fermeture */
   setupCloseListeners(): void {
     const closeBtn = document.getElementById('auth-modal-close');
     closeBtn?.addEventListener('click', () => {
@@ -60,7 +63,7 @@ export const AuthModal = {
     });
   },
 
-  // set up switch between login and signup
+  /* Configure les liens de basculement */
   setupSwitchLinks(): void {
     document.getElementById('auth-switch-signup')?.addEventListener('click', () => {
       this.showSignup();
@@ -71,7 +74,9 @@ export const AuthModal = {
     });
   },
 
-  // show login form
+  /* FORMS */
+
+  /* Affiche le formulaire de connexion */
   showLogin(): void {
     this.loginTab?.classList.add('border-blue-500', 'text-white');
     this.loginTab?.classList.remove('border-transparent', 'text-neutral-400');
@@ -81,19 +86,16 @@ export const AuthModal = {
     this.signupForm?.classList.add('hidden');
     this.twoFAForm?.classList.add('hidden');
     this.pending2FAUserId = null;
-    // Show tabs for login/signup
     this.loginTab?.parentElement?.classList.remove('hidden');
-    // Show OAuth section
     document.getElementById('auth-oauth-divider')?.classList.remove('hidden');
     document.getElementById('auth-oauth-42')?.classList.remove('hidden');
-    // Focus on email input
     setTimeout(() => {
       const emailInput = this.loginForm?.querySelector('input[name="email"]') as HTMLInputElement;
       emailInput?.focus();
     }, 100);
   },
 
-  // show signup form
+  /* Affiche le formulaire d'inscription */
   showSignup(): void {
     this.signupTab?.classList.add('border-blue-500', 'text-white');
     this.signupTab?.classList.remove('border-transparent', 'text-neutral-400');
@@ -103,12 +105,9 @@ export const AuthModal = {
     this.loginForm?.classList.add('hidden');
     this.twoFAForm?.classList.add('hidden');
     this.pending2FAUserId = null;
-    // Show tabs for login/signup
     this.loginTab?.parentElement?.classList.remove('hidden');
-    // Show OAuth section
     document.getElementById('auth-oauth-divider')?.classList.remove('hidden');
     document.getElementById('auth-oauth-42')?.classList.remove('hidden');
-    // Copy login email to signup email if present
     setTimeout(() => {
       const loginEmailInput = this.loginForm?.querySelector('input[name="email"]') as HTMLInputElement;
       const signupEmailInput = this.signupForm?.querySelector('input[name="email"]') as HTMLInputElement;
@@ -119,20 +118,15 @@ export const AuthModal = {
     }, 100);
   },
 
-  /**
-   * Show 2FA verification form
-   */
+  /* Affiche le formulaire 2FA */
   show2FA(userId: string): void {
     this.pending2FAUserId = userId;
     this.loginForm?.classList.add('hidden');
     this.signupForm?.classList.add('hidden');
     this.twoFAForm?.classList.remove('hidden');
-    // Hide tabs when showing 2FA
     this.loginTab?.parentElement?.classList.add('hidden');
-    // Hide OAuth section when showing 2FA
     document.getElementById('auth-oauth-divider')?.classList.add('hidden');
     document.getElementById('auth-oauth-42')?.classList.add('hidden');
-    // Clear and focus on code input
     setTimeout(() => {
       const codeInput = this.twoFAForm?.querySelector('input[name="code"]') as HTMLInputElement;
       if (codeInput) {
@@ -142,32 +136,36 @@ export const AuthModal = {
     }, 100);
   },
 
-  // open the modal
+  /* MODAL CONTROLS */
+
+  /* Ouvre le modal */
   open(): void {
     this.modal?.classList.remove('hidden');
-    this.showLogin(); // Always show login by default
-    PongGame.pauseGame(); // pause the game
+    this.showLogin();
+    PongGame.pauseGame();
   },
 
-  // open the modal on signup form
+  /* Ouvre le modal sur le formulaire d'inscription */
   openSignup(): void {
     this.modal?.classList.remove('hidden');
-    this.showSignup(); // Show signup form
-    PongGame.pauseGame(); // pause the game
+    this.showSignup();
+    PongGame.pauseGame();
   },
 
-  // close the modal
+  /* Ferme le modal */
   close(): void {
     this.modal?.classList.add('hidden');
-    PongGame.resumeGame(); // resume the game
+    PongGame.resumeGame();
   },
 
+  /* FORM SUBMISSIONS */
+
+  /* Configure les soumissions de formulaires */
   setupFormSubmissions(): void {
     const loginFormElement = this.loginForm as HTMLFormElement | null;
     const signupFormElement = this.signupForm as HTMLFormElement | null;
     loginFormElement?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      // Handle login form submission
       const formData = new FormData(loginFormElement);
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
@@ -186,27 +184,23 @@ export const AuthModal = {
         }
 
         const data = await response.json();
-        
-        // Check if 2FA is required
+
         if (data.requires2FA && data.userId) {
           console.log('[AUTH] 2FA verification required');
           this.show2FA(data.userId);
           return;
         }
 
-        // Normal login (no 2FA)
         const loginResponse: LoginResponse = data;
         if (loginResponse.token) {
           sessionStorage.setItem('authToken', loginResponse.token);
         }
 
-        // Pass LoginResponse to app for handling
         if (this.onLoginSuccess) {
           this.onLoginSuccess(loginResponse);
         }
 
         alert('Login successful!');
-        // Clear login form fields
         loginFormElement.reset();
         this.close();
       } catch (error) {
@@ -215,13 +209,11 @@ export const AuthModal = {
     })
    signupFormElement?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      // Check if conditions of use are accepted
       const termsCheckbox = signupFormElement.querySelector('input[name="terms"], input[id="terms"], input[type="checkbox"]') as HTMLInputElement | null;
       if (termsCheckbox && !termsCheckbox.checked) {
         alert('You must accept the conditions of use to sign up.');
         return;
       }
-      // Handle signup form submission
       const formData = new FormData(signupFormElement);
       const name = formData.get('name') as string;
       const email = formData.get('email') as string;
@@ -242,18 +234,15 @@ export const AuthModal = {
 
         const loginResponse: LoginResponse = await response.json();
 
-        // Auto-login after successful registration
         if (loginResponse.token) {
           sessionStorage.setItem('authToken', loginResponse.token);
         }
 
-        // Pass LoginResponse to app for handling
         if (this.onLoginSuccess) {
           this.onLoginSuccess(loginResponse);
         }
 
         alert('Account created successfully!');
-        // Clear signup form fields
         signupFormElement.reset();
         this.close();
       } catch (error) {
@@ -262,7 +251,9 @@ export const AuthModal = {
    });
   },
 
-  // set up OAuth 42 button click handler
+  /* OAUTH */
+
+  /* Configure le bouton OAuth 42 */
   setupOAuth42Button(): void {
     const oauth42Btn = document.getElementById('auth-oauth-42');
     oauth42Btn?.addEventListener('click', async () => {
@@ -275,7 +266,6 @@ export const AuthModal = {
         }
         const data = await response.json();
         if (data.url) {
-          // Redirect to 42 authorization page
           window.location.href = data.url;
         }
       } catch (error) {
@@ -285,14 +275,13 @@ export const AuthModal = {
     });
   },
 
-  /**
-   * Setup 2FA form listeners
-   */
+  /* 2FA */
+
+  /* Configure les listeners 2FA */
   setup2FAListeners(): void {
     const twoFAFormElement = this.twoFAForm as HTMLFormElement | null;
     const backButton = document.getElementById('auth-2fa-back');
 
-    // Handle 2FA form submission
     twoFAFormElement?.addEventListener('submit', async (e) => {
       e.preventDefault();
 
@@ -323,7 +312,6 @@ export const AuthModal = {
         if (!response.ok) {
           const errorData = await response.json();
           alert(`Verification failed: ${errorData.message || 'Invalid code'}`);
-          // Clear the code input for retry
           const codeInput = twoFAFormElement.querySelector('input[name="code"]') as HTMLInputElement;
           if (codeInput) {
             codeInput.value = '';
@@ -337,7 +325,6 @@ export const AuthModal = {
           sessionStorage.setItem('authToken', loginResponse.token);
         }
 
-        // Pass LoginResponse to app for handling
         if (this.onLoginSuccess) {
           this.onLoginSuccess(loginResponse);
         }
@@ -352,26 +339,24 @@ export const AuthModal = {
       }
     });
 
-    // Handle back button
     backButton?.addEventListener('click', () => {
       this.pending2FAUserId = null;
       this.showLogin();
     });
 
-    // Auto-submit when 6 digits are entered
     const codeInput = twoFAFormElement?.querySelector('input[name="code"]') as HTMLInputElement;
     codeInput?.addEventListener('input', (e) => {
       const input = e.target as HTMLInputElement;
-      // Only allow digits
       input.value = input.value.replace(/\D/g, '');
-      // Auto-submit when 6 digits
       if (input.value.length === 6) {
         twoFAFormElement?.requestSubmit();
       }
     });
   },
 
-  // handle oauth callback - check for token or error in URL
+  /* OAUTH CALLBACK */
+
+  /* Gère le callback OAuth */
   handleOAuthCallback(): void {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
@@ -379,7 +364,6 @@ export const AuthModal = {
     const oauthRequires2FA = urlParams.get('oauth_requires_2fa');
     const oauthUserId = urlParams.get('userId');
 
-    // Handle OAuth error
     if (oauthError) {
       console.error('[AUTH] OAuth error:', oauthError);
       const errorMessages: Record<string, string> = {
@@ -392,38 +376,30 @@ export const AuthModal = {
         'missing_params': 'Invalid callback parameters.',
       };
       alert(errorMessages[oauthError] || `Login failed: ${oauthError}`);
-      // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
       return;
     }
 
-    // Handle OAuth with 2FA required
     if (oauthRequires2FA === 'true' && oauthUserId) {
       console.log('[AUTH] OAuth 2FA required for user:', oauthUserId);
-      // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
-      // Open modal and show 2FA form
       this.modal?.classList.remove('hidden');
       this.show2FA(oauthUserId);
       return;
     }
 
-    // Handle successful OAuth - token in URL
     if (token) {
       console.log('[AUTH] OAuth token received');
       sessionStorage.setItem('authToken', token);
-      // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
 
-      // Fetch user data with the token and trigger login success
       this.fetchUserDataWithToken(token);
     }
   },
 
-  // fetch user data after oauth login
+  /* Récupère les données utilisateur après OAuth */
   async fetchUserDataWithToken(token: string): Promise<void> {
     try {
-      // decode JWT to get user id
       const payload = JSON.parse(atob(token.split('.')[1]));
       const userId = payload.id;
 
@@ -434,7 +410,6 @@ export const AuthModal = {
         return;
       }
 
-      // Fetch user data using the ID from the JWT
       const response = await fetch(`/user/find?id=${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -463,7 +438,6 @@ export const AuthModal = {
         }
       } else {
         console.error('[AUTH] Failed to fetch user data after OAuth');
-        // Token might be invalid, clear it
         sessionStorage.removeItem('authToken');
         alert('Failed to complete login. Please try again.');
       }

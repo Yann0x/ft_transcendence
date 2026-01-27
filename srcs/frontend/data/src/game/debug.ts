@@ -1,20 +1,18 @@
-// DEBUG - debug tools for development
+/* DEBUG */
 
 import { drawText } from './render';
 
-// --- FLAGS ---
+/* FLAGS */
 
 export let showFPS = false;
 export let showHitboxes = false;
 
-// --- FPS COUNTER ---
+/* FPS COUNTER */
 
 let frameCount = 0;
 let lastFpsUpdate = 0;
 let currentFps = 0;
 
-// update FPS counter
-// call each frame with the current timestamp
 export function updateFps(now: number): void {
   frameCount++;
   if (now - lastFpsUpdate >= 1000) {
@@ -24,7 +22,6 @@ export function updateFps(now: number): void {
   }
 }
 
-// display FPS in top left corner
 export function drawFps(): void {
   if (!showFPS) return;
   drawText(`${currentFps} FPS`, 10, 20, {
@@ -35,7 +32,7 @@ export function drawFps(): void {
   });
 }
 
-// --- TOGGLES ---
+/* TOGGLES */
 
 export function toggleFPS(): void {
   showFPS = !showFPS;
@@ -47,7 +44,8 @@ export function toggleHitboxes(): void {
   console.log(`Debug: showHitboxes = ${showHitboxes}`);
 }
 
-// export group
+/* EXPORT */
+
 export const Debug = {
   showFPS,
   showHitboxes,

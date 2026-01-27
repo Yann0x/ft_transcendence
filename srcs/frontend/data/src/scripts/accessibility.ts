@@ -1,6 +1,9 @@
+/* ACCESSIBILITY */
+
 import { I18n } from './i18n';
 
-// Storage keys
+/* CONSTANTS */
+
 const STORAGE_KEYS = {
   highContrast: 'a11y_highContrast',
   fontSize: 'a11y_fontSize',
@@ -8,8 +11,8 @@ const STORAGE_KEYS = {
   focusHighlight: 'a11y_focusHighlight',
 } as const;
 
-// Font size levels
 type FontSizeLevel = 'normal' | 'large' | 'larger' | 'largest';
+
 const FONT_SIZE_VALUES: Record<FontSizeLevel, string> = {
   normal: '100%',
   large: '112%',
@@ -17,7 +20,8 @@ const FONT_SIZE_VALUES: Record<FontSizeLevel, string> = {
   largest: '150%',
 };
 
-// State
+/* STATE */
+
 interface AccessibilityState {
   highContrast: boolean;
   fontSize: FontSizeLevel;
@@ -34,6 +38,10 @@ const state: AccessibilityState = {
   panelOpen: false,
 };
 
+let announcer: HTMLElement | null = null;
+
+/* APPLY FUNCTIONS */
+
 function applyHighContrast(): void {
   document.body.classList.toggle('hc', state.highContrast);
   updateButtonState('a11y-contrast-btn', state.highContrast);
@@ -41,7 +49,6 @@ function applyHighContrast(): void {
 
 function applyFontSize(): void {
   document.documentElement.style.fontSize = FONT_SIZE_VALUES[state.fontSize];
-  // Update radio buttons
   const radios = document.querySelectorAll<HTMLInputElement>('input[name="a11y-font-size"]');
   radios.forEach(radio => {
     radio.checked = radio.value === state.fontSize;
@@ -73,6 +80,8 @@ function applyAll(): void {
   applyFocusHighlight();
 }
 
+/* TOGGLES */
+
 function toggleHighContrast(): void {
   state.highContrast = !state.highContrast;
   localStorage.setItem(STORAGE_KEYS.highContrast, String(state.highContrast));
@@ -101,11 +110,11 @@ function toggleFocusHighlight(): void {
   announceChange(state.focusHighlight ? 'accessibility.focus_enabled' : 'accessibility.focus_disabled');
 }
 
-let announcer: HTMLElement | null = null;
+/* ANNOUNCER */
 
 function createAnnouncer(): void {
   if (announcer) return;
-  
+
   announcer = document.createElement('div');
   announcer.id = 'a11y-announcer';
   announcer.setAttribute('role', 'status');
@@ -119,7 +128,6 @@ function announceChange(messageKey: string): void {
   if (!announcer) createAnnouncer();
   if (announcer) {
     announcer.textContent = '';
-    // Small delay to ensure screen readers catch the change
     setTimeout(() => {
       if (announcer) {
         announcer.textContent = I18n.translate(messageKey);
@@ -128,7 +136,6 @@ function announceChange(messageKey: string): void {
   }
 }
 
-// Public function for announcing any message
 function announce(message: string): void {
   if (!announcer) createAnnouncer();
   if (announcer) {
@@ -141,17 +148,18 @@ function announce(message: string): void {
   }
 }
 
+/* PANEL */
+
 function togglePanel(): void {
   state.panelOpen = !state.panelOpen;
   const panel = document.getElementById('a11y-panel');
   const button = document.getElementById('a11y-toggle');
-  
+
   if (panel && button) {
     panel.classList.toggle('hidden', !state.panelOpen);
     button.setAttribute('aria-expanded', String(state.panelOpen));
-    
+
     if (state.panelOpen) {
-      // Focus first interactive element in panel
       const firstFocusable = panel.querySelector<HTMLElement>('button, input');
       firstFocusable?.focus();
     }
@@ -162,7 +170,7 @@ function closePanel(): void {
   state.panelOpen = false;
   const panel = document.getElementById('a11y-panel');
   const button = document.getElementById('a11y-toggle');
-  
+
   if (panel) panel.classList.add('hidden');
   if (button) {
     button.setAttribute('aria-expanded', 'false');
@@ -171,16 +179,15 @@ function closePanel(): void {
 }
 
 function createPanel(): void {
-  // Remove existing panel if any
   document.getElementById('a11y-panel')?.remove();
-  
+
   const panel = document.createElement('div');
   panel.id = 'a11y-panel';
   panel.className = 'a11y-panel hidden';
   panel.setAttribute('role', 'dialog');
   panel.setAttribute('aria-labelledby', 'a11y-panel-title');
   panel.setAttribute('aria-modal', 'true');
-  
+
   panel.innerHTML = `
     <div class="a11y-panel-header">
       <h2 id="a11y-panel-title" class="a11y-panel-title">
@@ -192,9 +199,8 @@ function createPanel(): void {
         </svg>
       </button>
     </div>
-    
+
     <div class="a11y-panel-content">
-      <!-- High Contrast -->
       <div class="a11y-option">
         <div class="a11y-option-info">
           <div>
@@ -202,13 +208,12 @@ function createPanel(): void {
             <div class="a11y-option-desc" data-i18n="accessibility.high_contrast_desc">Améliore la lisibilité avec des couleurs contrastées</div>
           </div>
         </div>
-        <button id="a11y-contrast-btn" class="a11y-toggle-btn ${state.highContrast ? 'active' : ''}" 
+        <button id="a11y-contrast-btn" class="a11y-toggle-btn ${state.highContrast ? 'active' : ''}"
                 type="button" role="switch" aria-checked="${state.highContrast}" aria-pressed="${state.highContrast}">
           <span class="a11y-toggle-slider"></span>
         </button>
       </div>
-      
-      <!-- Font Size -->
+
       <div class="a11y-option a11y-option-vertical">
         <div class="a11y-option-info">
           <div>
@@ -239,8 +244,7 @@ function createPanel(): void {
           </label>
         </div>
       </div>
-      
-      <!-- Reduced Motion -->
+
       <div class="a11y-option">
         <div class="a11y-option-info">
           <div>
@@ -248,13 +252,12 @@ function createPanel(): void {
             <div class="a11y-option-desc" data-i18n="accessibility.reduced_motion_desc">Désactive les animations et transitions</div>
           </div>
         </div>
-        <button id="a11y-motion-btn" class="a11y-toggle-btn ${state.reducedMotion ? 'active' : ''}" 
+        <button id="a11y-motion-btn" class="a11y-toggle-btn ${state.reducedMotion ? 'active' : ''}"
                 type="button" role="switch" aria-checked="${state.reducedMotion}" aria-pressed="${state.reducedMotion}">
           <span class="a11y-toggle-slider"></span>
         </button>
       </div>
-      
-      <!-- Focus Highlight -->
+
       <div class="a11y-option">
         <div class="a11y-option-info">
           <div>
@@ -262,13 +265,12 @@ function createPanel(): void {
             <div class="a11y-option-desc" data-i18n="accessibility.focus_highlight_desc">Met en évidence l'élément actif au clavier</div>
           </div>
         </div>
-        <button id="a11y-focus-btn" class="a11y-toggle-btn ${state.focusHighlight ? 'active' : ''}" 
+        <button id="a11y-focus-btn" class="a11y-toggle-btn ${state.focusHighlight ? 'active' : ''}"
                 type="button" role="switch" aria-checked="${state.focusHighlight}" aria-pressed="${state.focusHighlight}">
           <span class="a11y-toggle-slider"></span>
         </button>
       </div>
-      
-      <!-- Keyboard Shortcuts Info -->
+
       <div class="a11y-shortcuts">
         <div class="a11y-shortcuts-title" data-i18n="accessibility.keyboard_shortcuts">Raccourcis clavier</div>
         <ul class="a11y-shortcuts-list">
@@ -279,41 +281,32 @@ function createPanel(): void {
       </div>
     </div>
   `;
-  
+
   document.body.appendChild(panel);
   bindPanelEvents();
   I18n.applyTranslations();
 }
 
 function bindPanelEvents(): void {
-  // Close button
   document.getElementById('a11y-panel-close')?.addEventListener('click', closePanel);
-  
-  // Contrast toggle
   document.getElementById('a11y-contrast-btn')?.addEventListener('click', toggleHighContrast);
-  
-  // Font size radios
+
   const fontRadios = document.querySelectorAll<HTMLInputElement>('input[name="a11y-font-size"]');
   fontRadios.forEach(radio => {
     radio.addEventListener('change', () => {
       setFontSize(radio.value as FontSizeLevel);
     });
   });
-  
-  // Reduced motion toggle
+
   document.getElementById('a11y-motion-btn')?.addEventListener('click', toggleReducedMotion);
-  
-  // Focus highlight toggle
   document.getElementById('a11y-focus-btn')?.addEventListener('click', toggleFocusHighlight);
-  
-  // Close on Escape
+
   document.getElementById('a11y-panel')?.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closePanel();
     }
   });
-  
-  // Close when clicking outside
+
   document.addEventListener('click', (e) => {
     const panel = document.getElementById('a11y-panel');
     const toggle = document.getElementById('a11y-toggle');
@@ -325,33 +318,33 @@ function bindPanelEvents(): void {
   });
 }
 
+/* SETTINGS */
+
 function loadSettings(): void {
-  // High contrast
   const storedContrast = localStorage.getItem(STORAGE_KEYS.highContrast);
   if (storedContrast === null) {
     state.highContrast = window.matchMedia?.('(prefers-contrast: more)').matches ?? false;
   } else {
     state.highContrast = storedContrast === 'true';
   }
-  
-  // Font size
+
   const storedFontSize = localStorage.getItem(STORAGE_KEYS.fontSize) as FontSizeLevel | null;
   if (storedFontSize && storedFontSize in FONT_SIZE_VALUES) {
     state.fontSize = storedFontSize;
   }
-  
-  // Reduced motion
+
   const storedMotion = localStorage.getItem(STORAGE_KEYS.reducedMotion);
   if (storedMotion === null) {
     state.reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
   } else {
     state.reducedMotion = storedMotion === 'true';
   }
-  
-  // Focus highlight
+
   const storedFocus = localStorage.getItem(STORAGE_KEYS.focusHighlight);
   state.focusHighlight = storedFocus === null ? true : storedFocus === 'true';
 }
+
+/* BINDINGS */
 
 function bindMainToggle(): void {
   const toggle = document.getElementById('a11y-toggle');
@@ -366,9 +359,8 @@ function bindMainToggle(): void {
 }
 
 function addSkipLink(): void {
-  // Add skip to main content link for keyboard users
   if (document.getElementById('skip-link')) return;
-  
+
   const skipLink = document.createElement('a');
   skipLink.id = 'skip-link';
   skipLink.href = '#main-content';
@@ -382,9 +374,11 @@ function addSkipLink(): void {
       main.focus();
     }
   });
-  
+
   document.body.insertBefore(skipLink, document.body.firstChild);
 }
+
+/* INIT */
 
 function init(): void {
   loadSettings();
@@ -396,13 +390,14 @@ function init(): void {
 
 function bindControls(): void {
   bindMainToggle();
-  // Recreate panel if it was in DOM (after navigation)
   if (state.panelOpen) {
     createPanel();
     const panel = document.getElementById('a11y-panel');
     if (panel) panel.classList.remove('hidden');
   }
 }
+
+/* EXPORT */
 
 export const Accessibility = {
   init,

@@ -1,4 +1,4 @@
-// PONG GAME - Network only
+/* PONG GAME */
 
 import { createCanvas, getCtx } from './canvas';
 import { State, setPhase, type GameState } from './state';
@@ -11,15 +11,7 @@ import Router from '../scripts/router';
 import { I18n } from '../scripts/i18n';
 import { StatsService } from '../scripts/stats-service';
 
-let running = false;
-let lastInputSent = { up: false, down: false };
-let lastInputSentP2 = { up: false, down: false };
-let gameMode: 'solo' | 'pvp' | 'tournament' | 'invitation' | 'local_tournament' | null = null;
-let localMode = false; // true = local PvP (2 players same keyboard), false = vs AI
-let currentDifficulty: AIDifficulty = 'normal';
-let pollInterval: number | null = null;
-let tournamentMatchInfo: TournamentMatchInfo | null = null;
-let invitationOpponentName: string | null = null;
+/* TYPES */
 
 interface ActiveGameInfo {
   roomId: string;
@@ -30,17 +22,52 @@ interface ActiveGameInfo {
   side: 'left' | 'right';
 }
 
+interface LocalTournamentMatchInfo {
+  tournamentId: string;
+  matchId: string;
+  player1Alias: string;
+  player2Alias: string;
+}
+
+interface ServerState {
+  phase: string;
+  endReason?: 'forfeit' | 'score';
+  ball: { x: number; y: number; radius: number; vx: number; vy: number };
+  paddles: [
+    { x: number; y: number; width: number; height: number },
+    { x: number; y: number; width: number; height: number }
+  ];
+  score: { left: number; right: number };
+}
+
+/* STATE */
+
+let running = false;
+let lastInputSent = { up: false, down: false };
+let lastInputSentP2 = { up: false, down: false };
+let gameMode: 'solo' | 'pvp' | 'tournament' | 'invitation' | 'local_tournament' | null = null;
+let localMode = false;
+let currentDifficulty: AIDifficulty = 'normal';
+let pollInterval: number | null = null;
+let tournamentMatchInfo: TournamentMatchInfo | null = null;
+let localTournamentMatchInfo: LocalTournamentMatchInfo | null = null;
+let invitationOpponentName: string | null = null;
+let isChangingMode = false;
+let setActiveButtonFn: ((btn: HTMLElement | null) => void) | null = null;
+
+/* HELPERS */
+
 async function checkActiveGame(): Promise<ActiveGameInfo | null> {
   try {
     const token = sessionStorage.getItem('authToken');
     if (!token) return null;
-    
+
     const response = await fetch('/api/game/active', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
-    
+
     if (response.ok) {
       return await response.json();
     }
@@ -57,7 +84,7 @@ async function fetchUserName(userId: string): Promise<string | null> {
     const response = await fetch(`/api/user/public/${userId}`, {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     });
-    
+
     if (response.ok) {
       const user = await response.json();
       return user.name || null;
@@ -69,224 +96,9 @@ async function fetchUserName(userId: string): Promise<string | null> {
   }
 }
 
-// Local tournament match info
-interface LocalTournamentMatchInfo {
-  tournamentId: string;
-  matchId: string;
-  player1Alias: string;
-  player2Alias: string;
-}
-let localTournamentMatchInfo: LocalTournamentMatchInfo | null = null;
-
-export async function init(): Promise<void> {
-  const container = document.getElementById("game-container")
-  if (!container)
-  {
-    console.log('No game-container element onthis page, exit')
-    return;
-  }
-
-  // if already running, cleanup first
-  if (running) {
-    cleanup();
-  }
-
-  createCanvas(container);
-  State.init();
-
-  bindKeyboard();
-  bindKeys();
-  bindModeButtons();
-
-  // Check for game invitation mode
-  const invitationData = sessionStorage.getItem('game_invitation');
-  if (invitationData) {
-    try {
-      const { invitationId, gameRoomId, opponentName } = JSON.parse(invitationData);
-      gameMode = 'invitation';
-      localMode = false;
-      invitationOpponentName = opponentName || null;
-
-      clearModeSelection();
-      setOnlineStatus(true);
-
-      connectToInvitationGame(invitationId, gameRoomId);
-      sessionStorage.removeItem('game_invitation');
-
-      pollPvPStats();
-      pollInterval = window.setInterval(pollPvPStats, 3000);
-
-      running = true;
-      requestAnimationFrame(gameLoop);
-      return;
-    } catch (e) {
-      console.error('[GAME] Invalid invitation data:', e);
-      sessionStorage.removeItem('game_invitation');
-    }
-  }
-
-  // Check for active game (reconnection after page refresh)
-  const activeGame = await checkActiveGame();
-  if (activeGame && activeGame.invitationId) {
-    console.log('[GAME] Found active invitation game, reconnecting...', activeGame);
-    gameMode = 'invitation';
-    localMode = false;
-    
-    // Fetch opponent name if we have their ID
-    if (activeGame.opponentId) {
-      invitationOpponentName = await fetchUserName(activeGame.opponentId);
-    }
-
-    clearModeSelection();
-    setOnlineStatus(true);
-
-    connectToInvitationGame(activeGame.invitationId, activeGame.roomId);
-
-    pollPvPStats();
-    pollInterval = window.setInterval(pollPvPStats, 3000);
-
-    running = true;
-    requestAnimationFrame(gameLoop);
-    return;
-  }
-
-  // Check for tournament mode in URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const tournamentId = urlParams.get('tournament');
-  const matchId = urlParams.get('match');
-
-  if (tournamentId && matchId) {
-    // Tournament mode - get match info from session storage
-    const savedMatchInfo = sessionStorage.getItem('tournament_match');
-    if (savedMatchInfo) {
-      try {
-        tournamentMatchInfo = JSON.parse(savedMatchInfo);
-        if (tournamentMatchInfo) {
-          gameMode = 'tournament';
-          localMode = false;
-
-          // Clear mode button selection for tournament mode
-          clearModeSelection();
-
-          // Set online status for tournament mode (like PvP)
-          setOnlineStatus(true);
-
-          connectToServerTournament(tournamentMatchInfo);
-
-          // Start polling PvP stats
-          pollPvPStats();
-          pollInterval = window.setInterval(pollPvPStats, 3000);
-
-          running = true;
-          requestAnimationFrame(gameLoop);
-          return;
-        }
-      } catch (e) {
-        console.error('[GAME] Invalid tournament match info:', e);
-      }
-    }
-  }
-  
-  // Check for LOCAL tournament mode in URL
-  const localTournamentId = urlParams.get('local_tournament');
-  const localMatchId = urlParams.get('match');
-  
-  if (localTournamentId && localMatchId) {
-    // Local tournament mode - get match info from session storage
-    const savedLocalMatchInfo = sessionStorage.getItem('local_tournament_match');
-    if (savedLocalMatchInfo) {
-      try {
-        localTournamentMatchInfo = JSON.parse(savedLocalMatchInfo);
-        if (localTournamentMatchInfo) {
-          gameMode = 'local_tournament';
-          localMode = true; // Use local controls (W/S vs arrows)
-          
-          // Clear mode button selection
-          clearModeSelection();
-          
-          // Set offline status for local tournament
-          setOnlineStatus(false);
-          
-          // Connect to server in local mode (same as PvP local)
-          connectToServerLocalTournament();
-          
-          // Start polling PvP stats
-          pollPvPStats();
-          pollInterval = window.setInterval(pollPvPStats, 3000);
-          
-          running = true;
-          requestAnimationFrame(gameLoop);
-          return;
-        }
-      } catch (e) {
-        console.error('[GAME] Invalid local tournament match info:', e);
-        sessionStorage.removeItem('local_tournament_match');
-      }
-    }
-  }
-
-  // Load user stats for the home page
-  loadHomeStats();
-
-  // Default: auto-connect in solo mode (normal)
-  gameMode = 'solo';
-  localMode = false;
-  currentDifficulty = 'normal';
-  connectToServer('solo', 'normal');
-
-  // Start polling PvP stats
-  pollPvPStats();
-  pollInterval = window.setInterval(pollPvPStats, 3000);
-
-  running = true;
-  requestAnimationFrame(gameLoop);
-}
-
-// load and display user stats on the home page
 async function loadHomeStats(): Promise<void> {
   const stats = await StatsService.fetchStats();
   StatsService.updateHomeStats(stats);
-}
-
-export function cleanup(): void {
-  console.log('[GAME] Cleanup');
-  running = false;
-
-  // stop polling
-  if (pollInterval !== null) {
-    clearInterval(pollInterval);
-    pollInterval = null;
-  }
-
-  // remove keyboard listeners
-  unbindKeyboard();
-
-  // disconnect from server
-  Network.disconnect();
-
-  // reset state
-  gameMode = null;
-  localMode = false;
-  tournamentMatchInfo = null;
-  localTournamentMatchInfo = null;
-  
-  // Clear tournament match info from session
-  sessionStorage.removeItem('tournament_match');
-  sessionStorage.removeItem('local_tournament_match');
-}
-
-export function pauseGame(): void {
-  const state = State.getState();
-  if (state && state.phase === 'playing') {
-    Network.sendPause();
-  }
-}
-
-export function resumeGame(): void {
-  const state = State.getState();
-  if (state && state.phase === 'paused') {
-    Network.sendResume();
-  }
 }
 
 async function pollPvPStats(): Promise<void> {
@@ -297,7 +109,6 @@ async function pollPvPStats(): Promise<void> {
       updatePvPStatsDisplay(stats);
     }
   } catch {
-    // Ignore errors
   }
 }
 
@@ -331,13 +142,218 @@ function setOnlineStatus(isOnline: boolean): void {
   }
 }
 
-// Export setActiveButton so it can be called from outside
-let setActiveButtonFn: ((btn: HTMLElement | null) => void) | null = null;
-
 export function clearModeSelection(): void {
   if (setActiveButtonFn) {
-    setActiveButtonFn(null); // Deselect all buttons
+    setActiveButtonFn(null);
   }
+}
+
+/* INITIALIZATION */
+
+export async function init(): Promise<void> {
+  const container = document.getElementById("game-container")
+  if (!container)
+  {
+    console.log('No game-container element onthis page, exit')
+    return;
+  }
+
+  if (running) {
+    cleanup();
+  }
+
+  createCanvas(container);
+  State.init();
+
+  bindKeyboard();
+  bindKeys();
+  bindModeButtons();
+
+  const invitationData = sessionStorage.getItem('game_invitation');
+  if (invitationData) {
+    try {
+      const { invitationId, gameRoomId, opponentName } = JSON.parse(invitationData);
+      gameMode = 'invitation';
+      localMode = false;
+      invitationOpponentName = opponentName || null;
+
+      clearModeSelection();
+      setOnlineStatus(true);
+
+      connectToInvitationGame(invitationId, gameRoomId);
+      sessionStorage.removeItem('game_invitation');
+
+      pollPvPStats();
+      pollInterval = window.setInterval(pollPvPStats, 3000);
+
+      running = true;
+      requestAnimationFrame(gameLoop);
+      return;
+    } catch (e) {
+      console.error('[GAME] Invalid invitation data:', e);
+      sessionStorage.removeItem('game_invitation');
+    }
+  }
+
+  const activeGame = await checkActiveGame();
+  if (activeGame && activeGame.invitationId) {
+    console.log('[GAME] Found active invitation game, reconnecting...', activeGame);
+    gameMode = 'invitation';
+    localMode = false;
+
+    if (activeGame.opponentId) {
+      invitationOpponentName = await fetchUserName(activeGame.opponentId);
+    }
+
+    clearModeSelection();
+    setOnlineStatus(true);
+
+    connectToInvitationGame(activeGame.invitationId, activeGame.roomId);
+
+    pollPvPStats();
+    pollInterval = window.setInterval(pollPvPStats, 3000);
+
+    running = true;
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const tournamentId = urlParams.get('tournament');
+  const matchId = urlParams.get('match');
+
+  if (tournamentId && matchId) {
+    const savedMatchInfo = sessionStorage.getItem('tournament_match');
+    if (savedMatchInfo) {
+      try {
+        tournamentMatchInfo = JSON.parse(savedMatchInfo);
+        if (tournamentMatchInfo) {
+          gameMode = 'tournament';
+          localMode = false;
+
+          clearModeSelection();
+          setOnlineStatus(true);
+
+          connectToServerTournament(tournamentMatchInfo);
+
+          pollPvPStats();
+          pollInterval = window.setInterval(pollPvPStats, 3000);
+
+          running = true;
+          requestAnimationFrame(gameLoop);
+          return;
+        }
+      } catch (e) {
+        console.error('[GAME] Invalid tournament match info:', e);
+      }
+    }
+  }
+
+  const localTournamentId = urlParams.get('local_tournament');
+  const localMatchId = urlParams.get('match');
+
+  if (localTournamentId && localMatchId) {
+    const savedLocalMatchInfo = sessionStorage.getItem('local_tournament_match');
+    if (savedLocalMatchInfo) {
+      try {
+        localTournamentMatchInfo = JSON.parse(savedLocalMatchInfo);
+        if (localTournamentMatchInfo) {
+          gameMode = 'local_tournament';
+          localMode = true;
+
+          clearModeSelection();
+          setOnlineStatus(false);
+
+          connectToServerLocalTournament();
+
+          pollPvPStats();
+          pollInterval = window.setInterval(pollPvPStats, 3000);
+
+          running = true;
+          requestAnimationFrame(gameLoop);
+          return;
+        }
+      } catch (e) {
+        console.error('[GAME] Invalid local tournament match info:', e);
+        sessionStorage.removeItem('local_tournament_match');
+      }
+    }
+  }
+
+  loadHomeStats();
+
+  gameMode = 'solo';
+  localMode = false;
+  currentDifficulty = 'normal';
+  connectToServer('solo', 'normal');
+
+  pollPvPStats();
+  pollInterval = window.setInterval(pollPvPStats, 3000);
+
+  running = true;
+  requestAnimationFrame(gameLoop);
+}
+
+export function cleanup(): void {
+  console.log('[GAME] Cleanup');
+  running = false;
+
+  if (pollInterval !== null) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+
+  unbindKeyboard();
+  Network.disconnect();
+
+  gameMode = null;
+  localMode = false;
+  tournamentMatchInfo = null;
+  localTournamentMatchInfo = null;
+
+  sessionStorage.removeItem('tournament_match');
+  sessionStorage.removeItem('local_tournament_match');
+}
+
+/* GAME CONTROLS */
+
+export function pauseGame(): void {
+  const state = State.getState();
+  if (state && state.phase === 'playing') {
+    Network.sendPause();
+  }
+}
+
+export function resumeGame(): void {
+  const state = State.getState();
+  if (state && state.phase === 'paused') {
+    Network.sendResume();
+  }
+}
+
+/* KEY BINDINGS */
+
+function bindKeys(): void {
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'f') toggleFPS();
+    if (e.key === 'h') toggleHitboxes();
+    if (e.key === ' ') {
+      const state = State.getState();
+      if (state?.phase === 'ended' && state.endReason === 'forfeit') {
+        connectToServer('pvp');
+      } else {
+        Network.sendStart();
+      }
+    }
+    if (e.key === 'Escape') {
+      const state = State.getState();
+      if (state?.phase === 'playing') {
+        Network.sendPause();
+      } else if (state?.phase === 'paused') {
+        Network.sendResume();
+      }
+    }
+  });
 }
 
 function bindModeButtons(): void {
@@ -361,8 +377,7 @@ function bindModeButtons(): void {
       activeBtn.classList.add('btn-primary');
     }
   };
-  
-  // Store reference for external use
+
   setActiveButtonFn = setActiveButton;
 
   const hideDifficultyMenu = () => {
@@ -383,7 +398,6 @@ function bindModeButtons(): void {
     connectToServer('solo', difficulty);
   };
 
-  // Solo button shows difficulty menu
   if (btnSolo) {
     btnSolo.addEventListener('click', () => {
       if (difficultyMenu?.classList.contains('hidden')) {
@@ -394,12 +408,10 @@ function bindModeButtons(): void {
     });
   }
 
-  // Difficulty buttons
   btnDiffBeginner?.addEventListener('click', () => selectDifficulty('easy'));
   btnDiffNormal?.addEventListener('click', () => selectDifficulty('normal'));
   btnDiffHard?.addEventListener('click', () => selectDifficulty('hard'));
 
-  // Hide menu when clicking elsewhere
   document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
     if (!btnSolo?.contains(target) && !difficultyMenu?.contains(target)) {
@@ -429,53 +441,26 @@ function bindModeButtons(): void {
     });
   }
 
-  // Set Solo as default active
   setActiveButton(btnSolo);
 }
 
-function bindKeys(): void {
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'f') toggleFPS();
-    if (e.key === 'h') toggleHitboxes();
-    if (e.key === ' ') {
-      const state = State.getState();
-      if (state?.phase === 'ended' && state.endReason === 'forfeit') {
-        connectToServer('pvp');
-      } else {
-        Network.sendStart();
-      }
-    }
-    if (e.key === 'Escape') {
-      const state = State.getState();
-      if (state?.phase === 'playing') {
-        Network.sendPause();
-      } else if (state?.phase === 'paused') {
-        Network.sendResume();
-      }
-    }
-  });
-}
-
-let isChangingMode = false;
+/* SERVER CONNECTION */
 
 async function connectToServer(mode: 'solo' | 'local' | 'pvp', difficulty: AIDifficulty = 'hard'): Promise<void> {
   try {
     isChangingMode = true;
 
-    // Register callbacks BEFORE connecting to catch early state updates
     Network.onStateUpdate((data) => {
       applyServerState(data as ServerState);
     });
 
     Network.onDisconnected(() => {
-      // Don't reset if we're just changing mode
       if (!isChangingMode) {
         gameMode = null;
         setPhase('waiting');
       }
     });
 
-    // Each mode is distinct on the server
     await Network.connect(mode, difficulty);
     isChangingMode = false;
     setPhase('waiting');
@@ -483,7 +468,7 @@ async function connectToServer(mode: 'solo' | 'local' | 'pvp', difficulty: AIDif
     console.error('[GAME] Connection failed:', err);
     isChangingMode = false;
     gameMode = null;
-    setPhase('waiting'); // Reset to waiting state to show menu instead of stuck "Connecting..."
+    setPhase('waiting');
   }
 }
 
@@ -491,20 +476,15 @@ async function connectToServerTournament(matchInfo: TournamentMatchInfo): Promis
   try {
     isChangingMode = true;
 
-    // Store tournament ID for redirect after match
     const currentTournamentId = matchInfo.tournamentId;
 
-    // Register callbacks BEFORE connecting to catch early state updates
     Network.onStateUpdate((data) => {
       applyServerState(data as ServerState);
-      
-      // Check if game ended - redirect back to tournament
+
       const serverState = data as ServerState;
       if (serverState.phase === 'ended' && tournamentMatchInfo) {
         setTimeout(() => {
-          // Clear match info and redirect to tournament page using SPA router
           sessionStorage.removeItem('tournament_match');
-          // Store tournament ID to view after redirect
           sessionStorage.setItem('view_tournament_after_match', currentTournamentId);
           Router.navigate('/tournaments');
         }, 3000);
@@ -515,7 +495,6 @@ async function connectToServerTournament(matchInfo: TournamentMatchInfo): Promis
       if (!isChangingMode) {
         gameMode = null;
         setPhase('waiting');
-        // Redirect back to tournament page using SPA router
         if (tournamentMatchInfo) {
           sessionStorage.setItem('view_tournament_after_match', currentTournamentId);
           Router.navigate('/tournaments');
@@ -530,7 +509,6 @@ async function connectToServerTournament(matchInfo: TournamentMatchInfo): Promis
     console.error('[GAME] Tournament connection failed:', err);
     isChangingMode = false;
     gameMode = null;
-    // Redirect back to tournament page on error using SPA router
     if (tournamentMatchInfo) {
       sessionStorage.setItem('view_tournament_after_match', tournamentMatchInfo.tournamentId);
     }
@@ -542,11 +520,9 @@ async function connectToInvitationGame(invitationId: string, gameRoomId: string)
   try {
     isChangingMode = true;
 
-    // Register callbacks BEFORE connecting
     Network.onStateUpdate((data) => {
       applyServerState(data as ServerState);
 
-      // Check if game ended - redirect to social hub
       const serverState = data as ServerState;
       if (serverState.phase === 'ended') {
         setTimeout(() => {
@@ -563,7 +539,6 @@ async function connectToInvitationGame(invitationId: string, gameRoomId: string)
       }
     });
 
-    // Connect with invitation parameters
     await Network.connectInvitation(invitationId, gameRoomId);
     isChangingMode = false;
     setPhase('waiting');
@@ -575,47 +550,41 @@ async function connectToInvitationGame(invitationId: string, gameRoomId: string)
   }
 }
 
-// connect to server for local tournament match (uses local PvP mode)
 async function connectToServerLocalTournament(): Promise<void> {
   if (!localTournamentMatchInfo) {
     console.error('[GAME] No local tournament match info');
     Router.navigate('/tournaments');
     return;
   }
-  
+
   try {
     isChangingMode = true;
-    
+
     const currentMatchInfo = { ...localTournamentMatchInfo };
-    
-    // Register callbacks BEFORE connecting
+
     Network.onStateUpdate((data) => {
       applyServerState(data as ServerState);
-      
-      // Check if game ended - report score back to tournament and redirect
+
       const serverState = data as ServerState;
       if (serverState.phase === 'ended' && localTournamentMatchInfo) {
         const score1 = serverState.score.left;
         const score2 = serverState.score.right;
-        
+
         console.log(`[GAME] Local tournament match ended: ${score1} - ${score2}`);
-        
-        // Save match result for restoration (tournament state was saved before navigating here)
+
         sessionStorage.setItem('local_tournament_result', JSON.stringify({
           matchId: localTournamentMatchInfo.matchId,
           score1,
           score2
         }));
-        
+
         setTimeout(() => {
-          // Clear match info
           sessionStorage.removeItem('local_tournament_match');
-          // Redirect back to tournaments page
           Router.navigate('/tournaments');
         }, 3000);
       }
     });
-    
+
     Network.onDisconnected(() => {
       if (!isChangingMode) {
         gameMode = null;
@@ -623,8 +592,7 @@ async function connectToServerLocalTournament(): Promise<void> {
         Router.navigate('/tournaments');
       }
     });
-    
-    // Connect in local mode (same as PvP local - 2 players same keyboard)
+
     await Network.connect('local');
     isChangingMode = false;
     setPhase('waiting');
@@ -637,16 +605,7 @@ async function connectToServerLocalTournament(): Promise<void> {
   }
 }
 
-interface ServerState {
-  phase: string;
-  endReason?: 'forfeit' | 'score';
-  ball: { x: number; y: number; radius: number; vx: number; vy: number };
-  paddles: [
-    { x: number; y: number; width: number; height: number },
-    { x: number; y: number; width: number; height: number }
-  ];
-  score: { left: number; right: number };
-}
+/* STATE SYNC */
 
 function applyServerState(serverState: ServerState): void {
   const state = State.getState();
@@ -678,6 +637,8 @@ function applyServerState(serverState: ServerState): void {
   }
 }
 
+/* GAME LOOP */
+
 function gameLoop(): void {
   if (!running) return;
 
@@ -694,7 +655,6 @@ function gameLoop(): void {
 
 function sendInputsToServer(): void {
   if (localMode) {
-    // Local mode (local PvP or local tournament): send both players' inputs
     const p1 = getInputP1();
     const p2 = getInputP2();
 
@@ -705,7 +665,6 @@ function sendInputsToServer(): void {
       lastInputSentP2 = { ...p2 };
     }
   } else {
-    // Normal mode: send only own inputs
     const input = getInput();
 
     if (input.up !== lastInputSent.up || input.down !== lastInputSent.down) {
@@ -715,28 +674,25 @@ function sendInputsToServer(): void {
   }
 }
 
+/* RENDERING */
+
 export function render(state: GameState): void {
   const ctx = getCtx();
   if (!ctx) return;
 
   const { width: w, height: h } = state.viewport;
 
-  // Fond noir uni
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, w, h);
 
-  // Filet central plus brillant
   drawNet(state.net.x, h, state.net.dashHeight, state.net.dashGap, '#555');
 
-  // Jauges de score
   drawScoreGauge(w / 4, 15, state.score.left, WIN_SCORE, '#3b82f6', 'rgba(59, 130, 246, 0.6)');
   drawScoreGauge((w * 3) / 4, 15, state.score.right, WIN_SCORE, '#ef4444', 'rgba(239, 68, 68, 0.6)');
 
-  // Scores colorés avec police moderne
   drawText(String(state.score.left), w / 4, 60, { font: 'bold 56px "Inter", "Segoe UI", system-ui, sans-serif', color: '#3b82f6' });
   drawText(String(state.score.right), (w * 3) / 4, 60, { font: 'bold 56px "Inter", "Segoe UI", system-ui, sans-serif', color: '#ef4444' });
 
-  // Paddle gauche (bleu)
   drawPaddle(
     state.paddles[0].x,
     state.paddles[0].y,
@@ -746,7 +702,6 @@ export function render(state: GameState): void {
     'rgba(59, 130, 246, 0.5)'
   );
 
-  // Paddle droit (rouge)
   drawPaddle(
     state.paddles[1].x,
     state.paddles[1].y,
@@ -756,7 +711,6 @@ export function render(state: GameState): void {
     'rgba(239, 68, 68, 0.5)'
   );
 
-  // Balle avec glow blanc brillant
   drawBall(state.ball.x, state.ball.y, state.ball.radius);
 
   if (showHitboxes) {
@@ -773,17 +727,14 @@ export function render(state: GameState): void {
   const side = Network.getSide();
   const connected = Network.isConnected();
 
-  // Vérifier si on doit afficher le mode indicator (uniquement avec les messages overlay)
   const hasOverlayMessage = !connected || state.phase === 'waiting' || state.phase === 'ready' || state.phase === 'paused' || state.phase === 'ended';
 
-  // Mode indicator (plus proche du centre, apparaît avec les messages)
   if (hasOverlayMessage) {
     if (!gameMode) {
       drawModeIndicator(w / 2, 80, I18n.translate('game.select_mode_below'));
     } else if (gameMode === 'tournament' && tournamentMatchInfo) {
       drawModeIndicator(w / 2, 80, '🏆 ' + I18n.translate('game.tournament_match'));
     } else if (gameMode === 'local_tournament' && localTournamentMatchInfo) {
-      // Local tournament - show player names
       const p1 = localTournamentMatchInfo.player1Alias || 'Player 1';
       const p2 = localTournamentMatchInfo.player2Alias || 'Player 2';
       drawModeIndicator(w / 2, 80, `🏠 ${p1} vs ${p2}`);
@@ -805,7 +756,6 @@ export function render(state: GameState): void {
     }
   }
 
-  // Phase messages
   if (!connected && !gameMode) {
     drawInfoMessage(w / 2, h / 2, I18n.translate('game.choose_mode'));
   } else if (state.phase === 'waiting') {
@@ -834,7 +784,6 @@ export function render(state: GameState): void {
     const myWin = (side === 'left' && state.score.left >= WIN_SCORE) || (side === 'right' && state.score.right >= WIN_SCORE);
 
     if (gameMode === 'local_tournament' && localTournamentMatchInfo) {
-      // Local tournament end - show winner name
       const winnerName = winner === 'Left' ? localTournamentMatchInfo.player1Alias : localTournamentMatchInfo.player2Alias;
       drawEndMessage(
         w / 2,
@@ -880,6 +829,8 @@ export function render(state: GameState): void {
     }
   }
 }
+
+/* EXPORT */
 
 export const PongGame = {
   init,

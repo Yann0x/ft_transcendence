@@ -1,6 +1,9 @@
+/* SETTINGS MODAL */
+
 import { User, UserPublic } from '../shared/types';
 
-// forward declaration - will be set by App
+/* APP INSTANCE */
+
 let getAppInstance: () => {
   me: User | null;
   logout: () => Promise<void>;
@@ -14,6 +17,8 @@ export function setAppInstance(getter: typeof getAppInstance) {
   getAppInstance = getter;
 }
 
+/* MODAL */
+
 export const SettingsModal = {
   modal: null as HTMLElement | null,
   form: null as HTMLFormElement | null,
@@ -22,7 +27,7 @@ export const SettingsModal = {
   avatarBase64: null as string | null,
   pending2FASecret: null as string | null,
 
-  // init the settings modal
+  /* Initialise le modal de paramètres */
   init(): void {
     this.modal = document.getElementById('settings-modal');
     this.form = document.getElementById('settings-form') as HTMLFormElement;
@@ -38,7 +43,7 @@ export const SettingsModal = {
     this.setup2FA();
   },
 
-  // setup close btn and background click
+  /* Configure les boutons de fermeture */
   setupCloseListeners(): void {
     const closeBtn = document.getElementById('settings-modal-close');
     closeBtn?.addEventListener('click', () => {
@@ -52,7 +57,9 @@ export const SettingsModal = {
     });
   },
 
-  // setup avatar upload
+  /* AVATAR */
+
+  /* Configure l'upload d'avatar */
   setupAvatarUpload(): void {
     const avatarBtn = document.getElementById('settings-avatar-btn');
 
@@ -65,28 +72,24 @@ export const SettingsModal = {
     });
   },
 
-  // handle avatar file selection
+  /* Gère le changement d'avatar */
   handleAvatarChange(): void {
     const file = this.avatarInput?.files?.[0];
     if (!file) return;
 
-    // validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please select a valid image');
       return;
     }
 
-    // validate file size (max 5MB before compression)
     if (file.size > 5 * 1024 * 1024) {
       alert('Image must be under 5 MB');
       return;
     }
 
-    // Compress and convert to Base64
     this.compressImage(file, 200, 0.8).then((compressedBase64) => {
       this.avatarBase64 = compressedBase64;
 
-      // Update preview
       if (this.avatarPreview) {
         this.avatarPreview.src = compressedBase64;
       }
@@ -96,19 +99,17 @@ export const SettingsModal = {
     });
   },
 
-  // compress image to max size and quality
+  /* Compresse une image */
   compressImage(file: File, maxSize: number, quality: number): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-          // Create canvas for resizing
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
 
-          // Calculate new dimensions (maintain aspect ratio)
           if (width > height) {
             if (width > maxSize) {
               height = Math.round((height * maxSize) / width);
@@ -124,7 +125,6 @@ export const SettingsModal = {
           canvas.width = width;
           canvas.height = height;
 
-          // Draw and compress
           const ctx = canvas.getContext('2d');
           if (!ctx) {
             reject(new Error('Could not get canvas context'));
@@ -133,7 +133,6 @@ export const SettingsModal = {
 
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Convert to compressed JPEG Base64
           const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
           resolve(compressedBase64);
         };
@@ -145,7 +144,9 @@ export const SettingsModal = {
     });
   },
 
-  // setup form submission
+  /* FORM */
+
+  /* Configure la soumission du formulaire */
   setupFormSubmission(): void {
     this.form?.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -153,7 +154,7 @@ export const SettingsModal = {
     });
   },
 
-  // handle form submission
+  /* Gère la soumission du formulaire */
   async handleSubmit(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me) {
@@ -171,7 +172,6 @@ export const SettingsModal = {
     const password = passwordInput?.value;
     const passwordConfirm = passwordConfirmInput?.value;
 
-    // Validation
     if (!name || name.length === 0) {
       alert('Name is required');
       return;
@@ -187,7 +187,6 @@ export const SettingsModal = {
       return;
     }
 
-    // Password validation (only if provided)
     if (password || passwordConfirm) {
       if (password !== passwordConfirm) {
         alert('Passwords do not match');
@@ -199,12 +198,10 @@ export const SettingsModal = {
       }
     }
 
-    // Build update payload
     const updateData: Partial<User> & { id: string } = {
       id: app.me.id!,
     };
 
-    // Only include changed fields
     if (name !== app.me.name) {
       updateData.name = name;
     }
@@ -218,9 +215,7 @@ export const SettingsModal = {
       updateData.avatar = this.avatarBase64;
     }
 
-    // check if anything changed
     if (Object.keys(updateData).length === 1) {
-      // only id present, nothing to update
       alert('No changes detected');
       return;
     }
@@ -242,22 +237,17 @@ export const SettingsModal = {
         return;
       }
 
-      // Update local user data
       if (updateData.name) app.me.name = updateData.name;
       if (updateData.email) app.me.email = updateData.email;
       if (updateData.avatar) app.me.avatar = updateData.avatar;
 
-      // Update session storage
       sessionStorage.setItem('currentUser', JSON.stringify(app.me));
 
-      // Update navbar to reflect changes
       app.updateNavbar();
 
-      // Clear password fields
       if (passwordInput) passwordInput.value = '';
       if (passwordConfirmInput) passwordConfirmInput.value = '';
 
-      // reset avatar pending state
       this.avatarBase64 = null;
 
       alert('Changes saved successfully');
@@ -268,7 +258,9 @@ export const SettingsModal = {
     }
   },
 
-  // setup delete account btn
+  /* DELETE ACCOUNT */
+
+  /* Configure le bouton de suppression de compte */
   setupDeleteAccount(): void {
     const deleteBtn = document.getElementById('settings-delete-btn');
     deleteBtn?.addEventListener('click', () => {
@@ -276,7 +268,7 @@ export const SettingsModal = {
     });
   },
 
-  // handle account deletion
+  /* Gère la suppression de compte */
   async handleDelete(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me) {
@@ -284,7 +276,6 @@ export const SettingsModal = {
       return;
     }
 
-    // confirmation dialog
     const confirmed = confirm(
       'Are you sure you want to delete your account?\n\n' +
       'This action is irreversible. All your data will be permanently deleted.'
@@ -292,7 +283,6 @@ export const SettingsModal = {
 
     if (!confirmed) return;
 
-    // double confirmation for safety
     const doubleConfirm = confirm(
       'Final confirmation:\n\n' +
       'Do you really want to permanently delete your account?'
@@ -320,7 +310,6 @@ export const SettingsModal = {
       alert('Your account has been deleted');
       this.close();
 
-      // logout and redirect
       await app.logout();
     } catch (error) {
       console.error('Error deleting account:', error);
@@ -328,7 +317,9 @@ export const SettingsModal = {
     }
   },
 
-  // open modal and populate w/ current user data
+  /* MODAL CONTROLS */
+
+  /* Ouvre le modal */
   open(): void {
     const app = getAppInstance?.();
     if (!app?.me) {
@@ -342,7 +333,7 @@ export const SettingsModal = {
     this.modal?.classList.remove('hidden');
   },
 
-  // populate form w/ user data
+  /* Remplit le formulaire avec les données utilisateur */
   populateForm(user: User): void {
     const nameInput = document.getElementById('settings-name') as HTMLInputElement;
     const emailInput = document.getElementById('settings-email') as HTMLInputElement;
@@ -350,7 +341,6 @@ export const SettingsModal = {
     if (nameInput) nameInput.value = user.name || '';
     if (emailInput) emailInput.value = user.email || '';
 
-    // set avatar preview
     if (this.avatarPreview) {
       if (user.avatar) {
         this.avatarPreview.src = user.avatar;
@@ -359,17 +349,17 @@ export const SettingsModal = {
       }
     }
 
-    // reset pending avatar
     this.avatarBase64 = null;
 
-    // clear password fields
     const passwordInput = document.getElementById('settings-password') as HTMLInputElement;
     const passwordConfirmInput = document.getElementById('settings-password-confirm') as HTMLInputElement;
     if (passwordInput) passwordInput.value = '';
     if (passwordConfirmInput) passwordConfirmInput.value = '';
   },
 
-  // load and display blocked users
+  /* BLOCKED USERS */
+
+  /* Charge et affiche les utilisateurs bloqués */
   async loadBlockedUsers(): Promise<void> {
     const app = getAppInstance?.();
     const blockedList = document.getElementById('settings-blocked-list');
@@ -378,7 +368,6 @@ export const SettingsModal = {
 
     if (!blockedList || !app?.me) return;
 
-    // get blocked users from blockedUsersMap
     const blockedUsers = Array.from(app.blockedUsersMap.values());
 
     if (blockedUsers.length === 0) {
@@ -391,10 +380,8 @@ export const SettingsModal = {
     if (emptyState) emptyState.style.display = 'none';
     if (blockedCount) blockedCount.textContent = String(blockedUsers.length);
 
-    // Clear existing cards (except empty state)
     blockedList.querySelectorAll('[data-user-id]').forEach(el => el.remove());
 
-    // Render blocked user cards
     blockedUsers.forEach(user => {
       const card = this.createBlockedUserCard(user);
       blockedList.insertAdjacentHTML('beforeend', card);
@@ -403,7 +390,7 @@ export const SettingsModal = {
     this.attachUnblockListeners();
   },
 
-  // create HTML for a blocked user card
+  /* Crée le HTML d'une carte d'utilisateur bloqué */
   createBlockedUserCard(user: UserPublic): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=ef4444&color=fff`;
     return `
@@ -419,7 +406,7 @@ export const SettingsModal = {
     `;
   },
 
-  // attach click listeners to unblock btns
+  /* Attache les listeners aux boutons de déblocage */
   attachUnblockListeners(): void {
     document.querySelectorAll('#settings-blocked-list .settings-unblock-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
@@ -439,11 +426,9 @@ export const SettingsModal = {
 
           if (response.ok) {
             const app = getAppInstance?.();
-            // Update App maps
             if (app) {
               app.removeFromBlockedUsersMap(userId);
             }
-            // Refresh blocked users list
             this.loadBlockedUsers();
           }
         } catch (error) {
@@ -453,9 +438,9 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Setup 2FA functionality
-   */
+  /* 2FA */
+
+  /* Configure la fonctionnalité 2FA */
   setup2FA(): void {
     const enableBtn = document.getElementById('settings-2fa-enable-btn');
     const cancelBtn = document.getElementById('settings-2fa-cancel-btn');
@@ -463,22 +448,18 @@ export const SettingsModal = {
     const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
     const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
 
-    // Enable button - start setup
     enableBtn?.addEventListener('click', async () => {
       await this.start2FASetup();
     });
 
-    // Cancel button - hide setup
     cancelBtn?.addEventListener('click', () => {
       this.hide2FASetup();
     });
 
-    // Disable button
     disableBtn?.addEventListener('click', async () => {
       await this.disable2FA();
     });
 
-    // Auto-filter input to only digits and auto-submit at 6 chars
     codeInput?.addEventListener('input', () => {
       codeInput.value = codeInput.value.replace(/\D/g, '');
       if (codeInput.value.length === 6) {
@@ -494,9 +475,7 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Start 2FA setup - fetch QR code
-   */
+  /* Démarre la configuration 2FA */
   async start2FASetup(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me?.id || !app.me.email) {
@@ -527,14 +506,12 @@ export const SettingsModal = {
       const data = await response.json();
       this.pending2FASecret = data.secret;
 
-      // Display QR code and secret
       const qrImg = document.getElementById('settings-2fa-qr') as HTMLImageElement;
       const secretEl = document.getElementById('settings-2fa-secret');
 
       if (qrImg) qrImg.src = data.qrCode;
       if (secretEl) secretEl.textContent = data.secret;
 
-      // Show setup section
       this.show2FASetup();
     } catch (error) {
       console.error('[SETTINGS] 2FA setup error:', error);
@@ -542,14 +519,11 @@ export const SettingsModal = {
     }
   },
 
-  /**
-   * Show 2FA setup section
-   */
+  /* Affiche la section de configuration 2FA */
   show2FASetup(): void {
     document.getElementById('settings-2fa-enable-section')?.classList.add('hidden');
     document.getElementById('settings-2fa-setup-section')?.classList.remove('hidden');
-    
-    // Clear code input
+
     const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
     if (codeInput) {
       codeInput.value = '';
@@ -557,18 +531,14 @@ export const SettingsModal = {
     }
   },
 
-  /**
-   * Hide 2FA setup section
-   */
+  /* Masque la section de configuration 2FA */
   hide2FASetup(): void {
     document.getElementById('settings-2fa-setup-section')?.classList.add('hidden');
     document.getElementById('settings-2fa-enable-section')?.classList.remove('hidden');
     this.pending2FASecret = null;
   },
 
-  /**
-   * Confirm 2FA setup - verify code and enable
-   */
+  /* Confirme la configuration 2FA */
   async confirm2FASetup(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me?.id || !this.pending2FASecret) {
@@ -607,11 +577,9 @@ export const SettingsModal = {
         return;
       }
 
-      // Success
       alert('2FA has been enabled successfully!');
       this.pending2FASecret = null;
-      
-      // Update UI to show enabled state
+
       this.update2FAStatus(true);
     } catch (error) {
       console.error('[SETTINGS] 2FA enable error:', error);
@@ -619,9 +587,7 @@ export const SettingsModal = {
     }
   },
 
-  /**
-   * Disable 2FA
-   */
+  /* Désactive le 2FA */
   async disable2FA(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me?.id) {
@@ -637,7 +603,6 @@ export const SettingsModal = {
       return;
     }
 
-    // Confirm
     const confirmed = confirm('Are you sure you want to disable 2FA? This will make your account less secure.');
     if (!confirmed) return;
 
@@ -663,11 +628,9 @@ export const SettingsModal = {
         return;
       }
 
-      // Success
       alert('2FA has been disabled');
       codeInput.value = '';
-      
-      // Update UI to show disabled state
+
       this.update2FAStatus(false);
     } catch (error) {
       console.error('[SETTINGS] 2FA disable error:', error);
@@ -675,9 +638,7 @@ export const SettingsModal = {
     }
   },
 
-  /**
-   * Update 2FA UI based on status
-   */
+  /* Met à jour l'UI du 2FA selon le statut */
   update2FAStatus(enabled: boolean): void {
     const badge = document.getElementById('settings-2fa-badge');
     const enableSection = document.getElementById('settings-2fa-enable-section');
@@ -702,14 +663,11 @@ export const SettingsModal = {
       disableSection?.classList.add('hidden');
     }
 
-    // Clear disable code input
     const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
     if (disableCodeInput) disableCodeInput.value = '';
   },
 
-  /**
-   * Load 2FA status when opening settings
-   */
+  /* Charge le statut 2FA à l'ouverture */
   async load2FAStatus(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me?.id) return;
@@ -734,9 +692,7 @@ export const SettingsModal = {
     }
   },
 
-  /**
-   * Setup 2FA functionality
-   */
+  /* Configure la fonctionnalité 2FA */
   setup2FA(): void {
     const enableBtn = document.getElementById('settings-2fa-enable-btn');
     const cancelBtn = document.getElementById('settings-2fa-cancel-btn');
@@ -744,22 +700,18 @@ export const SettingsModal = {
     const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
     const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
 
-    // Enable button - start setup
     enableBtn?.addEventListener('click', async () => {
       await this.start2FASetup();
     });
 
-    // Cancel button - hide setup
     cancelBtn?.addEventListener('click', () => {
       this.hide2FASetup();
     });
 
-    // Disable button
     disableBtn?.addEventListener('click', async () => {
       await this.disable2FA();
     });
 
-    // Auto-filter input to only digits and auto-submit at 6 chars
     codeInput?.addEventListener('input', () => {
       codeInput.value = codeInput.value.replace(/\D/g, '');
       if (codeInput.value.length === 6) {
@@ -775,9 +727,7 @@ export const SettingsModal = {
     });
   },
 
-  /**
-   * Start 2FA setup - fetch QR code
-   */
+  /* Démarre la configuration 2FA */
   async start2FASetup(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me?.id || !app.me.email) {
@@ -808,14 +758,12 @@ export const SettingsModal = {
       const data = await response.json();
       this.pending2FASecret = data.secret;
 
-      // Display QR code and secret
       const qrImg = document.getElementById('settings-2fa-qr') as HTMLImageElement;
       const secretEl = document.getElementById('settings-2fa-secret');
 
       if (qrImg) qrImg.src = data.qrCode;
       if (secretEl) secretEl.textContent = data.secret;
 
-      // Show setup section
       this.show2FASetup();
     } catch (error) {
       console.error('[SETTINGS] 2FA setup error:', error);
@@ -823,14 +771,11 @@ export const SettingsModal = {
     }
   },
 
-  /**
-   * Show 2FA setup section
-   */
+  /* Affiche la section de configuration 2FA */
   show2FASetup(): void {
     document.getElementById('settings-2fa-enable-section')?.classList.add('hidden');
     document.getElementById('settings-2fa-setup-section')?.classList.remove('hidden');
-    
-    // Clear code input
+
     const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
     if (codeInput) {
       codeInput.value = '';
@@ -838,18 +783,14 @@ export const SettingsModal = {
     }
   },
 
-  /**
-   * Hide 2FA setup section
-   */
+  /* Masque la section de configuration 2FA */
   hide2FASetup(): void {
     document.getElementById('settings-2fa-setup-section')?.classList.add('hidden');
     document.getElementById('settings-2fa-enable-section')?.classList.remove('hidden');
     this.pending2FASecret = null;
   },
 
-  /**
-   * Confirm 2FA setup - verify code and enable
-   */
+  /* Confirme la configuration 2FA */
   async confirm2FASetup(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me?.id || !this.pending2FASecret) {
@@ -888,11 +829,9 @@ export const SettingsModal = {
         return;
       }
 
-      // Success
       alert('2FA has been enabled successfully!');
       this.pending2FASecret = null;
-      
-      // Update UI to show enabled state
+
       this.update2FAStatus(true);
     } catch (error) {
       console.error('[SETTINGS] 2FA enable error:', error);
@@ -900,9 +839,7 @@ export const SettingsModal = {
     }
   },
 
-  /**
-   * Disable 2FA
-   */
+  /* Désactive le 2FA */
   async disable2FA(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me?.id) {
@@ -918,7 +855,6 @@ export const SettingsModal = {
       return;
     }
 
-    // Confirm
     const confirmed = confirm('Are you sure you want to disable 2FA? This will make your account less secure.');
     if (!confirmed) return;
 
@@ -944,11 +880,9 @@ export const SettingsModal = {
         return;
       }
 
-      // Success
       alert('2FA has been disabled');
       codeInput.value = '';
-      
-      // Update UI to show disabled state
+
       this.update2FAStatus(false);
     } catch (error) {
       console.error('[SETTINGS] 2FA disable error:', error);
@@ -956,9 +890,7 @@ export const SettingsModal = {
     }
   },
 
-  /**
-   * Update 2FA UI based on status
-   */
+  /* Met à jour l'UI du 2FA selon le statut */
   update2FAStatus(enabled: boolean): void {
     const badge = document.getElementById('settings-2fa-badge');
     const enableSection = document.getElementById('settings-2fa-enable-section');
@@ -983,14 +915,11 @@ export const SettingsModal = {
       disableSection?.classList.add('hidden');
     }
 
-    // Clear disable code input
     const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
     if (disableCodeInput) disableCodeInput.value = '';
   },
 
-  /**
-   * Load 2FA status when opening settings
-   */
+  /* Charge le statut 2FA à l'ouverture */
   async load2FAStatus(): Promise<void> {
     const app = getAppInstance?.();
     if (!app?.me?.id) return;
@@ -1015,7 +944,7 @@ export const SettingsModal = {
     }
   },
 
-  // close the modal
+  /* Ferme le modal */
   close(): void {
     this.modal?.classList.add('hidden');
   }

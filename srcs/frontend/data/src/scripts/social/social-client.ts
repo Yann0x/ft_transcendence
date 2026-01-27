@@ -1,14 +1,20 @@
+/* SOCIAL CLIENT */
+
 import { SocialEvent } from '../shared/types';
+
+/* TYPES */
 
 export type SocialEventHandler = (event: SocialEvent) => void;
 
+/* SINGLETON */
 
-// Module-style singleton object
 export const socialClient = (() => {
   let ws: WebSocket | null = null;
   let token: string | null = null;
   let authenticated = false;
   const eventHandlers: Map<string, Set<SocialEventHandler>> = new Map();
+
+  /* CONNECTION */
 
   function connect(newToken: string): void {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -54,6 +60,8 @@ export const socialClient = (() => {
     authenticated = false;
   }
 
+  /* MESSAGING */
+
   function send(event: SocialEvent): void {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       console.error('[SOCIAL-CLIENT] Cannot send, WebSocket not connected');
@@ -61,6 +69,8 @@ export const socialClient = (() => {
     }
     ws.send(JSON.stringify(event));
   }
+
+  /* EVENT HANDLING */
 
   function handleEvent(event: SocialEvent): void {
     console.log('[SOCIAL-CLIENT] Received event:', event.type, event);
@@ -104,9 +114,13 @@ export const socialClient = (() => {
     }
   }
 
+  /* STATUS */
+
   function isConnected(): boolean {
     return ws !== null && ws.readyState === WebSocket.OPEN && authenticated;
   }
+
+  /* EXPORT */
 
   return {
     connect,
