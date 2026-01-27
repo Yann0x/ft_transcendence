@@ -90,12 +90,13 @@
 
       <div>
         <label class="block text-sm font-medium text-secondary mb-2" data-i18n="auth.2fa_code">Code de vérification</label>
-        <input type="text" name="code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code"
+        <input type="text" name="code" id="auth-2fa-code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code"
                placeholder="000000"
                class="input text-center text-2xl tracking-widest font-mono">
+        <p class="text-xs text-neutral-500 mt-2 text-center" data-i18n="auth.2fa_auto_submit">Le code sera validé automatiquement</p>
       </div>
 
-      <button type="submit" class="btn btn-primary w-full" data-i18n="auth.2fa_submit">
+      <button type="submit" class="btn btn-primary w-full hidden" data-i18n="auth.2fa_submit">
         Vérifier
       </button>
 
@@ -107,7 +108,7 @@
     </form>
 
     <!-- Divider -->
-    <div class="relative mb-5">
+    <div id="auth-oauth-divider" class="relative mb-5">
       <div class="absolute inset-0 flex items-center">
         <div class="w-full border-t border-neutral-700"></div>
       </div>

@@ -7,11 +7,10 @@ import {UserPublic, SocialEvent} from '../shared/types'
 
 export const Social = {
 
-    async init() {
+    // Connect to social websocket and load channels (called on login, regardless of page)
+    async connect() {
         const token = sessionStorage.getItem('authToken');
         if (!App.me || !token) {
-            alert('You must login to access this page');
-            Router.navigate('home');
             return;
         }
 
@@ -20,8 +19,34 @@ export const Social = {
         await Chat.loadChannels();
 
         this.setupSocketListeners();
-
         socialClient.connect(token);
+        
+        // Update badge after loading channels
+        Chat.updateNavbarBadge();
+    },
+
+    // Initialize the social page UI (called when navigating to social_hub)
+    async init() {
+        const token = sessionStorage.getItem('authToken');
+        const loginRequired = document.getElementById('social-login-required');
+        const socialContent = document.getElementById('social-content');
+
+        if (!App.me || !token) {
+            // Show login required state
+            loginRequired?.classList.remove('hidden');
+            socialContent?.classList.add('hidden');
+            return;
+        }
+
+        // Hide login required, show content
+        loginRequired?.classList.add('hidden');
+        socialContent?.classList.remove('hidden');
+
+        // Connect if not already connected
+        if (!socialClient.isConnected()) {
+            await this.connect();
+        }
+
         this.display();
     },
 
@@ -32,9 +57,12 @@ export const Social = {
 
     async display(): Promise <void>
     {
-       if ( Router.getPage() !== 'social_hub' ) {
-        return;
-       }
+        // Always update the navbar badge, regardless of page
+        Chat.updateNavbarBadge();
+        
+        if ( Router.getPage() !== 'social_hub' ) {
+            return;
+        }
         Friends.display();
         Chat.display();
     },

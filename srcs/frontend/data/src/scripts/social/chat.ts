@@ -224,8 +224,36 @@ export const Chat =
 
     hasUnreadMessages(channel: Channel): boolean {
         return channel.messages.some((msg: Message) =>
-            msg.read_at === null && msg.sender_id !== App.me.id
+            msg.read_at === null && this.isMessageForMe(msg)
         );
+    },
+
+    // Check if a message should count as unread for current user
+    isMessageForMe(msg: Message): boolean {
+        // Regular text messages - unread if sent by someone else
+        if (msg.type === 'text') {
+            return msg.sender_id !== App.me?.id;
+        }
+        
+        // Game invitation - unread if I'm the invited person
+        if (msg.type === 'game_invitation' && msg.metadata) {
+            const metadata = typeof msg.metadata === 'string' ? JSON.parse(msg.metadata) : msg.metadata;
+            return metadata.invitedId === App.me?.id;
+        }
+        
+        // Game result - always show as unread (it's relevant to both players)
+        if (msg.type === 'game_result') {
+            return msg.sender_id !== App.me?.id;
+        }
+        
+        // Tournament invitation - unread if I'm the invited person
+        if (msg.type === 'tournament_invitation' && msg.metadata) {
+            const metadata = typeof msg.metadata === 'string' ? JSON.parse(msg.metadata) : msg.metadata;
+            return metadata.invitedId === App.me?.id;
+        }
+        
+        // Default: count if not sent by me
+        return msg.sender_id !== App.me?.id;
     },
 
     updateNavbarBadge() {
@@ -243,7 +271,7 @@ export const Chat =
         if (this.sortedChanelsArray) {
             this.sortedChanelsArray.forEach((channel: Channel) => {
                 const unreadCount = channel.messages.filter((msg: Message) =>
-                    msg.read_at === null && msg.sender_id !== App.me.id
+                    msg.read_at === null && this.isMessageForMe(msg)
                 ).length;
                 totalUnread += unreadCount;
             });

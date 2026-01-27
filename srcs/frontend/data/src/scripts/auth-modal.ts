@@ -83,6 +83,9 @@ export const AuthModal = {
     this.pending2FAUserId = null;
     // Show tabs for login/signup
     this.loginTab?.parentElement?.classList.remove('hidden');
+    // Show OAuth section
+    document.getElementById('auth-oauth-divider')?.classList.remove('hidden');
+    document.getElementById('auth-oauth-42')?.classList.remove('hidden');
     // Focus on email input
     setTimeout(() => {
       const emailInput = this.loginForm?.querySelector('input[name="email"]') as HTMLInputElement;
@@ -102,6 +105,9 @@ export const AuthModal = {
     this.pending2FAUserId = null;
     // Show tabs for login/signup
     this.loginTab?.parentElement?.classList.remove('hidden');
+    // Show OAuth section
+    document.getElementById('auth-oauth-divider')?.classList.remove('hidden');
+    document.getElementById('auth-oauth-42')?.classList.remove('hidden');
     // Copy login email to signup email if present
     setTimeout(() => {
       const loginEmailInput = this.loginForm?.querySelector('input[name="email"]') as HTMLInputElement;
@@ -123,26 +129,9 @@ export const AuthModal = {
     this.twoFAForm?.classList.remove('hidden');
     // Hide tabs when showing 2FA
     this.loginTab?.parentElement?.classList.add('hidden');
-    // Clear and focus on code input
-    setTimeout(() => {
-      const codeInput = this.twoFAForm?.querySelector('input[name="code"]') as HTMLInputElement;
-      if (codeInput) {
-        codeInput.value = '';
-        codeInput.focus();
-      }
-    }, 100);
-  },
-
-  /**
-   * Show 2FA verification form
-   */
-  show2FA(userId: string): void {
-    this.pending2FAUserId = userId;
-    this.loginForm?.classList.add('hidden');
-    this.signupForm?.classList.add('hidden');
-    this.twoFAForm?.classList.remove('hidden');
-    // Hide tabs when showing 2FA
-    this.loginTab?.parentElement?.classList.add('hidden');
+    // Hide OAuth section when showing 2FA
+    document.getElementById('auth-oauth-divider')?.classList.add('hidden');
+    document.getElementById('auth-oauth-42')?.classList.add('hidden');
     // Clear and focus on code input
     setTimeout(() => {
       const codeInput = this.twoFAForm?.querySelector('input[name="code"]') as HTMLInputElement;
@@ -292,92 +281,6 @@ export const AuthModal = {
       } catch (error) {
         console.error('[AUTH] OAuth 42 error:', error);
         alert('Failed to connect with 42. Please try again.');
-      }
-    });
-  },
-
-  /**
-   * Setup 2FA form listeners
-   */
-  setup2FAListeners(): void {
-    const twoFAFormElement = this.twoFAForm as HTMLFormElement | null;
-    const backButton = document.getElementById('auth-2fa-back');
-
-    // Handle 2FA form submission
-    twoFAFormElement?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      if (!this.pending2FAUserId) {
-        alert('Session expired. Please log in again.');
-        this.showLogin();
-        return;
-      }
-
-      const formData = new FormData(twoFAFormElement);
-      const code = formData.get('code') as string;
-
-      if (!code || code.length !== 6) {
-        alert('Please enter a valid 6-digit code.');
-        return;
-      }
-
-      try {
-        const response = await fetch('/user/public/login/2fa', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: this.pending2FAUserId,
-            code: code
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          alert(`Verification failed: ${errorData.message || 'Invalid code'}`);
-          // Clear the code input for retry
-          const codeInput = twoFAFormElement.querySelector('input[name="code"]') as HTMLInputElement;
-          if (codeInput) {
-            codeInput.value = '';
-            codeInput.focus();
-          }
-          return;
-        }
-
-        const loginResponse: LoginResponse = await response.json();
-        if (loginResponse.token) {
-          sessionStorage.setItem('authToken', loginResponse.token);
-        }
-
-        // Pass LoginResponse to app for handling
-        if (this.onLoginSuccess) {
-          this.onLoginSuccess(loginResponse);
-        }
-
-        alert('Login successful!');
-        twoFAFormElement.reset();
-        this.pending2FAUserId = null;
-        this.close();
-      } catch (error) {
-        console.error('[AUTH] 2FA verification error:', error);
-        alert('An error occurred during verification.');
-      }
-    });
-
-    // Handle back button
-    backButton?.addEventListener('click', () => {
-      this.pending2FAUserId = null;
-      this.showLogin();
-    });
-
-    // Auto-submit when 6 digits are entered
-    const codeInput = twoFAFormElement?.querySelector('input[name="code"]') as HTMLInputElement;
-    codeInput?.addEventListener('input', (e) => {
-      const input = e.target as HTMLInputElement;
-      // Only allow digits
-      input.value = input.value.replace(/\D/g, '');
-      // Auto-submit when 6 digits
-      if (input.value.length === 6) {
-        twoFAFormElement?.requestSubmit();
       }
     });
   },
