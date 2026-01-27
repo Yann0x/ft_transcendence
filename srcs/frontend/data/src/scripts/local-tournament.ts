@@ -1,6 +1,6 @@
-// LOCAL TOURNAMENT SYSTEM - ft_transcendance
-// manages local tournaments
-// (non-persistent)
+/* LOCAL TOURNAMENT */
+
+/* TYPES */
 
 export interface LocalTournamentPlayer {
   odIndex: number;
@@ -37,7 +37,6 @@ export interface LocalTournament {
   odIsLocal: true;
 }
 
-// Local stats for the session (non-persistent but counted globally)
 export interface LocalTournamentStats {
   matchesWon: number;
   matchesLost: number;
@@ -45,32 +44,35 @@ export interface LocalTournamentStats {
   pointsConceded: number;
 }
 
+/* STATE */
+
 let tournamentCounter = 0;
 let playerCounter = 0;
 
-// generates a unique ID for local tournament
+/* ID GENERATORS */
+
 function generateTournamentId(): string {
   return `local_tournament_${++tournamentCounter}_${Date.now()}`;
 }
 
-// generates a unique ID for local player
 function generatePlayerId(): string {
   return `local_player_${++playerCounter}_${Date.now()}`;
 }
 
-// generates a unique ID for a match
 function generateMatchId(tournamentId: string, round: number, matchIndex: number): string {
   return `${tournamentId}_r${round}_m${matchIndex}`;
 }
 
-// creates bracket structure for tournament
+/* BRACKET */
+
+/* Crée la structure de bracket pour le tournoi */
 function createBracket(maxPlayers: 2 | 4 | 8, tournamentId: string): LocalTournamentMatch[] {
   const matches: LocalTournamentMatch[] = [];
   const totalRounds = maxPlayers === 2 ? 1 : (maxPlayers === 4 ? 2 : 3);
-  
+
   for (let round = 0; round < totalRounds; round++) {
     const matchesInRound = maxPlayers / Math.pow(2, round + 1);
-    
+
     for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
       matches.push({
         odId: generateMatchId(tournamentId, round, matchIndex),
@@ -85,29 +87,31 @@ function createBracket(maxPlayers: 2 | 4 | 8, tournamentId: string): LocalTourna
       });
     }
   }
-  
+
   return matches;
 }
 
-// assigns players to first round matches
+/* Assigne les joueurs aux matchs du premier tour */
 function assignPlayersToFirstRound(tournament: LocalTournament): void {
   const firstRoundMatches = tournament.odMatches.filter(m => m.odRound === 0);
-  
+
   for (let i = 0; i < firstRoundMatches.length; i++) {
     const match = firstRoundMatches[i]!;
     const player1Index = i * 2;
     const player2Index = i * 2 + 1;
-    
+
     match.odPlayer1 = tournament.odPlayers[player1Index];
     match.odPlayer2 = tournament.odPlayers[player2Index];
-    
+
     if (match.odPlayer1 && match.odPlayer2) {
       match.odStatus = 'ready';
     }
   }
 }
 
-// creates a new local tournament
+/* TOURNAMENT MANAGEMENT */
+
+/* Crée un nouveau tournoi local */
 export function createLocalTournament(
   maxPlayers: 2 | 4 | 8,
   aliases: string[],
@@ -115,20 +119,19 @@ export function createLocalTournament(
   creatorAlias?: string
 ): LocalTournament {
   const tournamentId = generateTournamentId();
-  
-  // create all players
+
   const players: LocalTournamentPlayer[] = aliases.map((alias, index) => ({
     odIndex: index,
     odId: generatePlayerId(),
     odAlias: alias,
     odIsCreator: creatorAlias ? alias === creatorAlias : index === 0,
   }));
-  
+
   const tournament: LocalTournament = {
     odId: tournamentId,
     odName: tournamentName,
     odMaxPlayers: maxPlayers,
-    odStatus: 'in_progress', // local tournament starts immediately
+    odStatus: 'in_progress',
     odPlayers: players,
     odMatches: createBracket(maxPlayers, tournamentId),
     odCurrentMatch: undefined,
@@ -137,37 +140,37 @@ export function createLocalTournament(
     odCreatedBy: players[0]!,
     odIsLocal: true,
   };
-  
-  // assign players to first round
+
   assignPlayersToFirstRound(tournament);
-  
-  // set first match as current
+
   const firstMatch = tournament.odMatches.find(m => m.odRound === 0 && m.odMatchIndex === 0);
   if (firstMatch) {
     tournament.odCurrentMatch = firstMatch.odId;
   }
-  
+
   return tournament;
 }
 
-// gets the next match to play
+/* Récupère le prochain match à jouer */
 export function getNextMatch(tournament: LocalTournament): LocalTournamentMatch | null {
   if (tournament.odStatus !== 'in_progress') return null;
   return tournament.odMatches.find(m => m.odStatus === 'ready') ?? null;
 }
 
-// starts a local match
+/* MATCH MANAGEMENT */
+
+/* Démarre un match local */
 export function startMatch(tournament: LocalTournament, matchId: string): boolean {
   const match = tournament.odMatches.find(m => m.odId === matchId);
   if (!match || match.odStatus !== 'ready') return false;
-  
+
   match.odStatus = 'playing';
   tournament.odCurrentMatch = matchId;
-  
+
   return true;
 }
 
-// ends a match and advances tournament
+/* Termine un match et fait avancer le tournoi */
 export function endMatch(
   tournament: LocalTournament,
   matchId: string,
@@ -178,80 +181,76 @@ export function endMatch(
   if (!match) {
     return { success: false, tournamentEnded: false };
   }
-  
+
   match.odScore1 = score1;
   match.odScore2 = score2;
   match.odStatus = 'finished';
-  
-  // determine winner
+
   const winner = score1 > score2 ? match.odPlayer1 : match.odPlayer2;
   match.odWinner = winner;
-  
+
   if (!winner) {
     return { success: false, tournamentEnded: false };
   }
-  
-  // Advance the winner to the next round
+
   const nextRound = match.odRound + 1;
   const nextMatchIndex = Math.floor(match.odMatchIndex / 2);
   const nextMatch = tournament.odMatches.find(
     m => m.odRound === nextRound && m.odMatchIndex === nextMatchIndex
   );
-  
+
   if (nextMatch) {
-    // Place the winner in the next match
     const isFirstOfPair = match.odMatchIndex % 2 === 0;
     if (isFirstOfPair) {
       nextMatch.odPlayer1 = winner;
     } else {
       nextMatch.odPlayer2 = winner;
     }
-    
-    // check if next match is ready
+
     if (nextMatch.odPlayer1 && nextMatch.odPlayer2) {
       nextMatch.odStatus = 'ready';
     }
-    
-    // find next match to play
+
     const nextReadyMatch = tournament.odMatches.find(m => m.odStatus === 'ready');
     tournament.odCurrentMatch = nextReadyMatch?.odId;
-    
+
     return { success: true, winner, tournamentEnded: false };
   } else {
-    // no next round - this was the final
     tournament.odStatus = 'finished';
     tournament.odWinner = winner;
     tournament.odCurrentMatch = undefined;
-    
+
     return { success: true, winner, tournamentEnded: true };
   }
 }
 
-// gets current match info
+/* Récupère les infos du match en cours */
 export function getCurrentMatch(tournament: LocalTournament): LocalTournamentMatch | null {
   if (!tournament.odCurrentMatch) return null;
   return tournament.odMatches.find(m => m.odId === tournament.odCurrentMatch) ?? null;
 }
 
-// validates if aliases are unique
+/* VALIDATION */
+
+/* Valide que les alias sont uniques */
 export function validateAliases(aliases: string[]): { valid: boolean; error?: string } {
-  // check for empty aliases
   for (let i = 0; i < aliases.length; i++) {
     if (!aliases[i] || aliases[i].trim() === '') {
       return { valid: false, error: `Player ${i + 1} must have a name` };
     }
   }
-  
-  // check for duplicates (case insensitive)
+
   const normalizedAliases = aliases.map(a => a.trim().toLowerCase());
   const uniqueAliases = new Set(normalizedAliases);
-  
+
   if (uniqueAliases.size !== aliases.length) {
     return { valid: false, error: 'Each player must have a unique name' };
   }
-  
+
   return { valid: true };
 }
+
+/* EXPORT */
 
 export const LocalTournamentSystem = {
   createLocalTournament,

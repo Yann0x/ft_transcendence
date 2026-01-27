@@ -1,14 +1,18 @@
+/* PROFILE MODAL */
+
 import { User } from '../shared/types';
 import { App } from './app';
 import { Router } from './router';
 import * as SocialCommands from './social/social-commands';
 import { StatsService } from './stats-service';
 
+/* MODAL */
+
 export const ProfileModal = {
   modal: null as HTMLElement | null,
   currentUserId: null as string | null,
 
-  // init the profile modal
+  /* Initialise le modal de profil */
   init(): void {
     this.modal = document.getElementById('profile-modal');
 
@@ -17,7 +21,7 @@ export const ProfileModal = {
     this.setupCloseListeners();
   },
 
-  // setup close btn and background click
+  /* Configure les boutons de fermeture */
   setupCloseListeners(): void {
     const closeBtn = document.getElementById('profile-modal-close');
     closeBtn?.addEventListener('click', () => {
@@ -31,7 +35,7 @@ export const ProfileModal = {
     });
   },
 
-  // open modal and display user profile
+  /* Ouvre le modal pour un utilisateur */
   async open(userId: string): Promise<void> {
     if (!this.modal) {
       console.error('[PROFILE] Modal element not found');
@@ -47,7 +51,6 @@ export const ProfileModal = {
         return;
       }
 
-      // Fetch user data
       const response = await fetch(`/user/find?id=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -65,7 +68,6 @@ export const ProfileModal = {
 
       const user = users[0] as User;
 
-      // Populate and show modal
       await this.populateProfile(user);
       this.setupActionButtons(user);
       this.modal.classList.remove('hidden');
@@ -75,24 +77,21 @@ export const ProfileModal = {
     }
   },
 
-  // populate modal w/ user data
+  /* Remplit le modal avec les données utilisateur */
   async populateProfile(user: User): Promise<void> {
     const avatarEl = document.getElementById('profile-avatar') as HTMLImageElement;
     const nameEl = document.getElementById('profile-name');
     const statusEl = document.getElementById('profile-status');
     const statusDot = document.getElementById('profile-status-dot');
 
-    // set avatar
     if (avatarEl) {
       avatarEl.src = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
     }
 
-    // set name
     if (nameEl) {
       nameEl.textContent = user.name || 'Unknown';
     }
 
-    // set online status
     const isOnline = user.id ? App.onlineUsersMap.has(user.id) : false;
     if (statusEl) {
       statusEl.textContent = isOnline ? 'Online' : 'Offline';
@@ -104,12 +103,13 @@ export const ProfileModal = {
         : 'absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-neutral-900 bg-neutral-500';
     }
 
-    // fetch fresh stats from API
     const stats = await StatsService.fetchStats(user.id);
     StatsService.updateProfileStats(stats);
   },
 
-  // setup action btns based on relationship w/ user
+  /* ACTIONS */
+
+  /* Configure les boutons d'action selon la relation */
   setupActionButtons(user: User): void {
     const actionsContainer = document.getElementById('profile-actions');
     const addFriendBtn = document.getElementById('profile-add-friend');
@@ -138,7 +138,6 @@ export const ProfileModal = {
       }
     }
 
-    // update block btn text
     const blockBtn = document.getElementById('profile-block');
     if (blockBtn) {
       blockBtn.textContent = isBlocked ? 'Unblock' : 'Block';
@@ -147,6 +146,7 @@ export const ProfileModal = {
     this.attachActionListeners(user);
   },
 
+  /* Attache les listeners aux boutons */
   attachActionListeners(user: User): void {
     const addFriendBtn = document.getElementById('profile-add-friend');
     const removeFriendBtn = document.getElementById('profile-remove-friend');
@@ -178,6 +178,9 @@ export const ProfileModal = {
     }
   },
 
+  /* HANDLERS */
+
+  /* Ajoute un ami */
   async handleAddFriend(user: User): Promise<void> {
     if (!user.id) return;
 
@@ -185,7 +188,6 @@ export const ProfileModal = {
       await SocialCommands.addFriend(user.id);
       console.log('[PROFILE] Friend added successfully');
 
-      // Refresh the modal to update button state
       await this.open(user.id);
     } catch (error) {
       console.error('[PROFILE] Error adding friend:', error);
@@ -193,7 +195,7 @@ export const ProfileModal = {
     }
   },
 
-  // handle remove friend action
+  /* Supprime un ami */
   async handleRemoveFriend(user: User): Promise<void> {
     if (!user.id) return;
 
@@ -201,7 +203,6 @@ export const ProfileModal = {
       await SocialCommands.removeFriend(user.id);
       console.log('[PROFILE] Friend removed successfully');
 
-      // Refresh the modal to update button state
       await this.open(user.id);
     } catch (error) {
       console.error('[PROFILE] Error removing friend:', error);
@@ -209,14 +210,13 @@ export const ProfileModal = {
     }
   },
 
-  // handle send message action
+  /* Envoie un message */
   async handleMessage(user: User): Promise<void> {
     if (!user.id) return;
 
     try {
       const token = sessionStorage.getItem('authToken');
 
-      // create or get DM channel
       const response = await fetch('/user/channel/create-dm', {
         method: 'POST',
         headers: {
@@ -230,10 +230,8 @@ export const ProfileModal = {
         const channel = await response.json();
         this.close();
 
-        // Store channel ID for loading after navigation
         sessionStorage.setItem('pendingChannelId', channel.id);
 
-        // Navigate to social hub
         if (window.location.pathname !== '/social_hub' && window.location.pathname !== '/social_hub/') {
           Router.navigate('social_hub');
         } else {
@@ -247,6 +245,7 @@ export const ProfileModal = {
     }
   },
 
+  /* Bloque ou débloque un utilisateur */
   async handleBlock(user: User): Promise<void> {
     if (!user.id) return;
 
@@ -298,7 +297,9 @@ export const ProfileModal = {
     }
   },
 
-  // refresh current user data from API
+  /* HELPERS */
+
+  /* Rafraîchit les données de l'utilisateur courant */
   async refreshCurrentUserData(): Promise<void> {
     try {
       const token = sessionStorage.getItem('authToken');
@@ -320,6 +321,7 @@ export const ProfileModal = {
     }
   },
 
+  /* Ferme le modal */
   close(): void {
     this.modal?.classList.add('hidden');
     this.currentUserId = null;

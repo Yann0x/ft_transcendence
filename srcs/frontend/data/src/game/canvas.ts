@@ -1,17 +1,17 @@
-// CANVAS with DPR support
+/* CANVAS */
 
-let canvas: HTMLCanvasElement | null = null; // HTML canvas element
-let ctx: CanvasRenderingContext2D | null = null; // 2D context for drawing
-let width = 0; // pixel width
-let height = 0; // pixel height
+let canvas: HTMLCanvasElement | null = null;
+let ctx: CanvasRenderingContext2D | null = null;
+let width = 0;
+let height = 0;
 
-// resize canvas taking DPR into account
-// DPR = devicePixelRatio
+/* RESIZE */
+
 function resize(container: HTMLElement): void {
   if (!canvas || !ctx) return;
 
-  const dpr = window.devicePixelRatio || 1; // physical/logical pixel ratio
-  const rect = container.getBoundingClientRect(); // container dimensions
+  const dpr = window.devicePixelRatio || 1;
+  const rect = container.getBoundingClientRect();
 
   width = rect.width;
   height = rect.height;
@@ -20,7 +20,8 @@ function resize(container: HTMLElement): void {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-// create canvas and insert into container
+/* CREATE */
+
 export function createCanvas(container: HTMLElement): void {
   canvas = document.createElement('canvas');
   canvas.style.display = 'block';
@@ -38,6 +39,8 @@ export function createCanvas(container: HTMLElement): void {
   resize(container);
   window.addEventListener('resize', () => resize(container));
 }
+
+/* GETTERS */
 
 export function getCtx(): CanvasRenderingContext2D | null {
   return ctx;

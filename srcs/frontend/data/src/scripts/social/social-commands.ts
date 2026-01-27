@@ -1,5 +1,9 @@
+/* SOCIAL COMMANDS */
+
 import { socialClient } from './social-client';
 import type { SocialEvent } from './types';
+
+/* STATE */
 
 let commandIdCounter = 0;
 
@@ -13,6 +17,8 @@ interface CommandPromise {
 }
 
 const pendingCommands = new Map<string, CommandPromise>();
+
+/* COMMAND RESPONSES */
 
 socialClient.on('command_success', (event: SocialEvent) => {
   const { commandId, data } = event.data;
@@ -32,6 +38,8 @@ socialClient.on('command_error', (event: SocialEvent) => {
   }
 });
 
+/* SEND COMMAND */
+
 function sendCommand<T = any>(type: string, data: any): Promise<T> {
   console.log(`[SOCIAL-COMMANDS] sends '${type}' with ${JSON.stringify(data)}`);
   return new Promise((resolve, reject) => {
@@ -46,6 +54,8 @@ function sendCommand<T = any>(type: string, data: any): Promise<T> {
   });
 }
 
+/* FRIEND COMMANDS */
+
 export async function addFriend(friendId: string): Promise<{ friend: any; channel: any }> {
   return sendCommand('add_friend', { friendId });
 }
@@ -54,9 +64,17 @@ export async function removeFriend(friendId: string): Promise<void> {
   return sendCommand('remove_friend', { friendId });
 }
 
+/* MESSAGE COMMANDS */
+
 export async function sendMessage(channelId: string, content: string): Promise<{ message: any }> {
   return sendCommand('send_message', { channelId, content });
 }
+
+export async function markRead(channelId: string): Promise<void> {
+  return sendCommand('mark_read', { channelId });
+}
+
+/* BLOCK COMMANDS */
 
 export async function blockUser(blockedId: string): Promise<void> {
   return sendCommand('block_user', { userId: blockedId });
@@ -66,9 +84,7 @@ export async function unblockUser(blockedId: string): Promise<void> {
   return sendCommand('unblock_user', { userId: blockedId });
 }
 
-export async function markRead(channelId: string): Promise<void> {
-  return sendCommand('mark_read', { channelId });
-}
+/* GAME INVITATION COMMANDS */
 
 export async function sendGameInvitation(channelId: string, invitedUserId: string): Promise<{ invitationId: string }> {
   return sendCommand('game_invitation_send', { channelId, invitedUserId });
@@ -82,7 +98,8 @@ export async function declineGameInvitation(invitationId: string): Promise<void>
   return sendCommand('game_invitation_decline', { invitationId, accept: false });
 }
 
-// Tournament invitation commands
+/* TOURNAMENT INVITATION COMMANDS */
+
 export async function sendTournamentInvitation(tournamentId: string, invitedUserId: string): Promise<{ invitationId: string }> {
   return sendCommand('tournament_invitation_send', { tournamentId, invitedUserId });
 }

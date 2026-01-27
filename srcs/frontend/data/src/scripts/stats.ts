@@ -1,13 +1,19 @@
+/* STATS */
+
 import { App } from './app';
 import { I18n } from './i18n';
 import { StatsService, ExtendedStats, MatchHistoryItem } from './stats-service';
 
+/* TYPES */
+
 interface StatsState {
   stats: ExtendedStats | null;
   matchHistory: MatchHistoryItem[];
-  allMatchHistory: MatchHistoryItem[]; // All matches for winrate graph
+  allMatchHistory: MatchHistoryItem[];
   isLoading: boolean;
 }
+
+/* STATE */
 
 const state: StatsState = {
   stats: null,
@@ -16,14 +22,13 @@ const state: StatsState = {
   isLoading: false
 };
 
+/* STATS MODULE */
+
 export const Stats = {
-  //
-  // Initialize the stats page
 
   async init(): Promise<void> {
     console.log('📊 Stats module initialized');
 
-    // Check if user is logged in
     if (!App.me?.id) {
       console.warn('[STATS] User not logged in, showing login required');
       this.showLoginRequired();
@@ -33,26 +38,23 @@ export const Stats = {
     await this.loadStats();
   },
 
-  //
-  // Load all stats data
+  /* DATA LOADING */
 
   async loadStats(): Promise<void> {
     state.isLoading = true;
     this.showLoadingState();
 
     try {
-      // Fetch stats, recent matches (10) and all matches for graph
       const [stats, matchHistory, allMatchHistory] = await Promise.all([
         StatsService.fetchStats(),
         StatsService.fetchMatchHistory(undefined, 10),
-        StatsService.fetchMatchHistory(undefined, 1000) // Get all for graph
+        StatsService.fetchMatchHistory(undefined, 1000)
       ]);
 
       state.stats = stats;
       state.matchHistory = matchHistory || [];
       state.allMatchHistory = allMatchHistory || [];
 
-      // Fetch user data for opponents we don't have cached
       await this.fetchMissingUserData();
 
       this.render();
@@ -64,9 +66,6 @@ export const Stats = {
     }
   },
 
-  //
-  // Fetch user data for opponents not in cache
-
   async fetchMissingUserData(): Promise<void> {
     if (!App.me?.id) return;
 
@@ -74,14 +73,12 @@ export const Stats = {
 
     for (const match of state.matchHistory) {
       const opponentId = match.player1_id === App.me.id ? match.player2_id : match.player1_id;
-      
-      // Skip AI opponents
+
       if (opponentId.startsWith('AI_')) continue;
-      
-      // Skip if we already have the name from the match data or cache
+
       if (match.player1_name && match.player2_name) continue;
       if (App.cachedUsers.has(opponentId)) continue;
-      
+
       missingUserIds.add(opponentId);
     }
 
@@ -90,11 +87,9 @@ export const Stats = {
     }
   },
 
-  //
-  // Render the stats page
+  /* RENDER */
 
   render(): void {
-    // Ensure stats content is visible and login required is hidden
     const loginRequiredEl = document.getElementById('stats-login-required');
     const statsContentEl = document.getElementById('stats-content');
     if (loginRequiredEl) loginRequiredEl.classList.add('hidden');
@@ -107,9 +102,6 @@ export const Stats = {
     this.updateMatchHistory();
     I18n.refresh();
   },
-
-  //
-  // Update the global stats cards at the top
 
   updateGlobalStats(): void {
     const gamesPlayedEl = document.getElementById('stat-games-played');
@@ -125,9 +117,6 @@ export const Stats = {
     }
   },
 
-  //
-  // Update the game stats card
-
   updateGameStats(): void {
     const winsEl = document.getElementById('stat-wins');
     const lossesEl = document.getElementById('stat-losses');
@@ -142,9 +131,6 @@ export const Stats = {
     }
   },
 
-  //
-  // Update the performance stats card (without ELO)
-
   updatePerformanceStats(): void {
     const bestScoreEl = document.getElementById('stat-best-score');
     const worstScoreEl = document.getElementById('stat-worst-score');
@@ -157,19 +143,17 @@ export const Stats = {
     }
   },
 
-  //
-  // Render the winrate evolution graph using canvas
+  /* WINRATE GRAPH */
 
   renderWinrateGraph(): void {
     const canvas = document.getElementById('winrate-graph') as HTMLCanvasElement;
     const noDataEl = document.getElementById('winrate-no-data');
-    
+
     if (!canvas) return;
 
     const userId = App.me?.id || '';
     const winrates = StatsService.calculateWinrateEvolution(state.allMatchHistory, userId);
 
-    // Show no data message if no matches
     if (winrates.length === 0) {
       canvas.style.display = 'none';
       if (noDataEl) noDataEl.classList.remove('hidden');
@@ -182,7 +166,6 @@ export const Stats = {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * window.devicePixelRatio;
     canvas.height = 200 * window.devicePixelRatio;
@@ -194,16 +177,13 @@ export const Stats = {
     const graphWidth = width - padding.left - padding.right;
     const graphHeight = height - padding.top - padding.bottom;
 
-    // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Draw grid lines and labels
     ctx.strokeStyle = '#333';
     ctx.lineWidth = 1;
     ctx.fillStyle = '#888';
     ctx.font = '12px sans-serif';
 
-    // Y-axis labels (0%, 25%, 50%, 75%, 100%)
     for (let i = 0; i <= 4; i++) {
       const y = padding.top + (graphHeight * (4 - i)) / 4;
       ctx.beginPath();
@@ -213,7 +193,6 @@ export const Stats = {
       ctx.fillText(`${i * 25}%`, 5, y + 4);
     }
 
-    // Calculate point positions
     const pointSpacing = graphWidth / (winrates.length + 1);
     const points: { x: number; y: number; winrate: number }[] = [];
 
@@ -224,7 +203,6 @@ export const Stats = {
       points.push({ x, y, winrate });
     }
 
-    // Draw 50% reference line (more visible)
     ctx.beginPath();
     ctx.strokeStyle = '#525252';
     ctx.lineWidth = 2;
@@ -235,18 +213,15 @@ export const Stats = {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Colors
     const brightGreen = '#22c55e';
     const brightRed = '#ef4444';
 
-    // Draw connecting straight line segments between points (color based on winrate)
     if (points.length > 1) {
       ctx.lineWidth = 3;
       for (let i = 0; i < points.length - 1; i++) {
         const p1 = points[i];
         const p2 = points[i + 1];
-        
-        // Use the average winrate of the two points to determine color
+
         const avgWinrate = (p1.winrate + p2.winrate) / 2;
         ctx.beginPath();
         ctx.strokeStyle = avgWinrate >= 50 ? brightGreen : brightRed;
@@ -256,37 +231,31 @@ export const Stats = {
       }
     }
 
-    // Draw points on top of the line (white with colored border based on winrate)
     for (const point of points) {
       const pointColor = point.winrate >= 50 ? brightGreen : brightRed;
-      
-      // Outer circle (colored border)
+
       ctx.beginPath();
       ctx.arc(point.x, point.y, 7, 0, Math.PI * 2);
       ctx.fillStyle = pointColor;
       ctx.fill();
 
-      // Inner circle (white fill)
       ctx.beginPath();
       ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
       ctx.fillStyle = '#fff';
       ctx.fill();
     }
 
-    // X-axis label
     ctx.fillStyle = '#888';
     ctx.textAlign = 'center';
     ctx.fillText('Matchs', width / 2, height - 5);
   },
 
-  //
-  // Update the match history table with type badges
+  /* MATCH HISTORY */
 
   updateMatchHistory(): void {
     const tbody = document.querySelector('#app table tbody');
     if (!tbody) return;
 
-    // Clear existing rows
     tbody.innerHTML = '';
 
     if (state.matchHistory.length === 0) {
@@ -310,11 +279,10 @@ export const Stats = {
       const resultText = formatted.result === 'win' ? 'Victoire' : 'Défaite';
       const resultI18n = formatted.result === 'win' ? 'stats.result_win' : 'stats.result_loss';
 
-      // Get opponent display name (handle AI opponents)
       const opponentId = match.player1_id === userId ? match.player2_id : match.player1_id;
       let opponentDisplay = formatted.opponent;
       let avatarUrl = this.getAvatarUrl(match, userId);
-      
+
       if (opponentId.startsWith('AI_')) {
         const difficulty = opponentId.replace('AI_', '');
         opponentDisplay = `IA (${difficulty})`;
@@ -329,8 +297,8 @@ export const Stats = {
         </td>
         <td class="py-3 px-4">
           <div class="flex items-center gap-3">
-            <img src="${avatarUrl}" 
-                 alt="" 
+            <img src="${avatarUrl}"
+                 alt=""
                  class="w-8 h-8 rounded-full object-cover">
             <span class="font-medium">${this.escapeHtml(opponentDisplay)}</span>
           </div>
@@ -342,7 +310,6 @@ export const Stats = {
         <td class="py-3 px-4 text-right text-neutral-400">${formatted.date}</td>
       `;
 
-      // Add click handler to open opponent profile (not for AI)
       if (!opponentId.startsWith('AI_')) {
         row.style.cursor = 'pointer';
         row.addEventListener('click', () => this.openOpponentProfile(opponentId));
@@ -352,27 +319,22 @@ export const Stats = {
     }
   },
 
-  //
-  // Get avatar URL for opponent in match
+  /* HELPERS */
 
   getAvatarUrl(match: MatchHistoryItem, userId: string): string {
     const opponentId = match.player1_id === userId ? match.player2_id : match.player1_id;
     const opponentName = match.player1_id === userId ? match.player2_name : match.player1_name;
-    
-    // Handle AI opponents
+
     if (opponentId.startsWith('AI_')) {
       return 'https://ui-avatars.com/api/?name=AI&background=06b6d4&color=fff';
     }
-    
+
     const cachedUser = App.cachedUsers.get(opponentId);
     if (cachedUser?.avatar) return cachedUser.avatar;
-    
+
     const name = opponentName || cachedUser?.name || 'Unknown';
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82f6&color=fff`;
   },
-
-  //
-  // Open opponent's profile modal
 
   openOpponentProfile(userId: string): void {
     import('./profile-modal').then(module => {
@@ -380,20 +342,15 @@ export const Stats = {
     });
   },
 
-  //
-  // Escape HTML to prevent XSS
-
   escapeHtml(text: string): string {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
   },
 
-  //
-  // Show loading state
+  /* UI STATES */
 
   showLoadingState(): void {
-    // Ensure stats content is visible during loading
     const loginRequiredEl = document.getElementById('stats-login-required');
     const statsContentEl = document.getElementById('stats-content');
     if (loginRequiredEl) loginRequiredEl.classList.add('hidden');
@@ -411,9 +368,6 @@ export const Stats = {
     });
   },
 
-  //
-  // Show login required state
-
   showLoginRequired(): void {
     const loginRequiredEl = document.getElementById('stats-login-required');
     const statsContentEl = document.getElementById('stats-content');
@@ -425,7 +379,6 @@ export const Stats = {
       statsContentEl.classList.add('hidden');
     }
 
-    // Bind auth modal trigger
     const loginBtn = loginRequiredEl?.querySelector('[data-auth="login"]');
     if (loginBtn) {
       loginBtn.addEventListener('click', () => {
@@ -434,9 +387,6 @@ export const Stats = {
       });
     }
   },
-
-  //
-  // Show empty state (when logged in but no data)
 
   showEmptyState(): void {
     const elements = [
@@ -459,15 +409,11 @@ export const Stats = {
       `;
     }
 
-    // Hide graph when not logged in
     const canvas = document.getElementById('winrate-graph') as HTMLCanvasElement;
     const noDataEl = document.getElementById('winrate-no-data');
     if (canvas) canvas.style.display = 'none';
     if (noDataEl) noDataEl.classList.remove('hidden');
   },
-
-  //
-  // Show error state
 
   showErrorState(): void {
     const elements = [
@@ -491,8 +437,7 @@ export const Stats = {
     }
   },
 
-  //
-  // Refresh stats (can be called externally)
+  /* PUBLIC API */
 
   async refresh(): Promise<void> {
     if (App.me?.id) {
@@ -500,15 +445,9 @@ export const Stats = {
     }
   },
 
-  //
-  // Load stats for a specific user (used by match page)
-
   async loadUserStats(userId: string): Promise<ExtendedStats | null> {
     return await StatsService.fetchStats(userId);
   },
-
-  //
-  // Load match history for a specific user
 
   async loadUserMatchHistory(userId: string, limit: number = 10): Promise<MatchHistoryItem[]> {
     const history = await StatsService.fetchMatchHistory(userId, limit);

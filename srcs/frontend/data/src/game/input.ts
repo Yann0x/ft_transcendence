@@ -1,20 +1,20 @@
-// INPUT - keyboard input handling
+/* INPUT */
 
 const keysDown = new Set<string>();
 let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
 
+/* KEYBOARD BINDING */
+
 export function bindKeyboard(): void {
-  // remove old listeners first
   unbindKeyboard();
 
   keydownHandler = (e: KeyboardEvent) => {
-    // Don't interfere with input fields
     const activeEl = document.activeElement;
-    const isInputField = activeEl instanceof HTMLInputElement || 
+    const isInputField = activeEl instanceof HTMLInputElement ||
                          activeEl instanceof HTMLTextAreaElement ||
                          activeEl?.getAttribute('contenteditable') === 'true';
-    
+
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key) && !isInputField) {
       e.preventDefault();
     }
@@ -41,6 +41,8 @@ export function unbindKeyboard(): void {
   keysDown.clear();
 }
 
+/* INPUT GETTERS */
+
 export function getInput(): { up: boolean; down: boolean } {
   return {
     up: keysDown.has('w') || keysDown.has('W') || keysDown.has('ArrowUp'),
@@ -48,18 +50,18 @@ export function getInput(): { up: boolean; down: boolean } {
   };
 }
 
-// Player 2 inputs for local PvP (Arrow keys)
-export function getInputP2(): { up: boolean; down: boolean } {
-  return {
-    up: keysDown.has('ArrowUp'),
-    down: keysDown.has('ArrowDown')
-  };
-}
-
-// Player 1 inputs for local PvP (W/S keys only)
+/* Joueur 1 en local (W/S) */
 export function getInputP1(): { up: boolean; down: boolean } {
   return {
     up: keysDown.has('w') || keysDown.has('W'),
     down: keysDown.has('s') || keysDown.has('S')
+  };
+}
+
+/* Joueur 2 en local (fleches) */
+export function getInputP2(): { up: boolean; down: boolean } {
+  return {
+    up: keysDown.has('ArrowUp'),
+    down: keysDown.has('ArrowDown')
   };
 }

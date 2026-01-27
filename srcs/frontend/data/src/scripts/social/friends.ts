@@ -1,9 +1,15 @@
+/* FRIENDS */
+
 import { UserPublic } from '../shared/types';
 import { App } from '../app';
 import { ProfileModal } from '../profile-modal';
 import * as SocialCommands from './social-commands';
 
+/* FRIENDS MODULE */
+
 export const Friends = {
+
+  /* DISPLAY */
 
   async display(): Promise <void> {
     await this.displaySearchResults();
@@ -11,8 +17,7 @@ export const Friends = {
     this.attachDocumentListeners();
   },
 
-async displayFriends(): Promise<void>
-{
+  async displayFriends(): Promise<void> {
     const friendsList = document.getElementById('friends-list');
     const friendsCount = document.getElementById('friends-count');
     const emptyState = document.getElementById('friends-empty-state');
@@ -37,9 +42,8 @@ async displayFriends(): Promise<void>
       friendsCount.textContent = `${friends.length} ami${friends.length > 1 ? 's' : ''}`;
     }
   },
-  
-  async displaySearchResults(): Promise<void>
-  {
+
+  async displaySearchResults(): Promise<void> {
     const resultsContainer = document.getElementById('search-results');
     const resultsList = document.getElementById('search-results-list');
 
@@ -60,11 +64,12 @@ async displayFriends(): Promise<void>
     resultsContainer.classList.remove('hidden');
   },
 
-  async loadSearch(): Promise<UserPublic[] | undefined>
-  {
+  /* SEARCH */
+
+  async loadSearch(): Promise<UserPublic[] | undefined> {
     const searchInput = document.getElementById('user-search-input') as HTMLInputElement;
     const query = searchInput?.value.trim() || '';
-    let   users: UserPublic[] | undefined;
+    let users: UserPublic[] | undefined;
     if (query) {
       try {
         const token = sessionStorage.getItem('authToken');
@@ -90,8 +95,9 @@ async displayFriends(): Promise<void>
     return users;
   },
 
-  createSearchUserCard(user: UserPublic): string
-  {
+  /* CARDS */
+
+  createSearchUserCard(user: UserPublic): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
     const isOnline = App.onlineUsersMap.has(user.id);
     const onlineStatus = isOnline ? 'online' : 'offline';
@@ -121,8 +127,7 @@ async displayFriends(): Promise<void>
     return card;
   },
 
-  createFriendUserCard(user: UserPublic): string
-  {
+  createFriendUserCard(user: UserPublic): string {
     const avatar = user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=3b82f6&color=fff`;
     const isOnline = App.onlineUsersMap.has(user.id);
     const statusColor = isOnline ? 'bg-green-500' : 'bg-neutral-500';
@@ -152,8 +157,9 @@ async displayFriends(): Promise<void>
     return card;
   },
 
-  attachDocumentListeners(): void
-  {
+  /* LISTENERS */
+
+  attachDocumentListeners(): void {
     document.querySelectorAll('.add_friend').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const target_id = (e.currentTarget as HTMLElement).getAttribute('data-user-id');
@@ -190,6 +196,8 @@ async displayFriends(): Promise<void>
       }
     });
   },
+
+  /* ACTIONS */
 
   async addFriend(targetId: string): Promise<void> {
     try {

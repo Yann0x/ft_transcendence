@@ -1,6 +1,8 @@
-// STATE - rendering state (data received from server)
+/* STATE */
 
 import { getWidth, getHeight } from './canvas';
+
+/* TYPES */
 
 export type GamePhase = 'waiting' | 'ready' | 'playing' | 'paused' | 'ended';
 
@@ -17,7 +19,11 @@ export interface GameState {
   score: { left: number; right: number };
 }
 
+/* STATE */
+
 let state: GameState | null = null;
+
+/* FUNCTIONS */
 
 export function init(): void {
   const w = getWidth();
@@ -45,5 +51,7 @@ export function setPhase(phase: GamePhase): void {
   if (!state) return;
   state.phase = phase;
 }
+
+/* EXPORT */
 
 export const State = { init, getState, setPhase };

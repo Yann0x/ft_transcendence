@@ -1,8 +1,18 @@
-// RENDER - drawing helpers
+/* RENDER */
 
 import { getCtx } from './canvas';
 
-// draw a rectangle
+/* TYPES */
+
+export interface TextOptions {
+  font?: string;
+  color?: string;
+  align?: CanvasTextAlign;
+  baseline?: CanvasTextBaseline;
+}
+
+/* PRIMITIVES */
+
 export function drawRect(
   x: number,
   y: number,
@@ -17,7 +27,6 @@ export function drawRect(
   ctx.fillRect(x, y, w, h);
 }
 
-// draw a circle
 export function drawCircle(
   x: number,
   y: number,
@@ -33,32 +42,6 @@ export function drawCircle(
   ctx.fill();
 }
 
-// draw the center net (vertical dashed line)
-export function drawNet(
-  x: number,
-  viewportHeight: number,
-  dashHeight: number,
-  dashGap: number,
-  color: string = '#555'
-): void {
-  const ctx = getCtx();
-  if (!ctx) return;
-
-  ctx.fillStyle = color;
-  for (let y = 0; y < viewportHeight; y += dashHeight + dashGap) {
-    ctx.fillRect(x - 1, y, 2, dashHeight);
-  }
-}
-
-// options for drawText
-export interface TextOptions {
-  font?: string;
-  color?: string;
-  align?: CanvasTextAlign;
-  baseline?: CanvasTextBaseline;
-}
-
-// draw text
 export function drawText(
   text: string,
   x: number,
@@ -82,9 +65,24 @@ export function drawText(
   ctx.fillText(text, x, y);
 }
 
-/*
- * Dessine un paddle avec coins arrondis et glow
- */
+/* GAME ELEMENTS */
+
+export function drawNet(
+  x: number,
+  viewportHeight: number,
+  dashHeight: number,
+  dashGap: number,
+  color: string = '#555'
+): void {
+  const ctx = getCtx();
+  if (!ctx) return;
+
+  ctx.fillStyle = color;
+  for (let y = 0; y < viewportHeight; y += dashHeight + dashGap) {
+    ctx.fillRect(x - 1, y, 2, dashHeight);
+  }
+}
+
 export function drawPaddle(
   x: number,
   y: number,
@@ -104,14 +102,10 @@ export function drawPaddle(
   ctx.roundRect(x, y, w, h, radius);
   ctx.fill();
 
-  // Réinitialiser le shadow
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
 }
 
-/*
- * Dessine la balle avec un glow
- */
 export function drawBall(x: number, y: number, radius: number): void {
   const ctx = getCtx();
   if (!ctx) return;
@@ -123,14 +117,10 @@ export function drawBall(x: number, y: number, radius: number): void {
   ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.fill();
 
-  // Réinitialiser le shadow
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
 }
 
-/*
- * Dessine une jauge de score (slots)
- */
 export function drawScoreGauge(
   x: number,
   y: number,
@@ -165,14 +155,12 @@ export function drawScoreGauge(
     ctx.fillRect(slotX, y, slotWidth, slotHeight);
   }
 
-  // Réinitialiser le shadow
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
 }
 
-/*
- * Dessine un message de fin de partie stylisé
- */
+/* UI MESSAGES */
+
 export function drawEndMessage(
   x: number,
   y: number,
@@ -188,7 +176,6 @@ export function drawEndMessage(
   const glowColor = isVictory ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)';
   const textColor = isVictory ? '#10b981' : '#ef4444';
 
-  // Fond avec bordure
   const padding = 40;
   const boxWidth = 400;
   const boxHeight = 120;
@@ -204,26 +191,20 @@ export function drawEndMessage(
   ctx.shadowBlur = 20;
   ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
 
-  // Reset shadow pour le texte
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
 
-  // Texte principal
   ctx.fillStyle = textColor;
   ctx.font = 'bold 32px "Inter", "Segoe UI", system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(mainText, x, y - 15);
 
-  // Sous-texte
   ctx.fillStyle = '#999';
   ctx.font = '18px "Inter", "Segoe UI", system-ui, sans-serif';
   ctx.fillText(subText, x, y + 20);
 }
 
-/*
- * Dessine l'indicateur de mode de jeu stylisé
- */
 export function drawModeIndicator(
   x: number,
   y: number,
@@ -233,7 +214,6 @@ export function drawModeIndicator(
   const ctx = getCtx();
   if (!ctx) return;
 
-  // Texte avec ombre prononcée (pas de cadre)
   ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
   ctx.shadowBlur = 18;
   ctx.fillStyle = color;
@@ -242,14 +222,10 @@ export function drawModeIndicator(
   ctx.textBaseline = 'middle';
   ctx.fillText(text, x, y);
 
-  // Réinitialiser le shadow
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
 }
 
-/*
- * Dessine un message d'information stylisé (pause, ready, etc.)
- */
 export function drawInfoMessage(
   x: number,
   y: number,
@@ -260,7 +236,6 @@ export function drawInfoMessage(
   const ctx = getCtx();
   if (!ctx) return;
 
-  // Texte principal avec ombre/glow prononcé (pas de cadre)
   ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
   ctx.shadowBlur = 20;
   ctx.fillStyle = color;
@@ -270,7 +245,6 @@ export function drawInfoMessage(
   const mainY = subText ? y - 15 : y;
   ctx.fillText(mainText, x, mainY);
 
-  // Sous-texte si fourni avec ombre
   if (subText) {
     ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
     ctx.shadowBlur = 15;
@@ -279,12 +253,12 @@ export function drawInfoMessage(
     ctx.fillText(subText, x, y + 20);
   }
 
-  // Réinitialiser le shadow
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
 }
 
-// export group
+/* EXPORT */
+
 export const Render = {
   drawRect,
   drawCircle,

@@ -1,6 +1,9 @@
+/* STATS SERVICE */
+
 import { App } from './app';
 
-// base stats interface matching backend StatsSchema
+/* TYPES */
+
 export interface Stats {
   user_id: string;
   games_played: number;
@@ -9,7 +12,6 @@ export interface Stats {
   win_rate: number;
 }
 
-// extended stats w/ additional computed fields
 export interface ExtendedStats extends Stats {
   points_scored?: number;
   points_allowed?: number;
@@ -20,7 +22,6 @@ export interface ExtendedStats extends Stats {
   tournaments_won?: number;
 }
 
-// match types: ai, pvp, duel, tournament
 export type MatchType = 'ai' | 'pvp' | 'duel' | 'tournament';
 
 export interface MatchHistoryItem {
@@ -36,8 +37,10 @@ export interface MatchHistoryItem {
   played_at?: string;
 }
 
+/* SERVICE */
+
 export const StatsService = {
-  // fetch stats for a user
+  /* Recupere les stats d'un utilisateur */
   async fetchStats(userId?: string): Promise<ExtendedStats | null> {
     try {
       const token = sessionStorage.getItem('authToken');
@@ -58,16 +61,12 @@ export const StatsService = {
 
       const stats = await response.json() as ExtendedStats;
       console.log('[STATS] Received stats from API:', stats);
-      
-      // Fetch match history to calculate additional stats
+
       const matchHistory = await this.fetchMatchHistory(userId);
       if (matchHistory && matchHistory.length > 0) {
         const additionalStats = this.calculateAdditionalStats(matchHistory, userId || App.me?.id || '');
         Object.assign(stats, additionalStats);
       }
-
-      // tournaments_won is already included in the database response
-      // The database calculates it from persisted match data with tournament_id
 
       console.log('[STATS] Final stats object:', stats);
       return stats;
@@ -77,7 +76,6 @@ export const StatsService = {
     }
   },
 
-  // fetch tournament stats for a user
   async fetchTournamentStats(userId: string): Promise<{ tournaments_won: number; tournaments_played: number } | null> {
     try {
       const response = await fetch(`/api/tournament/user-stats?user_id=${encodeURIComponent(userId)}`);
@@ -92,7 +90,6 @@ export const StatsService = {
     }
   },
 
-  // fetch match history for a user
   async fetchMatchHistory(userId?: string, limit: number = 20): Promise<MatchHistoryItem[] | null> {
     try {
       const token = sessionStorage.getItem('authToken');
@@ -101,10 +98,10 @@ export const StatsService = {
         return null;
       }
 
-      const endpoint = userId 
-        ? `/user/${userId}/match-history?limit=${limit}` 
+      const endpoint = userId
+        ? `/user/${userId}/match-history?limit=${limit}`
         : `/user/match-history?limit=${limit}`;
-      
+
       const response = await fetch(endpoint, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -121,7 +118,8 @@ export const StatsService = {
     }
   },
 
-  // calculate additional stats from match history
+  /* CALCULATIONS */
+
   calculateAdditionalStats(matches: MatchHistoryItem[], userId: string): Partial<ExtendedStats> {
     let pointsScored = 0;
     let pointsAllowed = 0;
@@ -150,7 +148,6 @@ export const StatsService = {
       }
     }
 
-    // no matches? reset worst score
     if (worstScore === Infinity) worstScore = 0;
 
     return {
@@ -162,12 +159,9 @@ export const StatsService = {
     };
   },
 
-  // calc winrate evolution from match history (oldest to newest)
-  // returns array of winrate % after each match
   calculateWinrateEvolution(matches: MatchHistoryItem[], userId: string): number[] {
     if (!matches || matches.length === 0) return [];
 
-    // reverse to get chronological order (oldest first)
     const chronological = [...matches].reverse();
     const winrates: number[] = [];
     let wins = 0;
@@ -181,14 +175,15 @@ export const StatsService = {
 
       total++;
       if (didWin) wins++;
-      
+
       winrates.push(Math.round((wins / total) * 100));
     }
 
     return winrates;
   },
 
-  // update the profile modal stats elements
+  /* UI UPDATES */
+
   updateProfileStats(stats: ExtendedStats | null): void {
     const gamesPlayedEl = document.getElementById('profile-games-played');
     const winRateEl = document.getElementById('profile-win-rate');
@@ -201,7 +196,6 @@ export const StatsService = {
       if (gamesWonEl) gamesWonEl.textContent = stats.games_won.toString();
       if (gamesLostEl) gamesLostEl.textContent = stats.games_lost.toString();
     } else {
-      // reset to default values
       if (gamesPlayedEl) gamesPlayedEl.textContent = '0';
       if (winRateEl) winRateEl.textContent = '0%';
       if (gamesWonEl) gamesWonEl.textContent = '0';
@@ -209,20 +203,17 @@ export const StatsService = {
     }
   },
 
-  // update the home page stats cards
-  // stat cards use class-based selectors since they don't have IDs on value elements
   updateHomeStats(stats: ExtendedStats | null): void {
-    // get stat cards by label IDs and find sibling stat-value
     const statCards = document.querySelectorAll('.stat-card');
-    
+
     statCards.forEach(card => {
       const valueEl = card.querySelector('.stat-value');
       const labelEl = card.querySelector('.stat-label');
-      
+
       if (!valueEl || !labelEl) return;
-      
+
       const labelId = labelEl.id;
-      
+
       if (stats) {
         switch (labelId) {
           case 'stat-games-label':
@@ -239,23 +230,22 @@ export const StatsService = {
             break;
         }
       } else {
-        // reset to default if no stats
         valueEl.textContent = '-';
       }
     });
   },
 
-  // get cached user by ID for displaying opponent names
+  /* HELPERS */
+
   getUserName(userId: string): string {
     const cachedUser = App.cachedUsers.get(userId);
     if (cachedUser?.name) return cachedUser.name;
-    
+
     if (App.me?.id === userId && App.me?.name) return App.me.name;
-    
+
     return 'Unknown';
   },
 
-  // format a match result for display
   formatMatchResult(match: MatchHistoryItem, userId: string): {
     opponent: string;
     score: string;
@@ -268,7 +258,7 @@ export const StatsService = {
     const opponentScore = isPlayer1 ? match.score2 : match.score1;
     const opponentId = isPlayer1 ? match.player2_id : match.player1_id;
     const opponentName = isPlayer1 ? match.player2_name : match.player1_name;
-    
+
     return {
       opponent: opponentName || this.getUserName(opponentId) || 'Unknown',
       score: `${myScore} - ${opponentScore}`,
@@ -278,7 +268,6 @@ export const StatsService = {
     };
   },
 
-  // get match type badge info (emoji + text)
   getMatchTypeBadge(matchType: MatchType): { emoji: string; text: string; color: string } {
     switch (matchType) {
       case 'ai':

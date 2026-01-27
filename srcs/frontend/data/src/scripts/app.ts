@@ -1,3 +1,5 @@
+/* APP */
+
 import { Intro } from './intro'
 import { Router } from './router'
 import { AuthModal } from './auth-modal'
@@ -12,15 +14,18 @@ import { PongGame } from '../game'
 import { Tournaments } from './tournaments'
 import { Stats } from './stats'
 
-// main app instance
+/* APP */
+
 const App = {
 
   appContainer: null as HTMLElement | null,
   me: null as User | null,
-  cachedUsers: new Map<string, UserPublic>(),      // Central cache of all users
-  friendsMap: new Map<string, UserPublic>(),        // Key: friend ID
-  blockedUsersMap: new Map<string, UserPublic>(),   // Key: blocked user ID
+  cachedUsers: new Map<string, UserPublic>(),
+  friendsMap: new Map<string, UserPublic>(),
+  blockedUsersMap: new Map<string, UserPublic>(),
   onlineUsersMap: new Map<string, UserPublic>(),
+
+  /* CACHE */
 
   cacheUser(user: UserPublic): void {
     if (!user.id) return;
@@ -55,6 +60,8 @@ const App = {
   cacheUsers(users: UserPublic[]): void {
     users.forEach(user => this.cacheUser(user));
   },
+
+  /* FRIENDS */
 
   async loadFriends(): Promise<void> {
     try {
@@ -174,6 +181,7 @@ const App = {
     this.onlineUsersMap.delete(userId);
   },
 
+  /* USER DATA */
 
   async refreshUserData(userId: User.id): Promise<void> {
       try {
@@ -209,18 +217,18 @@ const App = {
       }
   },
 
+  /* INIT */
+
   async init(): Promise<void> {
     console.log('🏓 ft_transcendance - App initialized');
 
     this.appContainer = document.getElementById('app');
 
-    // Check if this is an OAuth callback (token in URL)
     const urlParams = new URLSearchParams(window.location.search);
     const isOAuthCallback = urlParams.has('token');
 
     await this.wasIAlreadyLogged();
 
-    // Load auth modal
     await this.loadAuthModal();
     await this.loadSettingsModal();
     await this.loadProfileModal();
@@ -228,7 +236,6 @@ const App = {
     Accessibility.init();
     I18n.refresh();
 
-    // Load intro animation (skip if OAuth callback)
     await this.loadIntro();
     if (isOAuthCallback) {
       Intro.hide();
@@ -250,8 +257,6 @@ const App = {
     if (token && currentUser)
     {
       console.log("[APP] Found stored user : " + JSON.stringify(currentUser));
-      // For returning users, we need to load friends and blocked users from API
-      // since we don't have the full LoginResponse stored
       this.me = JSON.parse(currentUser);
       
       // Connect to social websocket and load channels for notifications
@@ -262,6 +267,8 @@ const App = {
       this.me = null;
     }
   },
+
+  /* LOADERS */
 
   async loadAuthModal(): Promise<void> {
     const authModal = await fetch('/components/auth-modal.html').then(r => r.text());
@@ -294,12 +301,10 @@ const App = {
   async loadPage(name: string): Promise<void> {
     if (!this.appContainer) return;
 
-    // Cleanup the game if leaving the home page
     if (this.currentPage === 'home' && name !== 'home') {
       PongGame.cleanup();
     }
-    
-    // Cleanup tournaments if leaving the tournaments page
+
     if (this.currentPage === 'tournaments' && name !== 'tournaments') {
       Tournaments.cleanup();
     }
@@ -320,7 +325,6 @@ const App = {
     I18n.refresh();
     Accessibility.bindControls();
 
-    // update the current page
     this.currentPage = name;
   },
 
@@ -342,6 +346,8 @@ const App = {
     }
   },
 
+  /* AUTH BUTTONS */
+
   setupAuthButtons(): void {
     const loginButtons = document.querySelectorAll('[data-auth="login"]');
     loginButtons.forEach(btn => {
@@ -358,6 +364,8 @@ const App = {
     });
   },
 
+  /* NAVBAR */
+
   updateNavbar(): void {
     const authButtons = document.getElementById('auth-buttons');
     const userSection = document.getElementById('user-account-section');
@@ -365,15 +373,12 @@ const App = {
     const userName = document.getElementById('user-name');
 
     if (this.me) {
-      // User is authenticated - show user button
       authButtons?.classList.add('hidden');
       userSection?.classList.remove('hidden');
 
-      // Update user info
       if (userAvatar && this.me.avatar) {
         userAvatar.src = this.me.avatar;
       } else if (userAvatar) {
-        // Default avatar if none provided
         userAvatar.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(this.me.name || 'User')}&background=3b82f6&color=fff`;
       }
 
@@ -381,17 +386,14 @@ const App = {
         userName.textContent = this.me.name;
       }
 
-      // Setup dropdown toggle
       this.setupUserDropdown();
     } else {
-      // User is not authenticated - show login/signup buttons
       authButtons?.classList.remove('hidden');
       userSection?.classList.add('hidden');
     }
   },
 
-  //
-  // Setup user dropdown menu
+  /* USER DROPDOWN */
 
   setupUserDropdown(): void {
     const accountButton = document.getElementById('user-account-button');
@@ -399,12 +401,10 @@ const App = {
     const logoutButton = document.getElementById('user-logout');
     const settingsButton = document.getElementById('user-settings');
 
-    // Remove old listeners by cloning (prevents duplicates)
     if (accountButton) {
       const newAccountButton = accountButton.cloneNode(true) as HTMLElement;
       accountButton.parentNode?.replaceChild(newAccountButton, accountButton);
 
-      // Toggle dropdown
       newAccountButton.addEventListener('click', (e) => {
         e.stopPropagation();
         dropdown?.classList.toggle('hidden');
@@ -415,7 +415,6 @@ const App = {
       const newLogoutButton = logoutButton.cloneNode(true) as HTMLElement;
       logoutButton.parentNode?.replaceChild(newLogoutButton, logoutButton);
 
-      // Logout functionality
       newLogoutButton.addEventListener('click', () => {
         this.logout();
       });
@@ -425,7 +424,6 @@ const App = {
       const newSettingsButton = settingsButton.cloneNode(true) as HTMLElement;
       settingsButton.parentNode?.replaceChild(newSettingsButton, settingsButton);
 
-      // Settings functionality
       newSettingsButton.addEventListener('click', (e) => {
         e.preventDefault();
         SettingsModal.open();
@@ -433,23 +431,19 @@ const App = {
       });
     }
 
-    // Prevent dropdown from closing when clicking inside it
     dropdown?.addEventListener('click', (e) => {
       e.stopPropagation();
     });
 
-    // Close dropdown when clicking outside (single global listener is fine)
     const closeDropdown = () => {
       dropdown?.classList.add('hidden');
     };
 
-    // Remove old listener if exists
     document.removeEventListener('click', closeDropdown);
     document.addEventListener('click', closeDropdown);
   },
 
-  //
-  // Handle user login
+  /* LOGIN / LOGOUT */
 
   async onLogin(loginResponse: LoginResponse): Promise<void> {
     this.me = loginResponse.user;
@@ -463,14 +457,9 @@ const App = {
     Social.connect();
   },
 
-  //
-  // Build cachedUsers, friendsMap, and blockedUsersMap from LoginResponse
-
   buildMapsFromLoginResponse(loginResponse: LoginResponse): void {
-    // Cache all users from the response
     this.cacheUsers(loginResponse.cachedUsers);
 
-    // Build friendsMap using friendIds and references from cachedUsers
     this.friendsMap.clear();
     loginResponse.friendIds.forEach((friendId: string) => {
       const cachedFriend = this.cachedUsers.get(friendId);
@@ -479,7 +468,6 @@ const App = {
       }
     });
 
-    // Build blockedUsersMap using blockedIds and references from cachedUsers
     this.blockedUsersMap.clear();
     loginResponse.blockedIds.forEach((blockedId: string) => {
       const cachedUser = this.cachedUsers.get(blockedId);
@@ -491,18 +479,14 @@ const App = {
     console.log(`[App] Built maps: ${this.friendsMap.size} friends, ${this.blockedUsersMap.size} blocked users`);
   },
 
-  //
-  // Handle user logout
-
   async logout(): Promise<void> {
     if (!this.me?.id) {
       console.warn('No user to logout');
       return;
     }
-    
-    // Cleanup game connection BEFORE logout to avoid stuck "Connecting..." state
+
     PongGame.cleanup();
-    
+
     const token = sessionStorage.getItem('authToken')
     if (token)
     {
@@ -517,7 +501,6 @@ const App = {
     }
     socialClient.disconnect();
     try {
-      // Call backend to remove user from logged-in users
       const response = await fetch('/user/public/logout', {
         method: 'POST',
         headers: {
