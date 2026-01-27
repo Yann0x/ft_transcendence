@@ -1,9 +1,13 @@
+/* SOCIAL */
+
 import fastify from 'fastify'
 import swagger from '@fastify/swagger'
 import swaggerUI from '@fastify/swagger-ui'
 import websocket from '@fastify/websocket'
 import { socialRoutes } from './routes'
 import handleThisError from './shared/utils/error'
+
+/* SERVER */
 
 const server = fastify({
   logger: false,
@@ -17,9 +21,10 @@ const server = fastify({
   }
 })
 
+/* WEBSOCKET */
+
 server.register(websocket)
 
-// Log WebSocket upgrade attempts
 server.server.on('upgrade', (req, socket) => {
   console.log('[WEBSOCKET] upgrade start', req.url, {
     protocol: req.headers['sec-websocket-protocol'],
@@ -27,12 +32,16 @@ server.server.on('upgrade', (req, socket) => {
   });
   socket.on('close', () => console.log('[SOCIAL] upgrade socket closed', req.url));
 });
+
+/* HOOKS */
+
 server.addHook('onRequest', async (request, reply) => {
   console.log(`[REQUEST] ${request.method} ${request.url}`);
 });
 
-// Custom error handler for schema validation
 server.setErrorHandler(handleThisError);
+
+/* SWAGGER */
 
 await server.register(swagger, {
   exposeRoute: true,
@@ -45,7 +54,6 @@ await server.register(swagger, {
   },
 });
 
-// Register Swagger UI
 await server.register(swaggerUI, {
   routePrefix: '/social/docs',
   uiConfig: {
@@ -55,7 +63,11 @@ await server.register(swaggerUI, {
   staticCSP: true
 });
 
+/* ROUTES */
+
 server.register(socialRoutes);
+
+/* START */
 
 server.listen({ port: 3000, host: '0.0.0.0'}, (err, address) => {
   if (err) {

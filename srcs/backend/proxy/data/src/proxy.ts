@@ -1,3 +1,5 @@
+/* PROXY */
+
 import fastify, { FastifyRequest, FastifyReply } from 'fastify'
 import proxy from '@fastify/http-proxy'
 import swagger from '@fastify/swagger'
@@ -6,7 +8,8 @@ import fs from 'fs'
 import path from 'path'
 import {SenderIdentity} from './shared/with_front/types'
 
-// self signed certificate 
+/* CERTIFICATE */
+
 const keyPath = '/certs/selfsigned.key'
 const certPath = '/certs/selfsigned.crt'
 
@@ -14,6 +17,8 @@ if (!fs.existsSync(keyPath) || !fs.existsSync(certPath)) {
   console.error('[CERTIFICATE] TLS key/cert not found. Generate with openssl and mount to /certs.');
   process.exit(1)
 }
+
+/* SERVER */
 
 const server = fastify({
   logger: false,
@@ -23,7 +28,8 @@ const server = fastify({
   }
 })
 
-// Log WebSocket upgrade attempts
+/* HOOKS */
+
 server.server.on('upgrade', (req, socket) => {
   console.log('[WEBSOCKET] upgrade request', req.url, {
     protocol: req.headers['sec-websocket-protocol'],
@@ -31,14 +37,15 @@ server.server.on('upgrade', (req, socket) => {
   });
   socket.on('close', () => console.log('[WEBSOCKET] upgrade socket closed', req.url));
 });
+
 server.addHook('onRequest', async (request, reply) => {
   console.log(`[REQUEST] ${request.method} ${request.url}`);
 });
 
-// JWT verification function via the authenticate service
+/* JWT CHECK */
+
 async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
   try {
-    // if authenticate validates the JWT, set headers with the sender's identity
     const authHeader = request.headers.authorization
     const response = await fetch('http://authenticate:3000/check_jwt', {
       method: 'POST',
@@ -71,11 +78,11 @@ async function checkJWT(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-// Reusable WebSocket client options for forwarding auth headers
+/* WEBSOCKET OPTIONS */
+
 const wsClientOptionsWithAuth = {
   rewriteRequestHeaders: (headers: any, request: any) => {
     const newHeaders = { ...headers };
-    // Only add auth headers if they exist (for authenticated users)
     if (request.headers['x-sender-id']) {
       newHeaders['x-sender-id'] = request.headers['x-sender-id'];
     }
@@ -89,30 +96,17 @@ const wsClientOptionsWithAuth = {
   }
 };
 
-// // Social service with WebSocket (outside auth for now - auth handled internally)
-// server.register(proxy, {
-//     upstream: 'http://social:3000',
-//     prefix: '/social',
-//     rewritePrefix: '/social',
-//     http2: false,
-// 	  websocket: true,
-// })
-  
-// Private routes with JWT verification
+/* PRIVATE ROUTES */
+
 server.register( async function contextPrivate(server) {
-  // For HTTP requests, use preHandler hook
   server.addHook('preHandler', checkJWT);
 
-  // For WebSocket upgrades, extract token from subprotocol and add to Authorization header
   server.addHook('onRequest', async (request, reply) => {
-    // Check if this is a WebSocket upgrade request
     const upgrade = request.headers.upgrade?.toLowerCase();
     if (upgrade === 'websocket') {
-      // Extract token from Sec-WebSocket-Protocol header
-      // Format: "Bearer.{token}" (using dot because some browsers don't allow spaces in subprotocols)
       const subprotocol = request.headers['sec-websocket-protocol'];
       if (subprotocol && subprotocol.startsWith('Bearer.')) {
-        const token = subprotocol.substring(7); // Remove "Bearer." prefix
+        const token = subprotocol.substring(7);
         request.headers.authorization = `Bearer ${token}`;
         console.log('[PROXY] Extracted JWT from WebSocket subprotocol');
       }
@@ -126,7 +120,6 @@ server.register( async function contextPrivate(server) {
     http2: false,
   })
 
-  // Social REST endpoints (require auth)
   server.register(proxy, {
     upstream: 'http://social:3000',
     prefix: '/social',
@@ -135,10 +128,9 @@ server.register( async function contextPrivate(server) {
     websocket: true,
     wsClientOptions: wsClientOptionsWithAuth,
   })
-
 })
 
-// Public routes - no JWT verification
+/* PUBLIC ROUTES */
 
 server.register(proxy, {
   upstream: 'http://user:3000',
@@ -147,7 +139,8 @@ server.register(proxy, {
   http2: false,
 })
 
-// Register swagger first (required by swagger-ui)
+/* SWAGGER */
+
 await server.register(swagger, {
   openapi: {
     info: {
@@ -158,7 +151,6 @@ await server.register(swagger, {
   }
 })
 
-// Centralized API Documentation
 await server.register(async function publicDocs(instance) {
   await instance.register(swaggerUI, {
     routePrefix: '/docs',
@@ -191,23 +183,24 @@ await server.register(async function publicDocs(instance) {
   })
 })
 
- // Dev routes
-  server.register(proxy, {
-    upstream: 'http://database:3000',
-    prefix: '/database',
-    rewritePrefix: '/database',
-    http2: false,
-  })
+/* DEV ROUTES */
 
-  server.register(proxy, {
-    upstream: 'http://authenticate:3000',
-    prefix: '/authenticate',
-    rewritePrefix: '/authenticate',
-    http2: false,
-  })
+server.register(proxy, {
+  upstream: 'http://database:3000',
+  prefix: '/database',
+  rewritePrefix: '/database',
+  http2: false,
+})
 
-// Game service (HTTP + WebSocket) - auth is handled by the game service itself
-// We just forward the subprotocol header and let game service validate the JWT
+server.register(proxy, {
+  upstream: 'http://authenticate:3000',
+  prefix: '/authenticate',
+  rewritePrefix: '/authenticate',
+  http2: false,
+})
+
+/* GAME SERVICE */
+
 server.register(proxy, {
   upstream: 'http://game:3000',
   prefix: '/api/game',
@@ -216,23 +209,27 @@ server.register(proxy, {
   websocket: true,
 });
 
-  // Tournament service (HTTP + WebSocket) - Public for viewing, but creating/joining may need user info
-  server.register(proxy, {
-    upstream: 'http://tournament:3000',
-    prefix: '/api/tournament',
-    rewritePrefix: '/tournament',
-    http2: false,
-    websocket: true,
-  });
+/* TOURNAMENT SERVICE */
 
-   server.register(proxy, {
-      upstream: 'http://frontend:3000',
-      prefix: '/',
-      rewritePrefix: '',
-      http2: false,
-      websocket: true, // HMR websockets
-  });
+server.register(proxy, {
+  upstream: 'http://tournament:3000',
+  prefix: '/api/tournament',
+  rewritePrefix: '/tournament',
+  http2: false,
+  websocket: true,
+});
 
+/* FRONTEND */
+
+server.register(proxy, {
+  upstream: 'http://frontend:3000',
+  prefix: '/',
+  rewritePrefix: '',
+  http2: false,
+  websocket: true,
+});
+
+/* START */
 
 server.listen({ port: 8080, host: '0.0.0.0' }, (err, address) => {
   if (err) {

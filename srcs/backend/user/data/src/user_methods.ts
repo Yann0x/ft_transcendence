@@ -1,25 +1,28 @@
+/* USER METHODS */
+
 import { FastifyReply, FastifyRequest } from "fastify";
 import { randomUUID } from "crypto";
 import { User, UserPublic, Message, LoginResponse, Stats } from "./shared/with_front/types";
 import customFetch from "./shared/utils/fetch";
 import { userManager } from "./user_manager.js";
 
+/* HELPERS */
+
+/* Remplit les données d'un utilisateur avec ses stats */
 async function fillUser(user : User): Promise<User>
 {
       user.tournaments = [];
       user.matches = [];
-      
-      // Fetch real stats from database
+
       try {
         const statsResponse = await customFetch(
           `http://database:3000/database/stats?user_id=${user.id}`,
           { method: 'GET' }
         );
-        
+
         if (statsResponse && !statsResponse.error) {
           user.stats = statsResponse as Stats;
         } else {
-          // Fallback to zero stats if fetch fails
           user.stats = {
             user_id: user.id!,
             games_played: 0,
@@ -42,6 +45,7 @@ async function fillUser(user : User): Promise<User>
       return user;
 }
 
+/* Construit la réponse de login avec les données utilisateur */
 async function buildLoginResponse(user: User, token: string): Promise<LoginResponse>
 {
   const friends = await userManager.getFriends(user.id!);
@@ -63,6 +67,9 @@ async function buildLoginResponse(user: User, token: string): Promise<LoginRespo
   };
 }
 
+/* AUTHENTICATION */
+
+/* Enregistre un nouvel utilisateur */
 export async function registerUserHandler(
   req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
@@ -112,6 +119,7 @@ export async function registerUserHandler(
   }
 }
 
+/* Connecte un utilisateur */
 export async function loginUserHandler(
   req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
@@ -144,10 +152,8 @@ export async function loginUserHandler(
 
     await customFetch('http://authenticate:3000/check_pass_match', 'POST', { to_check: credentials.password, valid: storedHash } );
 
-    // Check if 2FA is enabled for this user
     const userWith2FA = user as User & { twoAuth_enabled?: number; twoAuth_secret?: string };
     if (userWith2FA.twoAuth_enabled) {
-      // Return a response indicating 2FA is required
       console.log('[USER] 2FA required for user:', user.id);
       return reply.send({
         requires2FA: true,
@@ -182,9 +188,7 @@ export async function loginUserHandler(
   }
 }
 
-/**
- * Complete login with 2FA verification
- */
+/* Complète le login avec vérification 2FA */
 export async function login2FAHandler(
   req: FastifyRequest<{ Body: { userId: string; code: string } }>,
   reply: FastifyReply
@@ -201,7 +205,6 @@ export async function login2FAHandler(
       });
     }
 
-    // Verify 2FA code via authenticate service
     const verifyResult = await customFetch(
       'http://authenticate:3000/authenticate/2fa/login-verify',
       'POST',
@@ -217,7 +220,6 @@ export async function login2FAHandler(
       });
     }
 
-    // Get user data
     const users = await customFetch(
       'http://database:3000/database/user',
       'GET',
@@ -235,7 +237,6 @@ export async function login2FAHandler(
 
     const user = users[0];
 
-    // Generate JWT
     const token = await customFetch(
       'http://authenticate:3000/get_jwt',
       'POST',
@@ -263,12 +264,16 @@ export async function login2FAHandler(
   }
 }
 
+/* Déconnecte un utilisateur */
 export async function logoutUserHandler(
   req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
   ){
   }
 
+/* USER CRUD */
+
+/* Recherche des utilisateurs */
 export async function findUserHandler(
   req: FastifyRequest<{ Querystring: User }>,
   reply: FastifyReply
@@ -288,19 +293,16 @@ export async function findUserHandler(
       return [];
     }
 
-    // Get blocked users in both directions to filter them out of search results
     let blockedByMe: string[] = [];
     let blockedMe: string[] = [];
 
     if (requestingUserId) {
-      // Users that I have blocked
       const blockedByMeResponse = await customFetch(
         `http://database:3000/database/blocked?user_id=${requestingUserId}`,
         'GET'
       ) as string[] | null;
       blockedByMe = blockedByMeResponse || [];
 
-      // Users who have blocked me
       const blockedMeResponse = await customFetch(
         `http://database:3000/database/blocked?blocked_user_id=${requestingUserId}`,
         'GET'
@@ -311,7 +313,6 @@ export async function findUserHandler(
     const blockedSet = new Set([...blockedByMe, ...blockedMe]);
 
     const result = await Promise.all(users.map(async (user) => {
-      // Filter out blocked users
       if (user.id && blockedSet.has(user.id)) {
         return null;
       }
@@ -328,7 +329,6 @@ export async function findUserHandler(
       }
     }));
 
-    // Filter out null values (blocked users)
     return result.filter(user => user !== null);
 
   } catch (error: any) {
@@ -342,6 +342,7 @@ export async function findUserHandler(
   }
 }
 
+/* Met à jour un utilisateur */
 export async function updateUserHandler(
   req: FastifyRequest<{ Body: User }>,
   reply: FastifyReply
@@ -391,6 +392,7 @@ export async function updateUserHandler(
   }
 }
 
+/* Supprime un utilisateur */
 export async function deleteUserHandler(
   req: FastifyRequest<{ Body: { id: string } }>,
   reply: FastifyReply
@@ -418,6 +420,9 @@ export async function deleteUserHandler(
   }
 }
 
+/* FRIENDS */
+
+/* Ajoute un ami */
 export async function addFriendHandler(
   req: FastifyRequest<{ Body: { friendId: string } }>,
   reply: FastifyReply
@@ -458,7 +463,6 @@ export async function addFriendHandler(
 
         if (newChannelId) {
           channelId = newChannelId as unknown as number;
-          // Add both users as members
           await customFetch('http://database:3000/database/channel/member', 'POST', {
             channel_id: newChannelId,
             user_id: userId
@@ -514,6 +518,7 @@ export async function addFriendHandler(
   }
 }
 
+/* Supprime un ami */
 export async function removeFriendHandler(
   req: FastifyRequest<{ Body: { friendId: string } }>,
   reply: FastifyReply
@@ -553,6 +558,7 @@ export async function removeFriendHandler(
   }
 }
 
+/* Récupère la liste des amis */
 export async function getFriendsHandler(
   req: FastifyRequest,
   reply: FastifyReply
@@ -564,7 +570,6 @@ export async function getFriendsHandler(
       return reply.status(401).send([]);
     }
 
-    // Get friends directly from database
     const friends = await customFetch(
       `http://database:3000/database/friends?user_id=${userId}`,
       'GET'
@@ -577,6 +582,9 @@ export async function getFriendsHandler(
   }
 }
 
+/* CHANNELS */
+
+/* Récupère un channel */
 export async function getChannelHandler(
   req: FastifyRequest<{ Params: { channelId: string } }>,
   reply: FastifyReply
@@ -619,6 +627,7 @@ export async function getChannelHandler(
   }
 }
 
+/* Marque un channel comme lu */
 export async function markChannelReadHandler(
   req: FastifyRequest<{ Params: { channelId: string } }>,
   reply: FastifyReply
@@ -672,6 +681,7 @@ export async function markChannelReadHandler(
   }
 }
 
+/* Envoie un message */
 export async function sendMessage(req: FastifyRequest, reply: FastifyReply)
 {
   try {
@@ -697,6 +707,130 @@ export async function sendMessage(req: FastifyRequest, reply: FastifyReply)
     }
 }
 
+/* Trouve un channel DM entre deux utilisateurs */
+export async function findDMChannelHandler(
+  req: FastifyRequest<{ Querystring: { userId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const currentUserId = req.headers['x-sender-id'] as string;
+    const { userId: otherUserId } = req.query;
+
+    if (!currentUserId) {
+      return reply.status(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
+    }
+
+    if (!otherUserId) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'userId query parameter is required' });
+    }
+
+    const channelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
+      user1_id: currentUserId,
+      user2_id: otherUserId
+    }) as number | null;
+
+    if (!channelId) {
+      return reply.status(404).send({ error: 'Not Found', message: 'No DM channel exists between these users' });
+    }
+
+    const channel = await userManager.getChannel(String(channelId));
+    if (!channel) {
+      return reply.status(404).send({ error: 'Not Found', message: 'Channel not found' });
+    }
+
+    return reply.status(200).send(channel);
+  } catch (error: any) {
+    console.error('[USER] findDMChannel error:', error);
+    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to find DM channel' });
+  }
+}
+
+/* Crée un channel DM entre deux utilisateurs */
+export async function createDMChannelHandler(
+  req: FastifyRequest<{ Body: { userId: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const currentUserId = req.headers['x-sender-id'] as string;
+    const { userId: otherUserId } = req.body;
+
+    if (!currentUserId) {
+      return reply.status(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
+    }
+
+    if (!otherUserId) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'userId is required in request body' });
+    }
+
+    const existingChannelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
+      user1_id: currentUserId,
+      user2_id: otherUserId
+    }) as number | null;
+
+    if (existingChannelId) {
+      const channel = await userManager.getChannel(String(existingChannelId));
+      return reply.status(200).send(channel);
+    }
+
+    const channelData = {
+      type: 'private',
+      created_by: currentUserId,
+      created_at: new Date().toISOString()
+    };
+
+    const newChannelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
+
+    if (!newChannelId) {
+      return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to create channel' });
+    }
+
+    await customFetch('http://database:3000/database/channel/member', 'POST', {
+      channel_id: newChannelId,
+      user_id: currentUserId
+    });
+
+    await customFetch('http://database:3000/database/channel/member', 'POST', {
+      channel_id: newChannelId,
+      user_id: otherUserId
+    });
+
+    const channel = await userManager.getChannel(newChannelId);
+
+    await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
+      userIds: [currentUserId, otherUserId],
+      channel: channel
+    });
+
+    return reply.status(200).send(channel);
+  } catch (error: any) {
+    console.error('[USER] createDMChannel error:', error);
+    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to create DM channel' });
+  }
+}
+
+/* Récupère les channels d'un utilisateur */
+export async function getUserChannels(request: FastifyRequest, reply: FastifyReply) {
+  const userId = request.headers['x-sender-id'] as string;
+  if (!userId) {
+    return reply.status(401).send({ error: 'Unauthorized' });
+  }
+
+  try {
+    const channels = await customFetch(
+      `http://database:3000/database/user/channels?user_id=${userId}`,
+      'GET'
+    );
+
+    return reply.send(channels);
+  } catch (error: any) {
+    console.error('[USER] getUserChannels error:', error);
+    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to load channels' });
+  }
+}
+
+/* BLOCKING */
+
+/* Bloque un utilisateur */
 export async function blockUserHandler(
   req: FastifyRequest<{ Body: { blockedUserId: string } }>,
   reply: FastifyReply
@@ -777,6 +911,7 @@ export async function blockUserHandler(
   }
 }
 
+/* Débloque un utilisateur */
 export async function unblockUserHandler(
   req: FastifyRequest<{ Body: { blockedUserId: string } }>,
   reply: FastifyReply
@@ -844,6 +979,7 @@ export async function unblockUserHandler(
   }
 }
 
+/* Récupère les utilisateurs bloqués */
 export async function getBlockedUsersHandler(
   req: FastifyRequest,
   reply: FastifyReply
@@ -866,6 +1002,7 @@ export async function getBlockedUsersHandler(
   }
 }
 
+/* Récupère les utilisateurs bloqués par un utilisateur spécifique */
 export async function getBlockedUsersByIdHandler(
   req: FastifyRequest<{ Params: { userId: string } }>,
   reply: FastifyReply
@@ -888,132 +1025,15 @@ export async function getBlockedUsersByIdHandler(
   }
 }
 
-export async function findDMChannelHandler(
-  req: FastifyRequest<{ Querystring: { userId: string } }>,
-  reply: FastifyReply
-) {
-  try {
-    const currentUserId = req.headers['x-sender-id'] as string;
-    const { userId: otherUserId } = req.query;
+/* STATS */
 
-    if (!currentUserId) {
-      return reply.status(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
-    }
-
-    if (!otherUserId) {
-      return reply.status(400).send({ error: 'Bad Request', message: 'userId query parameter is required' });
-    }
-
-    // Find DM channel between current user and other user
-    const channelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
-      user1_id: currentUserId,
-      user2_id: otherUserId
-    }) as number | null;
-
-    if (!channelId) {
-      return reply.status(404).send({ error: 'Not Found', message: 'No DM channel exists between these users' });
-    }
-
-    // Get full channel data
-    const channel = await userManager.getChannel(String(channelId));
-    if (!channel) {
-      return reply.status(404).send({ error: 'Not Found', message: 'Channel not found' });
-    }
-
-    return reply.status(200).send(channel);
-  } catch (error: any) {
-    console.error('[USER] findDMChannel error:', error);
-    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to find DM channel' });
-  }
-}
-
-export async function createDMChannelHandler(
-  req: FastifyRequest<{ Body: { userId: string } }>,
-  reply: FastifyReply
-) {
-  try {
-    const currentUserId = req.headers['x-sender-id'] as string;
-    const { userId: otherUserId } = req.body;
-
-    if (!currentUserId) {
-      return reply.status(401).send({ error: 'Unauthorized', message: 'User not authenticated' });
-    }
-
-    if (!otherUserId) {
-      return reply.status(400).send({ error: 'Bad Request', message: 'userId is required in request body' });
-    }
-
-    const existingChannelId = await customFetch('http://database:3000/database/channel/find-dm', 'GET', {
-      user1_id: currentUserId,
-      user2_id: otherUserId
-    }) as number | null;
-
-    if (existingChannelId) {
-      const channel = await userManager.getChannel(String(existingChannelId));
-      return reply.status(200).send(channel);
-    }
-
-    const channelData = {
-      type: 'private',
-      created_by: currentUserId,
-      created_at: new Date().toISOString()
-    };
-
-    const newChannelId = await customFetch('http://database:3000/database/channel', 'POST', channelData) as string;
-
-    if (!newChannelId) {
-      return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to create channel' });
-    }
-
-    await customFetch('http://database:3000/database/channel/member', 'POST', {
-      channel_id: newChannelId,
-      user_id: currentUserId
-    });
-
-    await customFetch('http://database:3000/database/channel/member', 'POST', {
-      channel_id: newChannelId,
-      user_id: otherUserId
-    });
-
-    const channel = await userManager.getChannel(newChannelId);
-
-    await customFetch('http://social:3000/social/notify/channel_update', 'POST', {
-      userIds: [currentUserId, otherUserId],
-      channel: channel
-    });
-
-    return reply.status(200).send(channel);
-  } catch (error: any) {
-    console.error('[USER] createDMChannel error:', error);
-    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to create DM channel' });
-  }
-}
-
-export async function getUserChannels(request: FastifyRequest, reply: FastifyReply) {
-  const userId = request.headers['x-sender-id'] as string;
-  if (!userId) {
-    return reply.status(401).send({ error: 'Unauthorized' });
-  }
-
-  try {
-    const channels = await customFetch(
-      `http://database:3000/database/user/channels?user_id=${userId}`,
-      'GET'
-    );
-
-    return reply.send(channels);
-  } catch (error: any) {
-    console.error('[USER] getUserChannels error:', error);
-    return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to load channels' });
-  }
-}
-
+/* Récupère les statistiques d'un utilisateur */
 export async function getUserStatsHandler(request: FastifyRequest, reply: FastifyReply) {
   const userId = request.headers['x-sender-id'] as string;
   const { userId: targetUserId } = request.params as { userId?: string };
-  
+
   const userIdToFetch = targetUserId || userId;
-  
+
   if (!userIdToFetch) {
     return reply.status(400).send({ error: 'Bad Request', message: 'User ID required' });
   }
@@ -1031,13 +1051,14 @@ export async function getUserStatsHandler(request: FastifyRequest, reply: Fastif
   }
 }
 
+/* Récupère l'historique des matchs d'un utilisateur */
 export async function getMatchHistoryHandler(request: FastifyRequest, reply: FastifyReply) {
   const userId = request.headers['x-sender-id'] as string;
   const { userId: targetUserId } = request.params as { userId?: string };
   const { limit } = request.query as { limit?: string };
-  
+
   const userIdToFetch = targetUserId || userId;
-  
+
   if (!userIdToFetch) {
     return reply.status(400).send({ error: 'Bad Request', message: 'User ID required' });
   }

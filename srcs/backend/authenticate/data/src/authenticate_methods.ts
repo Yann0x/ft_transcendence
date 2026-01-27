@@ -1,11 +1,16 @@
+/* AUTHENTICATE METHODS */
+
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { SenderIdentity, User } from './shared/with_front/types'
 import crypto from 'crypto'
 import { authenticator } from '@otplib/preset-default'
 import QRCode from 'qrcode'
 
-// Store pending OAuth states (in-memory for CSRF protection)
+/* STATE */
+
 const pendingOAuthStates = new Map<string, { createdAt: number }>()
+
+/* JWT HANDLERS */
 
 export function buildGetJwtHandler(server: FastifyInstance) {
   return async (request: FastifyRequest<{ Body: SenderIdentity }>, reply: FastifyReply) => {
@@ -34,8 +39,9 @@ export function buildCheckJwtHandler(server: FastifyInstance) {
   }
 }
 
-export  function hashPassword(server: FastifyInstance)
-{
+/* PASSWORD HANDLERS */
+
+export function hashPassword(server: FastifyInstance) {
   return async (req: FastifyRequest, rep: FastifyReply) => {
     const toHash = req.body as string;
     if (!toHash)
@@ -50,8 +56,7 @@ type validHashBody = {
   valid: string
 }
 
-export  function validHashPassword(server: FastifyInstance)
-{
+export function validHashPassword(server: FastifyInstance) {
   return async (req: FastifyRequest<{Body: validHashBody}>, rep: FastifyReply) => {
     const toCheck = req.body?.to_check as string;
     const realHash = req.body?.valid as string;
@@ -69,7 +74,7 @@ export  function validHashPassword(server: FastifyInstance)
   }
 };
 
-// OAuth 2.0 with 42 API
+/* OAUTH 42 */
 
 export function buildOAuth42UrlHandler(server: FastifyInstance) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
@@ -81,11 +86,9 @@ export function buildOAuth42UrlHandler(server: FastifyInstance) {
       return reply.status(500).send({ error: '42 OAuth not configured' });
     }
 
-    // Generate random state for CSRF protection
     const state = crypto.randomBytes(32).toString('hex');
     pendingOAuthStates.set(state, { createdAt: Date.now() });
 
-    // Clean old states (older than 10 minutes)
     const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
     for (const [key, value] of pendingOAuthStates) {
       if (value.createdAt < tenMinutesAgo) pendingOAuthStates.delete(key);
@@ -108,7 +111,6 @@ export function buildOAuth42CallbackHandler(server: FastifyInstance) {
   return async (request: FastifyRequest<{ Querystring: { code?: string; state?: string; error?: string } }>, reply: FastifyReply) => {
     const { code, state, error } = request.query;
 
-    // Handle user cancellation or errors from 42
     if (error) {
       console.log('[OAUTH] User cancelled or error from 42:', error);
       return reply.redirect('/?oauth_error=' + encodeURIComponent(error));
@@ -119,7 +121,6 @@ export function buildOAuth42CallbackHandler(server: FastifyInstance) {
       return reply.redirect('/?oauth_error=missing_params');
     }
 
-    // Verify state
     if (!pendingOAuthStates.has(state)) {
       console.error('[OAUTH] Invalid or expired state');
       return reply.redirect('/?oauth_error=invalid_state');
@@ -136,7 +137,6 @@ export function buildOAuth42CallbackHandler(server: FastifyInstance) {
     }
 
     try {
-      // Exchange code for access token
       console.log('[OAUTH] Exchanging code for access token...');
       const tokenResponse = await fetch('https://api.intra.42.fr/oauth/token', {
         method: 'POST',
@@ -159,7 +159,6 @@ export function buildOAuth42CallbackHandler(server: FastifyInstance) {
       const tokenData = await tokenResponse.json() as { access_token: string };
       const accessToken = tokenData.access_token;
 
-      // Fetch user info from 42 API
       console.log('[OAUTH] Fetching user info from 42 API...');
       const userResponse = await fetch('https://api.intra.42.fr/v2/me', {
         headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -180,10 +179,8 @@ export function buildOAuth42CallbackHandler(server: FastifyInstance) {
 
       console.log('[OAUTH] 42 user:', ftUser.login, ftUser.email);
 
-      // Find or create user in our database
       const user = await findOrCreateOAuthUser(ftUser);
 
-      // Check if 2FA is enabled for this user
       const userSettingsResponse = await fetch(`http://database:3000/database/user?id=${user.id}`);
       const usersWithSettings = await userSettingsResponse.json() as Array<{ twoAuth_enabled?: number }>;
       const userWith2FA = usersWithSettings[0];
@@ -191,12 +188,10 @@ export function buildOAuth42CallbackHandler(server: FastifyInstance) {
       console.log('[OAUTH] 2FA check for user:', user.id, 'twoAuth_enabled:', userWith2FA?.twoAuth_enabled, 'raw data:', JSON.stringify(userWith2FA));
 
       if (userWith2FA?.twoAuth_enabled) {
-        // 2FA is enabled - redirect to frontend with requires2FA flag
         console.log('[OAUTH] 2FA required for user:', user.name);
         return reply.redirect(`/?oauth_requires_2fa=true&userId=${user.id}`);
       }
 
-      // No 2FA required - generate JWT
       const token = server.jwt.sign({
         id: user.id,
         name: user.name,
@@ -205,7 +200,6 @@ export function buildOAuth42CallbackHandler(server: FastifyInstance) {
 
       console.log('[OAUTH] Successfully authenticated user:', user.name);
 
-      // Redirect to frontend with token
       return reply.redirect(`/?token=${token}`);
 
     } catch (error) {
@@ -215,10 +209,11 @@ export function buildOAuth42CallbackHandler(server: FastifyInstance) {
   };
 }
 
+/* OAUTH USER */
+
 async function findOrCreateOAuthUser(ftUser: { id: number; login: string; email: string; image?: { link?: string } }): Promise<User> {
   const ftIdStr = String(ftUser.id);
 
-  // Check if user exists by ft_id
   let response = await fetch(`http://database:3000/database/user?ft_id=${ftIdStr}`);
   let users = await response.json() as User[];
 
@@ -227,12 +222,10 @@ async function findOrCreateOAuthUser(ftUser: { id: number; login: string; email:
     return users[0];
   }
 
-  // Check if email already exists (user registered manually)
   response = await fetch(`http://database:3000/database/user?email=${encodeURIComponent(ftUser.email)}`);
   users = await response.json() as User[];
 
   if (users && users.length > 0) {
-    // Link existing account to 42
     console.log('[OAUTH] Linking existing user to 42 account');
     await fetch('http://database:3000/database/user', {
       method: 'PUT',
@@ -245,7 +238,6 @@ async function findOrCreateOAuthUser(ftUser: { id: number; login: string; email:
     return users[0];
   }
 
-  // Create new user
   console.log('[OAUTH] Creating new user from 42 account');
   const newUser: User & { ft_id: string } = {
     id: crypto.randomUUID(),
@@ -272,13 +264,8 @@ async function findOrCreateOAuthUser(ftUser: { id: number; login: string; email:
   return newUser;
 }
 
-// ============================================
-// 2FA (TOTP) Authentication Methods
-// ============================================
+/* 2FA SETUP */
 
-/**
- * Generate a new 2FA secret and QR code for setup
- */
 export function build2FASetupHandler(server: FastifyInstance) {
   return async (request: FastifyRequest<{ Body: { userId: string; email: string } }>, reply: FastifyReply) => {
     const { userId, email } = request.body;
@@ -288,18 +275,13 @@ export function build2FASetupHandler(server: FastifyInstance) {
     }
 
     try {
-      // Generate a new TOTP secret
       const secret = authenticator.generateSecret();
-      
-      // Generate the otpauth URL for QR code
       const serviceName = 'ft_transcendance';
       const otpauthUrl = authenticator.keyuri(email, serviceName, secret);
-      
-      // Generate QR code as data URL
       const qrCodeDataUrl = await QRCode.toDataURL(otpauthUrl);
 
       console.log('[2FA] Generated setup secret for user:', userId);
-      
+
       return reply.send({
         secret,
         qrCode: qrCodeDataUrl,
@@ -312,9 +294,8 @@ export function build2FASetupHandler(server: FastifyInstance) {
   };
 }
 
-/**
- * Verify a TOTP code
- */
+/* 2FA VERIFY */
+
 export function build2FAVerifyHandler(server: FastifyInstance) {
   return async (request: FastifyRequest<{ Body: { secret: string; code: string } }>, reply: FastifyReply) => {
     const { secret, code } = request.body;
@@ -325,9 +306,7 @@ export function build2FAVerifyHandler(server: FastifyInstance) {
 
     try {
       const isValid = authenticator.verify({ token: code, secret });
-      
       console.log('[2FA] Code verification result:', isValid);
-      
       return reply.send({ valid: isValid });
     } catch (error) {
       console.error('[2FA] Error verifying code:', error);
@@ -336,9 +315,8 @@ export function build2FAVerifyHandler(server: FastifyInstance) {
   };
 }
 
-/**
- * Enable 2FA for a user (after successful verification)
- */
+/* 2FA ENABLE */
+
 export function build2FAEnableHandler(server: FastifyInstance) {
   return async (request: FastifyRequest<{ Body: { userId: string; secret: string; code: string } }>, reply: FastifyReply) => {
     const { userId, secret, code } = request.body;
@@ -348,14 +326,12 @@ export function build2FAEnableHandler(server: FastifyInstance) {
     }
 
     try {
-      // Verify the code first
       const isValid = authenticator.verify({ token: code, secret });
-      
+
       if (!isValid) {
         return reply.status(401).send({ error: 'Unauthorized', message: 'Invalid 2FA code' });
       }
 
-      // Update user in database with 2FA enabled
       console.log('[2FA] Sending update to database for user:', userId);
       const updateResponse = await fetch('http://database:3000/database/user', {
         method: 'PUT',
@@ -364,7 +340,7 @@ export function build2FAEnableHandler(server: FastifyInstance) {
           id: userId,
           twoAuth_secret: secret,
           twoAuth_enabled: true,
-          _allow2FAUpdate: true  // Flag to allow 2FA field updates
+          _allow2FAUpdate: true
         })
       });
 
@@ -376,14 +352,13 @@ export function build2FAEnableHandler(server: FastifyInstance) {
         return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to enable 2FA' });
       }
 
-      // Verify the database actually updated the user
       if (responseText !== 'true') {
         console.error('[2FA] Database did not update user:', responseText);
         return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to save 2FA settings' });
       }
 
       console.log('[2FA] 2FA enabled for user:', userId);
-      
+
       return reply.send({ success: true, message: '2FA enabled successfully' });
     } catch (error) {
       console.error('[2FA] Error enabling 2FA:', error);
@@ -392,9 +367,8 @@ export function build2FAEnableHandler(server: FastifyInstance) {
   };
 }
 
-/**
- * Disable 2FA for a user
- */
+/* 2FA DISABLE */
+
 export function build2FADisableHandler(server: FastifyInstance) {
   return async (request: FastifyRequest<{ Body: { userId: string; code: string } }>, reply: FastifyReply) => {
     const { userId, code } = request.body;
@@ -404,29 +378,26 @@ export function build2FADisableHandler(server: FastifyInstance) {
     }
 
     try {
-      // Get user's current secret from database
       const userResponse = await fetch(`http://database:3000/database/user?id=${userId}`);
       const users = await userResponse.json() as Array<{ twoAuth_secret: string | null; twoAuth_enabled: number }>;
-      
+
       if (!users || users.length === 0) {
         return reply.status(404).send({ error: 'Not Found', message: 'User not found' });
       }
 
       const user = users[0]!;
       const secret = user.twoAuth_secret;
-      
+
       if (!user.twoAuth_enabled || !secret) {
         return reply.status(400).send({ error: 'Bad Request', message: '2FA is not enabled' });
       }
 
-      // Verify the code
       const isValid = authenticator.verify({ token: code, secret });
-      
+
       if (!isValid) {
         return reply.status(401).send({ error: 'Unauthorized', message: 'Invalid 2FA code' });
       }
 
-      // Disable 2FA in database
       const updateResponse = await fetch('http://database:3000/database/user', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -434,7 +405,7 @@ export function build2FADisableHandler(server: FastifyInstance) {
           id: userId,
           twoAuth_secret: null,
           twoAuth_enabled: false,
-          _allow2FAUpdate: true  // Flag to allow 2FA field updates
+          _allow2FAUpdate: true
         })
       });
 
@@ -446,14 +417,13 @@ export function build2FADisableHandler(server: FastifyInstance) {
         return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to disable 2FA' });
       }
 
-      // Verify the database actually updated the user
       if (responseText !== 'true') {
         console.error('[2FA] Database did not update user:', responseText);
         return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to save 2FA settings' });
       }
 
       console.log('[2FA] 2FA disabled for user:', userId);
-      
+
       return reply.send({ success: true, message: '2FA disabled successfully' });
     } catch (error) {
       console.error('[2FA] Error disabling 2FA:', error);
@@ -462,9 +432,8 @@ export function build2FADisableHandler(server: FastifyInstance) {
   };
 }
 
-/**
- * Verify 2FA code during login (used by user service)
- */
+/* 2FA LOGIN VERIFY */
+
 export function build2FALoginVerifyHandler(server: FastifyInstance) {
   return async (request: FastifyRequest<{ Body: { userId: string; code: string } }>, reply: FastifyReply) => {
     const { userId, code } = request.body;
@@ -474,26 +443,24 @@ export function build2FALoginVerifyHandler(server: FastifyInstance) {
     }
 
     try {
-      // Get user's secret from database
       const userResponse = await fetch(`http://database:3000/database/user?id=${userId}`);
       const users = await userResponse.json() as Array<{ twoAuth_secret: string | null; twoAuth_enabled: number }>;
-      
+
       if (!users || users.length === 0) {
         return reply.status(404).send({ error: 'Not Found', message: 'User not found' });
       }
 
       const user = users[0]!;
       const secret = user.twoAuth_secret;
-      
+
       if (!user.twoAuth_enabled || !secret) {
         return reply.status(400).send({ error: 'Bad Request', message: '2FA is not enabled for this user' });
       }
 
-      // Verify the code
       const isValid = authenticator.verify({ token: code, secret });
-      
+
       console.log('[2FA] Login verification for user:', userId, 'result:', isValid);
-      
+
       return reply.send({ valid: isValid });
     } catch (error) {
       console.error('[2FA] Error during login verification:', error);

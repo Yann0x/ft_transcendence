@@ -1,8 +1,12 @@
+/* ROUTES */
+
 import { FastifyInstance } from 'fastify';
 import * as handlers from './user_methods';
 import { ErrorResponseSchema, UserSchema, UserPublicSchema, MessageSchema, ChannelSchema, LoginResponseSchema } from './shared/with_front/types';
 import { Type } from '@sinclair/typebox/type';
 import * as check from './shared/check_functions'
+
+/* SCHEMAS */
 
 const registerUserSchema = {
   schema: {
@@ -191,13 +195,16 @@ const postMessageSchema = {
   }
 }
 
+/* REGISTER ROUTES */
+
+/* Enregistre toutes les routes du service user */
 export function userRoutes(server: FastifyInstance) {
-  // Public routes (no auth required)
+  /* Public routes */
   server.post('/user/public/register', registerUserSchema, handlers.registerUserHandler);
   server.post('/user/public/login', loginUserSchema, handlers.loginUserHandler);
   server.post('/user/public/logout', logoutUserSchema, handlers.logoutUserHandler);
-  
-  // 2FA login completion (public - called after initial login returns requires2FA)
+
+  /* 2FA login */
   server.post('/user/public/login/2fa', {
     schema: {
       description: 'Complete login with 2FA verification',
@@ -215,17 +222,17 @@ export function userRoutes(server: FastifyInstance) {
     }
   }, handlers.login2FAHandler);
 
-  // Private routes (auth required - handled by proxy)
+  /* Private routes */
   server.get('/user/find', findUserSchema, handlers.findUserHandler);
   server.put('/user/update', updateUserSchema, handlers.updateUserHandler);
   server.delete('/user/delete', deleteUserSchema, handlers.deleteUserHandler);
 
-  // Friend management endpoints (authenticated)
+  /* Friend management */
   server.post('/user/addFriend', addFriendSchema, handlers.addFriendHandler);
   server.delete('/user/rmFriend', removeFriendSchema, handlers.removeFriendHandler);
   server.get('/user/getFriends', getFriendsSchema, handlers.getFriendsHandler);
 
-  //Chat
+  /* Chat */
   server.get('/user/channels', handlers.getUserChannels);
   server.get('/user/channel/:channelId', getChannelSchema, handlers.getChannelHandler);
   server.put('/user/channel/:channelId/read', markChannelReadSchema, handlers.markChannelReadHandler);
@@ -233,13 +240,13 @@ export function userRoutes(server: FastifyInstance) {
   server.get('/user/channel/find-dm', handlers.findDMChannelHandler);
   server.post('/user/channel/create-dm', handlers.createDMChannelHandler);
 
-  // Block management endpoints (authenticated)
+  /* Block management */
   server.post('/user/block', handlers.blockUserHandler);
   server.delete('/user/unblock', handlers.unblockUserHandler);
   server.get('/user/blocked', handlers.getBlockedUsersHandler);
   server.get('/user/:userId/blocked-users', handlers.getBlockedUsersByIdHandler);
 
-  // Stats and match history endpoints
+  /* Stats and match history */
   server.get('/user/stats', handlers.getUserStatsHandler);
   server.get('/user/:userId/stats', handlers.getUserStatsHandler);
   server.get('/user/match-history', handlers.getMatchHistoryHandler);

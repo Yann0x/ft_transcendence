@@ -1,8 +1,11 @@
+/* ROUTES */
+
 import { FastifyInstance } from "fastify"
 import { Type } from '@sinclair/typebox'
-
 import * as db from './database_methods';
 import { UserSchema, UserPublicSchema, ChannelSchema, MessageSchema } from './shared/with_front/types'
+
+/* SCHEMAS */
 
 const dbGetUserSchema = {
   schema: {
@@ -103,13 +106,12 @@ const dbPutChannelSchema = {
   }
 }
 
-
 const dbGetMessageSchema = {
   schema: {
     querystring: Type.Object(
       Type.Pick(Type.Partial(MessageSchema), ['channel_id', 'id']).properties,
-        { 
-          required: ['channel_id'] 
+        {
+          required: ['channel_id']
         }
     ),
     response: {
@@ -145,71 +147,50 @@ const dbPutMessageSchema = {
   }
 }
 
-export function databaseRoutes(server: FastifyInstance) { 
+/* REGISTER ROUTES */
+
+export function databaseRoutes(server: FastifyInstance) {
 
   server.get('/database/user', dbGetUserSchema, db.getUser)
-
   server.put('/database/user', dbUpdateUserSchema, db.updateUser)
-
   server.post('/database/user', dbCreateUserSchema, db.createUser)
-
   server.delete('/database/user', dbDeleteUserSchema, db.deleteUser)
-
   server.get('/database/user/password_hash', dbGetPasswordSchema, db.getUserPasswordHash)
 
   server.get('/database/channel', dbGetChannelSchema, db.getChannel)
-
   server.post('/database/channel', dbPostChannelSchema, db.postChannel)
-
   server.put('/database/channel/name', dbPutChannelSchema, db.putChannelName)
 
   server.get('/database/message', dbGetMessageSchema, db.getMessage)
-
   server.post('/database/message', dbPostMessageSchema, db.postMessage)
-
   server.put('/database/message', dbPutMessageSchema, db.putMessage)
 
   server.post('/database/channel/member', db.postChannelMember)
-
   server.delete('/database/channel/member', db.deleteChannelMember)
 
   server.get('/database/blocked', db.getBlockedUsers)
-
   server.post('/database/blocked', db.postBlockUser)
-
   server.delete('/database/blocked', db.deleteBlockUser)
 
   server.get('/database/user/channels', db.getUserChannels)
-
   server.get('/database/channel/find-dm', db.findDMChannel)
 
   server.get('/database/friends', db.getFriends)
-
   server.post('/database/friends', db.postFriend)
-
   server.delete('/database/friends', db.deleteFriend)
 
   server.put('/database/channel/mark-read', db.markChannelRead)
 
   server.get('/database/game_invitation', db.getGameInvitation)
-
   server.post('/database/game_invitation', db.postGameInvitation)
-
   server.put('/database/game_invitation', db.putGameInvitation)
 
-  // Match & Stats endpoints
   server.post('/database/match', db.postMatch)
-
   server.get('/database/stats', db.getUserStats)
-
   server.get('/database/match_history', db.getMatchHistory)
 
-  // Tournament persistence endpoints
   server.post('/database/tournament', db.saveTournament)
-
   server.get('/database/tournament', db.getTournaments)
-
   server.get('/database/tournament/:id', db.getTournamentById)
-
   server.delete('/database/tournament/:id', db.deleteTournament)
 }

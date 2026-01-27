@@ -1,3 +1,5 @@
+/* ROUTES */
+
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import type { WebSocket } from 'ws'
 import { Type } from '@sinclair/typebox'
@@ -20,7 +22,8 @@ import {
 } from './tournament_methods.js'
 import { TournamentSchema, TournamentStatusSchema } from './shared/with_front/types.js'
 
-// Request/Response schemas
+/* SCHEMAS */
+
 const CreateTournamentBody = Type.Object({
   maxPlayers: Type.Union([Type.Literal(2), Type.Literal(4), Type.Literal(8)]),
   creatorAlias: Type.String({ minLength: 1, maxLength: 20 }),
@@ -54,9 +57,11 @@ const UpdateScoreBody = Type.Object({
   score2: Type.Number(),
 })
 
+/* Enregistre les routes du service tournoi */
 export function registerRoutes(fastify: FastifyInstance): void {
-  
-  // Get all tournaments
+
+  /* LIST */
+
   fastify.get('/tournament/list', {
     schema: {
       response: {
@@ -71,11 +76,12 @@ export function registerRoutes(fastify: FastifyInstance): void {
     const waiting = getTournamentsByStatus('waiting')
     const in_progress = getTournamentsByStatus('in_progress')
     const finished = getTournamentsByStatus('finished')
-    
+
     return reply.send({ waiting, in_progress, finished })
   })
-  
-  // Get a specific tournament
+
+  /* GET */
+
   fastify.get<{ Params: { id: string } }>('/tournament/:id', {
     schema: {
       params: Type.Object({
@@ -88,15 +94,16 @@ export function registerRoutes(fastify: FastifyInstance): void {
     }
   }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const tournament = getTournament(request.params.id)
-    
+
     if (!tournament) {
       return reply.status(404).send({ error: 'Tournament not found' })
     }
-    
+
     return reply.send(tournament)
   })
-  
-  // Create a new tournament
+
+  /* CREATE */
+
   fastify.post('/tournament/create', {
     schema: {
       body: CreateTournamentBody,
@@ -107,17 +114,18 @@ export function registerRoutes(fastify: FastifyInstance): void {
     }
   }, async (request: FastifyRequest<{ Body: typeof CreateTournamentBody.static }>, reply: FastifyReply) => {
     const { maxPlayers, creatorAlias, creatorUserId, name } = request.body
-    
+
     if (!creatorAlias.trim()) {
       return reply.status(400).send({ error: 'Alias is required' })
     }
-    
+
     const tournament = createTournament(maxPlayers, creatorAlias.trim(), creatorUserId, name?.trim())
-    
+
     return reply.status(201).send(tournament)
   })
-  
-  // Join a tournament
+
+  /* JOIN */
+
   fastify.post<{ Params: { id: string } }>('/tournament/:id/join', {
     schema: {
       params: Type.Object({ id: Type.String() }),
@@ -133,25 +141,26 @@ export function registerRoutes(fastify: FastifyInstance): void {
     }
   }, async (request: FastifyRequest<{ Params: { id: string }; Body: typeof JoinTournamentBody.static }>, reply: FastifyReply) => {
     const { alias, userId } = request.body
-    
+
     if (!alias.trim()) {
       return reply.status(400).send({ error: 'Alias is required' })
     }
-    
+
     const result = joinTournament(request.params.id, alias.trim(), userId)
-    
+
     if (!result.success) {
       const status = result.error === 'Tournament not found' ? 404 : 400
       return reply.status(status).send({ error: result.error })
     }
-    
+
     return reply.send({
       tournament: result.tournament,
       playerId: result.player!.odId,
     })
   })
-  
-  // Leave a tournament
+
+  /* LEAVE */
+
   fastify.post<{ Params: { id: string } }>('/tournament/:id/leave', {
     schema: {
       params: Type.Object({ id: Type.String() }),
@@ -164,18 +173,19 @@ export function registerRoutes(fastify: FastifyInstance): void {
     }
   }, async (request: FastifyRequest<{ Params: { id: string }; Body: typeof LeaveTournamentBody.static }>, reply: FastifyReply) => {
     const { playerId } = request.body
-    
+
     const result = leaveTournament(request.params.id, playerId)
-    
+
     if (!result.success) {
       const status = result.error === 'Tournament not found' ? 404 : 400
       return reply.status(status).send({ error: result.error })
     }
-    
+
     return reply.send({ success: true })
   })
-  
-  // Start a match (internal use for game integration)
+
+  /* MATCH START */
+
   fastify.post<{ Params: { id: string } }>('/tournament/:id/match/start', {
     schema: {
       params: Type.Object({ id: Type.String() }),
@@ -187,23 +197,24 @@ export function registerRoutes(fastify: FastifyInstance): void {
     }
   }, async (request: FastifyRequest<{ Params: { id: string }; Body: typeof StartMatchBody.static }>, reply: FastifyReply) => {
     const { matchId, gameRoomId } = request.body
-    
+
     const result = startMatch(request.params.id, matchId, gameRoomId)
-    
+
     if (!result.success) {
       return reply.status(400).send({ error: result.error })
     }
-    
+
     return reply.send({ success: true })
   })
-  
-  // End a match (internal use for game integration)
+
+  /* MATCH END */
+
   fastify.post<{ Params: { id: string } }>('/tournament/:id/match/end', {
     schema: {
       params: Type.Object({ id: Type.String() }),
       body: EndMatchBody,
       response: {
-        200: Type.Object({ 
+        200: Type.Object({
           success: Type.Boolean(),
           winnerId: Type.Optional(Type.String())
         }),
@@ -212,17 +223,18 @@ export function registerRoutes(fastify: FastifyInstance): void {
     }
   }, async (request: FastifyRequest<{ Params: { id: string }; Body: typeof EndMatchBody.static }>, reply: FastifyReply) => {
     const { matchId, score1, score2 } = request.body
-    
+
     const result = endMatch(request.params.id, matchId, score1, score2)
-    
+
     if (!result.success) {
       return reply.status(400).send({ error: result.error })
     }
-    
+
     return reply.send({ success: true, winnerId: result.winner?.odId })
   })
-  
-  // Update match score (live updates)
+
+  /* MATCH SCORE */
+
   fastify.post<{ Params: { id: string } }>('/tournament/:id/match/score', {
     schema: {
       params: Type.Object({ id: Type.String() }),
@@ -233,13 +245,14 @@ export function registerRoutes(fastify: FastifyInstance): void {
     }
   }, async (request: FastifyRequest<{ Params: { id: string }; Body: typeof UpdateScoreBody.static }>, reply: FastifyReply) => {
     const { matchId, score1, score2 } = request.body
-    
+
     updateMatchScore(request.params.id, matchId, score1, score2)
-    
+
     return reply.send({ success: true })
   })
-  
-  // Get next match to play
+
+  /* NEXT MATCH */
+
   fastify.get<{ Params: { id: string } }>('/tournament/:id/next-match', {
     schema: {
       params: Type.Object({ id: Type.String() }),
@@ -252,34 +265,33 @@ export function registerRoutes(fastify: FastifyInstance): void {
     }
   }, async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const match = getNextMatch(request.params.id)
-    
+
     return reply.send({
       hasNext: match !== null,
       match: match ?? undefined
     })
   })
-  
-  // WebSocket for live tournament updates
+
+  /* WEBSOCKET LIST */
+
   fastify.get('/tournament/ws', { websocket: true }, (socket: WebSocket, _request: FastifyRequest) => {
     console.log('New WebSocket connection for tournament list')
-    
+
     registerGlobalConnection(socket)
-    
-    // Send current tournament list
+
     const waiting = getTournamentsByStatus('waiting')
     const in_progress = getTournamentsByStatus('in_progress')
     const finished = getTournamentsByStatus('finished')
-    
+
     socket.send(JSON.stringify({
       type: 'tournaments_list',
       tournaments: { waiting, in_progress, finished }
     }))
-    
+
     socket.on('message', (rawMessage: Buffer) => {
       try {
         const message = JSON.parse(rawMessage.toString())
-        
-        // Subscribe to specific tournament updates
+
         if (message.type === 'subscribe' && message.tournamentId) {
           registerConnection(message.tournamentId, socket)
           const tournament = getTournament(message.tournamentId)
@@ -290,8 +302,7 @@ export function registerRoutes(fastify: FastifyInstance): void {
             }))
           }
         }
-        
-        // Unsubscribe from tournament updates
+
         if (message.type === 'unsubscribe' && message.tournamentId) {
           unregisterConnection(message.tournamentId, socket)
         }
@@ -299,25 +310,24 @@ export function registerRoutes(fastify: FastifyInstance): void {
         console.error('Invalid WebSocket message:', e)
       }
     })
-    
+
     socket.on('close', () => {
       console.log('WebSocket connection closed')
       unregisterGlobalConnection(socket)
-      // Clean up from all tournament subscriptions
       for (const tournament of getAllTournaments()) {
         unregisterConnection(tournament.odId, socket)
       }
     })
   })
-  
-  // WebSocket for specific tournament (alternative route)
+
+  /* WEBSOCKET TOURNAMENT */
+
   fastify.get<{ Params: { id: string } }>('/tournament/:id/ws', { websocket: true }, (socket: WebSocket, request: FastifyRequest<{ Params: { id: string } }>) => {
     const tournamentId = request.params.id
     console.log(`New WebSocket connection for tournament: ${tournamentId}`)
-    
+
     registerConnection(tournamentId, socket)
-    
-    // Send current tournament state
+
     const tournament = getTournament(tournamentId)
     if (tournament) {
       socket.send(JSON.stringify({
@@ -332,14 +342,15 @@ export function registerRoutes(fastify: FastifyInstance): void {
       socket.close()
       return
     }
-    
+
     socket.on('close', () => {
       console.log(`WebSocket connection closed for tournament: ${tournamentId}`)
       unregisterConnection(tournamentId, socket)
     })
   })
-  
-  // Get user tournament stats (tournaments won)
+
+  /* USER STATS */
+
   fastify.get<{ Querystring: { user_id: string } }>('/tournament/user-stats', {
     schema: {
       querystring: Type.Object({
@@ -355,30 +366,27 @@ export function registerRoutes(fastify: FastifyInstance): void {
     }
   }, async (request: FastifyRequest<{ Querystring: { user_id: string } }>, reply: FastifyReply) => {
     const { user_id } = request.query
-    
+
     if (!user_id) {
       return reply.status(400).send({ error: 'user_id is required' })
     }
-    
+
     const allTournaments = getAllTournaments()
-    
-    // Count finished tournaments where user is the winner
+
     let tournaments_won = 0
     let tournaments_played = 0
-    
+
     for (const tournament of allTournaments) {
-      // Check if user participated in this tournament
       const participated = tournament.odPlayers.some(p => p.odUserId === user_id)
       if (participated) {
         tournaments_played++
-        
-        // Check if user won this tournament
+
         if (tournament.odStatus === 'finished' && tournament.odWinner?.odUserId === user_id) {
           tournaments_won++
         }
       }
     }
-    
+
     return reply.send({ tournaments_won, tournaments_played })
   })
 }

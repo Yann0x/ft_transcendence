@@ -1,14 +1,17 @@
+/* DATABASE METHODS */
+
 import Database from 'better-sqlite3';
 import { FastifyRequest, FastifyReply,} from 'fastify';
 import { User, Channel, Message } from './shared/with_front/types';
 
 let db: Database.Database;
 
+/* INIT */
+
 export function initializeDatabase(path: string | undefined = 'database.db' ): Database.Database {
     db = new Database(path);
     db.pragma('WAL=1');
-    db.prepare(
-    `
+    db.prepare(`
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL UNIQUE,
@@ -20,8 +23,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             twoAuth_enabled INTEGER DEFAULT 0
         );
     `).run();
-    db.prepare(
-    `
+    db.prepare(`
         CREATE TABLE IF NOT EXISTS match (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             tournament_id TEXT DEFAULT NULL,
@@ -32,8 +34,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             played_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     `).run();
-    db.prepare(
-    `
+    db.prepare(`
         CREATE TABLE IF NOT EXISTS channel (
             id TEXT PRIMARY KEY,
             name TEXT,
@@ -42,8 +43,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
     `).run();
-    db.prepare(
-    `
+    db.prepare(`
         CREATE TABLE IF NOT EXISTS channel_member (
             channel_id TEXT REFERENCES channel(id) ON DELETE CASCADE,
             user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
@@ -52,8 +52,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             PRIMARY KEY (channel_id, user_id)
         );
     `).run();
-    db.prepare(
-    `
+    db.prepare(`
         CREATE TABLE IF NOT EXISTS message (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             channel_id TEXT REFERENCES channel(id),
@@ -65,8 +64,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             read_at DATETIME DEFAULT NULL
         );
     `).run();
-    db.prepare(
-    `
+    db.prepare(`
         CREATE TABLE IF NOT EXISTS blocked_user (
             user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
             blocked_user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
@@ -74,8 +72,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             PRIMARY KEY (user_id, blocked_user_id)
         );
     `).run();
-    db.prepare(
-    `
+    db.prepare(`
         CREATE TABLE IF NOT EXISTS friendship (
             user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
             friend_id TEXT REFERENCES users(id) ON DELETE CASCADE,
@@ -83,8 +80,7 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
             PRIMARY KEY (user_id, friend_id)
         );
     `).run();
-    db.prepare(
-    `
+    db.prepare(`
         CREATE TABLE IF NOT EXISTS game_invitation (
             id TEXT PRIMARY KEY,
             channel_id TEXT REFERENCES channel(id),
@@ -101,11 +97,11 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_invitation_status ON game_invitation(status)`).run();
     db.prepare(`CREATE INDEX IF NOT EXISTS idx_invitation_invited ON game_invitation(invited_id)`).run();
 
-    // Add type and metadata columns to existing message tables (if they don't exist)
+    /* MIGRATIONS */
+
     try {
         db.prepare(`ALTER TABLE message ADD COLUMN type TEXT DEFAULT 'text'`).run();
     } catch (error: any) {
-        // Column already exists, ignore error
         if (!error.message?.includes('duplicate column name')) {
             console.error('[DATABASE] Error adding type column:', error);
         }
@@ -114,13 +110,11 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
     try {
         db.prepare(`ALTER TABLE message ADD COLUMN metadata TEXT DEFAULT NULL`).run();
     } catch (error: any) {
-        // Column already exists, ignore error
         if (!error.message?.includes('duplicate column name')) {
             console.error('[DATABASE] Error adding metadata column:', error);
         }
     }
 
-    // Add 2FA columns to existing users tables (if they don't exist)
     try {
         db.prepare(`ALTER TABLE users ADD COLUMN twoAuth_secret TEXT DEFAULT NULL`).run();
     } catch (error: any) {
@@ -137,7 +131,6 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
         }
     }
 
-    // Add match_type column to match table (ai, pvp, duel, tournament)
     try {
         db.prepare(`ALTER TABLE match ADD COLUMN match_type TEXT DEFAULT 'pvp'`).run();
     } catch (error: any) {
@@ -146,20 +139,16 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
         }
     }
 
-    // Migration: Remove FK to allow ai and guests
     try {
-        // Check if migration is needed
         const testStmt = db.prepare(`INSERT INTO match (player1_id, player2_id, score1, score2, match_type) VALUES ('test_migration_check', 'AI_test', 0, 0, 'ai')`);
         try {
             testStmt.run();
-            // If successful, delete
             db.prepare(`DELETE FROM match WHERE player1_id = 'test_migration_check'`).run();
             console.log('[DATABASE] Match table already supports non-user IDs');
         } catch (fkError: any) {
             if (fkError.message?.includes('FOREIGN KEY constraint failed')) {
                 console.log('[DATABASE] Migrating match table to remove FK constraints...');
-                
-                // Create new table without FK
+
                 db.prepare(`
                     CREATE TABLE IF NOT EXISTS match_new (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -172,17 +161,15 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
                         match_type TEXT DEFAULT 'pvp'
                     )
                 `).run();
-                
-                // Copy data from old table
+
                 db.prepare(`
                     INSERT INTO match_new (id, tournament_id, score1, score2, player1_id, player2_id, played_at, match_type)
                     SELECT id, tournament_id, score1, score2, player1_id, player2_id, played_at, match_type FROM match
                 `).run();
-                
-                // Drop old table and rename new one
+
                 db.prepare(`DROP TABLE match`).run();
                 db.prepare(`ALTER TABLE match_new RENAME TO match`).run();
-                
+
                 console.log('[DATABASE] Match table migration completed - FK constraints removed');
             } else {
                 throw fkError;
@@ -192,7 +179,6 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
         console.error('[DATABASE] Error during match table migration:', error);
     }
 
-    // Create tournament table for persistence
     db.prepare(`
         CREATE TABLE IF NOT EXISTS tournament (
             id TEXT PRIMARY KEY,
@@ -211,8 +197,10 @@ export function initializeDatabase(path: string | undefined = 'database.db' ): D
 
     return db;
 }
+
+/* USER METHODS */
+
 export function getUser(req, reply): User[] {
-    // Accept both querystring (preferred) and path params as input filters
     const query = (req.query || req.params || {}) as User & { ft_id?: string };
 
     const conditions: string[] = [];
@@ -268,8 +256,6 @@ export function updateUser(req, reply): boolean | string {
         fields.push('ft_id = ?');
         values.push(req.body.ft_id);
     }
-    // Only allow 2FA field updates if _allow2FAUpdate flag is set
-    // This prevents accidental overwrites from stale cached user data
     if (req.body._allow2FAUpdate) {
         if (req.body.twoAuth_secret !== undefined) {
             fields.push('twoAuth_secret = ?');
@@ -287,7 +273,7 @@ export function updateUser(req, reply): boolean | string {
         return "no fields to update";
     }
 
-    values.push(req.body.id); // id for WHERE clause
+    values.push(req.body.id);
 
     const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
     console.log('[DATABASE] SQL:', sql, 'for user:', req.body.id);
@@ -306,7 +292,7 @@ export function createUser(req, reply): string | null {
         req.body.id,
         req.body.name,
         req.body.email,
-        req.body.password || null,  // Allow null password for OAuth users
+        req.body.password || null,
         req.body.avatar,
         req.body.ft_id || null
     );
@@ -319,7 +305,7 @@ export function deleteUser(req, reply): boolean {
     const request = db.prepare('DELETE FROM users WHERE id = ?');
     const result = request.run(req.body.id);
     if (result.changes === 0)
-        return false 
+        return false
     return true;
 }
 
@@ -330,8 +316,9 @@ export function getUserPasswordHash( req, reply) {
     return result?.password_hash ?? null;
 }
 
-export function getChannel(req: FastifyRequest, reply: FastifyReply): Channel | null {
+/* CHANNEL METHODS */
 
+export function getChannel(req: FastifyRequest, reply: FastifyReply): Channel | null {
     const query = req.query as Channel;
     const channel: Channel | null = db.prepare(
       `SELECT id, name, type, created_by, created_at FROM channel
@@ -365,19 +352,16 @@ export function getChannel(req: FastifyRequest, reply: FastifyReply): Channel | 
     return channel;
 }
 
-export function postChannel(req: FastifyRequest, reply: FastifyReply)
-{
+export function postChannel(req: FastifyRequest, reply: FastifyReply) {
     const channel = req.body as Channel;
-    const request = db.prepare('INSERT INTO channel (id, name, type, created_by, created_at) VALUES (?, ?, ?, ?, ?)'
-    )
+    const request = db.prepare('INSERT INTO channel (id, name, type, created_by, created_at) VALUES (?, ?, ?, ?, ?)')
     const result = request.run(channel.id, channel.name, channel.type, channel.created_by, channel.created_at);
     if (result.changes === 0)
         return undefined
     return channel.id
 }
 
-export function putChannelName(req: FastifyRequest, reply: FastifyReply)
-{
+export function putChannelName(req: FastifyRequest, reply: FastifyReply) {
     const request = db.prepare('UPDATE channel SET name = ? WHERE id = ?')
     const result = request.run(req.body.name, req.body.id);
     if (result.changes === 0)
@@ -385,27 +369,25 @@ export function putChannelName(req: FastifyRequest, reply: FastifyReply)
     return String(result.lastInsertRowid)
 }
 
-export function getMessage(req, reply)
-{
+/* MESSAGE METHODS */
+
+export function getMessage(req, reply) {
     const query = req.query;
-    const messages = db.prepare(
-    `
+    const messages = db.prepare(`
         SELECT *
         FROM message
         WHERE channel_id = ?
         AND id < ?
         ORDER BY sent_at DESC, id DESC
         LIMIT 100;
-    `
-    ).all(
+    `).all(
       query.channel_id,
       query.id
     ) as Message [];
     return messages;
 }
 
-export function postMessage( req, reply )
-{
+export function postMessage( req, reply ) {
     const message = req.body;
     const request = db.prepare(`
         INSERT INTO message (channel_id, sender_id, content, type, metadata, sent_at)
@@ -422,14 +404,11 @@ export function postMessage( req, reply )
     if (result.changes === 0)
         return false
     return String(result.lastInsertRowid)
-
 }
 
-export function putMessage( req, reply )
-{
+export function putMessage( req, reply ) {
     const message = req.body;
 
-    // Build dynamic UPDATE query based on provided fields
     const updates: string[] = [];
     const values: any[] = [];
 
@@ -466,8 +445,9 @@ export function putMessage( req, reply )
     return String(result.lastInsertRowid)
 }
 
-export function postChannelMember( req: FastifyRequest, reply: FastifyReply )
-{
+/* CHANNEL MEMBER METHODS */
+
+export function postChannelMember( req: FastifyRequest, reply: FastifyReply ) {
     const { channel_id, user_id, role } = req.body as any;
     const request = db.prepare(`INSERT INTO channel_member (channel_id, user_id, role) VALUES (?, ?, ?)`)
     const result = request.run(channel_id, user_id, role || 'member')
@@ -476,8 +456,7 @@ export function postChannelMember( req: FastifyRequest, reply: FastifyReply )
     return true
 }
 
-export function deleteChannelMember( req: FastifyRequest, reply: FastifyReply )
-{
+export function deleteChannelMember( req: FastifyRequest, reply: FastifyReply ) {
     const { channel_id, user_id } = req.body as any;
     const request = db.prepare(`DELETE FROM channel_member WHERE channel_id = ? AND user_id = ?`)
     const result = request.run(channel_id, user_id)
@@ -486,12 +465,12 @@ export function deleteChannelMember( req: FastifyRequest, reply: FastifyReply )
     return true
 }
 
-export function getBlockedUsers( req: FastifyRequest, reply: FastifyReply )
-{
+/* BLOCKED USER METHODS */
+
+export function getBlockedUsers( req: FastifyRequest, reply: FastifyReply ) {
     const user_id = (req.query as any).user_id;
     const blocked_user_id = (req.query as any).blocked_user_id;
 
-    // Query by blocked_user_id - find who has blocked this user
     if (blocked_user_id && !user_id) {
         const blockers = db.prepare(
             `SELECT user_id FROM blocked_user WHERE blocked_user_id = ?`
@@ -499,34 +478,31 @@ export function getBlockedUsers( req: FastifyRequest, reply: FastifyReply )
         return blockers.map(b => b.user_id);
     }
 
-    // Query by user_id - find who this user has blocked
     const blocked = db.prepare(
         `SELECT blocked_user_id FROM blocked_user WHERE user_id = ?`
     ).all(user_id) as {blocked_user_id: string}[];
     return blocked.map(b => b.blocked_user_id);
 }
 
-export function postBlockUser( req: FastifyRequest, reply: FastifyReply )
-{
+export function postBlockUser( req: FastifyRequest, reply: FastifyReply ) {
     const { user_id, blocked_user_id } = req.body as any;
     const request = db.prepare(`INSERT OR IGNORE INTO blocked_user (user_id, blocked_user_id) VALUES (?, ?)`)
     const result = request.run(user_id, blocked_user_id)
     return result.changes > 0
 }
 
-export function deleteBlockUser( req: FastifyRequest, reply: FastifyReply )
-{
+export function deleteBlockUser( req: FastifyRequest, reply: FastifyReply ) {
     const { user_id, blocked_user_id } = req.body as any;
     const request = db.prepare(`DELETE FROM blocked_user WHERE user_id = ? AND blocked_user_id = ?`)
     const result = request.run(user_id, blocked_user_id)
     return result.changes > 0
 }
 
-export function getUserChannels( req: FastifyRequest, reply: FastifyReply )
-{
+/* USER CHANNELS METHODS */
+
+export function getUserChannels( req: FastifyRequest, reply: FastifyReply ) {
     const user_id = (req.query as any).user_id;
 
-    // Get all channel IDs where user is a member
     const channelIds = db.prepare(
         `SELECT channel_id FROM channel_member WHERE user_id = ?`
     ).all(user_id) as {channel_id: number}[];
@@ -535,7 +511,6 @@ export function getUserChannels( req: FastifyRequest, reply: FastifyReply )
         return [];
     }
 
-    // For each channel, get full channel data with members and messages
     const channels: Channel[] = [];
     for (const {channel_id} of channelIds) {
         const channel = db.prepare(
@@ -543,7 +518,6 @@ export function getUserChannels( req: FastifyRequest, reply: FastifyReply )
         ).get(channel_id) as Channel | null;
 
         if (channel) {
-            // Get messages for this channel
             channel.messages = db.prepare(
                 `SELECT id, channel_id, sender_id, content, type, metadata, sent_at, read_at FROM message
                  WHERE channel_id = ?
@@ -551,13 +525,11 @@ export function getUserChannels( req: FastifyRequest, reply: FastifyReply )
                  LIMIT 100`
             ).all(channel_id) as Message[];
 
-            // Get members for this channel
             const members = db.prepare(
                 `SELECT user_id FROM channel_member WHERE channel_id = ?`
             ).all(channel_id) as {user_id: string}[];
             channel.members = members.map(m => m.user_id);
 
-            // Get moderators for this channel
             const moderators = db.prepare(
                 `SELECT user_id FROM channel_member
                  WHERE channel_id = ? AND role IN ('moderator', 'owner')`
@@ -571,11 +543,9 @@ export function getUserChannels( req: FastifyRequest, reply: FastifyReply )
     return channels;
 }
 
-export function findDMChannel( req: FastifyRequest, reply: FastifyReply )
-{
+export function findDMChannel( req: FastifyRequest, reply: FastifyReply ) {
     const { user1_id, user2_id } = req.query as any;
 
-    // Find channels where both users are members and it's a private channel with exactly 2 members
     const result = db.prepare(
         `SELECT c.id
          FROM channel c
@@ -595,15 +565,15 @@ export function findDMChannel( req: FastifyRequest, reply: FastifyReply )
     return result ? result.id : null;
 }
 
-export function getFriends( req: FastifyRequest, reply: FastifyReply )
-{
+/* FRIENDS METHODS */
+
+export function getFriends( req: FastifyRequest, reply: FastifyReply ) {
     const { user_id } = req.query as any;
 
     if (!user_id) {
         return reply.send([]);
     }
 
-    // Get all friend IDs for the user
     const friendIds = db.prepare(
         `SELECT friend_id FROM friendship WHERE user_id = ?`
     ).all(user_id) as {friend_id: string}[];
@@ -612,7 +582,6 @@ export function getFriends( req: FastifyRequest, reply: FastifyReply )
         return reply.send([]);
     }
 
-    // Get full user info for each friend
     const friends = friendIds.map(({friend_id}) => {
         const friend = db.prepare(
             `SELECT id, name, avatar FROM users WHERE id = ?`
@@ -623,7 +592,7 @@ export function getFriends( req: FastifyRequest, reply: FastifyReply )
                 id: friend.id,
                 name: friend.name,
                 avatar: friend.avatar,
-                status: 'offline' // Status will be updated by social service
+                status: 'offline'
             };
         }
         return null;
@@ -632,8 +601,7 @@ export function getFriends( req: FastifyRequest, reply: FastifyReply )
     return reply.send(friends);
 }
 
-export function postFriend( req: FastifyRequest, reply: FastifyReply )
-{
+export function postFriend( req: FastifyRequest, reply: FastifyReply ) {
     const { user_id, friend_id } = req.body as any;
 
     if (!user_id || !friend_id) {
@@ -641,11 +609,10 @@ export function postFriend( req: FastifyRequest, reply: FastifyReply )
     }
 
     if (user_id === friend_id) {
-        return false; // Can't be friends with yourself
+        return false;
     }
 
     try {
-        // Add friendship in both directions
         const stmt1 = db.prepare(`INSERT OR IGNORE INTO friendship (user_id, friend_id) VALUES (?, ?)`);
         const stmt2 = db.prepare(`INSERT OR IGNORE INTO friendship (user_id, friend_id) VALUES (?, ?)`);
 
@@ -659,8 +626,7 @@ export function postFriend( req: FastifyRequest, reply: FastifyReply )
     }
 }
 
-export function deleteFriend( req: FastifyRequest, reply: FastifyReply )
-{
+export function deleteFriend( req: FastifyRequest, reply: FastifyReply ) {
     const { user_id, friend_id } = req.body as any;
 
     if (!user_id || !friend_id) {
@@ -668,7 +634,6 @@ export function deleteFriend( req: FastifyRequest, reply: FastifyReply )
     }
 
     try {
-        // Remove friendship in both directions
         const stmt1 = db.prepare(`DELETE FROM friendship WHERE user_id = ? AND friend_id = ?`);
         const stmt2 = db.prepare(`DELETE FROM friendship WHERE user_id = ? AND friend_id = ?`);
 
@@ -682,13 +647,13 @@ export function deleteFriend( req: FastifyRequest, reply: FastifyReply )
     }
 }
 
-export function markChannelRead( req: FastifyRequest, reply: FastifyReply )
-{
+/* MARK READ */
+
+export function markChannelRead( req: FastifyRequest, reply: FastifyReply ) {
     try {
         const { channel_id, user_id } = req.body as { channel_id: number, user_id: string };
         const now = new Date().toISOString();
 
-        // Mark all messages in channel as read (except user's own messages)
         const stmt = db.prepare(`
             UPDATE message
             SET read_at = ?
@@ -706,7 +671,8 @@ export function markChannelRead( req: FastifyRequest, reply: FastifyReply )
     }
 }
 
-// Game invitation methods
+/* GAME INVITATION METHODS */
+
 export function getGameInvitation(req: FastifyRequest, reply: FastifyReply) {
     try {
         const { id } = req.query as { id: string };
@@ -781,181 +747,6 @@ export function postGameInvitation(req: FastifyRequest, reply: FastifyReply) {
     }
 }
 
-export function postMatch(req: FastifyRequest, reply: FastifyReply) {
-    try {
-        const {
-            player1_id,
-            player2_id,
-            score1,
-            score2,
-            tournament_id,
-            match_type
-        } = req.body as {
-            player1_id: string;
-            player2_id: string;
-            score1: number;
-            score2: number;
-            tournament_id?: string;
-            match_type?: string; // ai, pvp, duel, tournament
-        };
-
-        if (!player1_id || !player2_id || score1 === undefined || score2 === undefined) {
-            return reply.status(400).send({ error: 'player1_id, player2_id, score1, and score2 are required' });
-        }
-
-        const stmt = db.prepare(`
-            INSERT INTO match (player1_id, player2_id, score1, score2, tournament_id, match_type)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `);
-
-        const result = stmt.run(
-            player1_id,
-            player2_id,
-            score1,
-            score2,
-            tournament_id || null,
-            match_type || 'pvp'
-        );
-
-        console.log(`[DATABASE] Match created: ${player1_id} vs ${player2_id}, score: ${score1}-${score2}, type: ${match_type || 'pvp'}`);
-        return reply.status(200).send({ id: result.lastInsertRowid });
-    } catch (error: any) {
-        console.error('[DATABASE] postMatch error:', error);
-        return reply.status(500).send({ error: 'Failed to create match' });
-    }
-}
-
-export function getUserStats(req: FastifyRequest, reply: FastifyReply) {
-    try {
-        const { user_id } = req.query as { user_id: string };
-
-        if (!user_id) {
-            return reply.status(400).send({ error: 'user_id is required' });
-        }
-
-        // Count games played (as player1 or player2)
-        const gamesPlayedResult = db.prepare(`
-            SELECT COUNT(*) as count FROM match 
-            WHERE player1_id = ? OR player2_id = ?
-        `).get(user_id, user_id) as { count: number };
-
-        // Count games won
-        const gamesWonResult = db.prepare(`
-            SELECT COUNT(*) as count FROM match 
-            WHERE (player1_id = ? AND score1 > score2) 
-               OR (player2_id = ? AND score2 > score1)
-        `).get(user_id, user_id) as { count: number };
-
-        // Count tournaments won (matches where tournament_id is set and user won the final)
-        // A tournament win is when a user wins a tournament match (match_type = 'tournament')
-        // We need to check the tournament table for completed tournaments where user is winner
-        let tournaments_won = 0;
-        try {
-            const tournamentsWonResult = db.prepare(`
-                SELECT COUNT(DISTINCT tournament_id) as count FROM match 
-                WHERE match_type = 'tournament' 
-                AND tournament_id IS NOT NULL
-                AND (
-                    (player1_id = ? AND score1 > score2)
-                    OR (player2_id = ? AND score2 > score1)
-                )
-            `).get(user_id, user_id) as { count: number };
-            // This counts tournament matches won, not tournaments won
-            // For a proper count, we need to track tournament finals
-            // For now, approximate by counting distinct tournaments where user won at least one match
-            tournaments_won = tournamentsWonResult?.count || 0;
-        } catch (e) {
-            // Table might not exist or query failed
-            tournaments_won = 0;
-        }
-
-        // Calculate global rank based on win rate and games played
-        // Get all users with their win rates
-        const allUsersStats = db.prepare(`
-            SELECT 
-                u.id,
-                COUNT(m.id) as games_played,
-                SUM(CASE 
-                    WHEN (m.player1_id = u.id AND m.score1 > m.score2) 
-                      OR (m.player2_id = u.id AND m.score2 > m.score1) 
-                    THEN 1 ELSE 0 
-                END) as games_won
-            FROM users u
-            LEFT JOIN match m ON m.player1_id = u.id OR m.player2_id = u.id
-            GROUP BY u.id
-            HAVING games_played > 0
-            ORDER BY 
-                (CAST(games_won AS REAL) / games_played) DESC,
-                games_won DESC,
-                games_played DESC
-        `).all() as { id: string; games_played: number; games_won: number }[];
-
-        // Find user's rank
-        let global_rank = 0;
-        for (let i = 0; i < allUsersStats.length; i++) {
-            if (allUsersStats[i].id === user_id) {
-                global_rank = i + 1;
-                break;
-            }
-        }
-
-        const games_played = gamesPlayedResult.count;
-        const games_won = gamesWonResult.count;
-        const games_lost = games_played - games_won;
-        const win_rate = games_played > 0 ? Math.round((games_won / games_played) * 100) : 0;
-
-        return reply.status(200).send({
-            user_id,
-            games_played,
-            games_won,
-            games_lost,
-            win_rate,
-            global_rank: global_rank || null,
-            tournaments_won
-        });
-    } catch (error: any) {
-        console.error('[DATABASE] getUserStats error:', error);
-        return reply.status(500).send({ error: 'Failed to get user stats' });
-    }
-}
-
-export function getMatchHistory(req: FastifyRequest, reply: FastifyReply) {
-    try {
-        const { user_id, limit } = req.query as { user_id: string; limit?: string };
-
-        if (!user_id) {
-            return reply.status(400).send({ error: 'user_id is required' });
-        }
-
-        const maxResults = limit ? parseInt(limit, 10) : 20;
-
-        const matches = db.prepare(`
-            SELECT 
-                m.id,
-                m.player1_id,
-                m.player2_id,
-                m.score1,
-                m.score2,
-                m.tournament_id,
-                m.match_type,
-                m.played_at,
-                u1.name as player1_name,
-                u2.name as player2_name
-            FROM match m
-            LEFT JOIN users u1 ON m.player1_id = u1.id
-            LEFT JOIN users u2 ON m.player2_id = u2.id
-            WHERE m.player1_id = ? OR m.player2_id = ?
-            ORDER BY m.id DESC
-            LIMIT ?
-        `).all(user_id, user_id, maxResults);
-
-        return reply.status(200).send(matches);
-    } catch (error: any) {
-        console.error('[DATABASE] getMatchHistory error:', error);
-        return reply.status(500).send({ error: 'Failed to get match history' });
-    }
-}
-
 export function putGameInvitation(req: FastifyRequest, reply: FastifyReply) {
     try {
         const {
@@ -1013,9 +804,174 @@ export function putGameInvitation(req: FastifyRequest, reply: FastifyReply) {
     }
 }
 
-// ============================================
-// Tournament persistence methods
-// ============================================
+/* MATCH METHODS */
+
+export function postMatch(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const {
+            player1_id,
+            player2_id,
+            score1,
+            score2,
+            tournament_id,
+            match_type
+        } = req.body as {
+            player1_id: string;
+            player2_id: string;
+            score1: number;
+            score2: number;
+            tournament_id?: string;
+            match_type?: string;
+        };
+
+        if (!player1_id || !player2_id || score1 === undefined || score2 === undefined) {
+            return reply.status(400).send({ error: 'player1_id, player2_id, score1, and score2 are required' });
+        }
+
+        const stmt = db.prepare(`
+            INSERT INTO match (player1_id, player2_id, score1, score2, tournament_id, match_type)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `);
+
+        const result = stmt.run(
+            player1_id,
+            player2_id,
+            score1,
+            score2,
+            tournament_id || null,
+            match_type || 'pvp'
+        );
+
+        console.log(`[DATABASE] Match created: ${player1_id} vs ${player2_id}, score: ${score1}-${score2}, type: ${match_type || 'pvp'}`);
+        return reply.status(200).send({ id: result.lastInsertRowid });
+    } catch (error: any) {
+        console.error('[DATABASE] postMatch error:', error);
+        return reply.status(500).send({ error: 'Failed to create match' });
+    }
+}
+
+/* STATS METHODS */
+
+export function getUserStats(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const { user_id } = req.query as { user_id: string };
+
+        if (!user_id) {
+            return reply.status(400).send({ error: 'user_id is required' });
+        }
+
+        const gamesPlayedResult = db.prepare(`
+            SELECT COUNT(*) as count FROM match
+            WHERE player1_id = ? OR player2_id = ?
+        `).get(user_id, user_id) as { count: number };
+
+        const gamesWonResult = db.prepare(`
+            SELECT COUNT(*) as count FROM match
+            WHERE (player1_id = ? AND score1 > score2)
+               OR (player2_id = ? AND score2 > score1)
+        `).get(user_id, user_id) as { count: number };
+
+        let tournaments_won = 0;
+        try {
+            const tournamentsWonResult = db.prepare(`
+                SELECT COUNT(DISTINCT tournament_id) as count FROM match
+                WHERE match_type = 'tournament'
+                AND tournament_id IS NOT NULL
+                AND (
+                    (player1_id = ? AND score1 > score2)
+                    OR (player2_id = ? AND score2 > score1)
+                )
+            `).get(user_id, user_id) as { count: number };
+            tournaments_won = tournamentsWonResult?.count || 0;
+        } catch (e) {
+            tournaments_won = 0;
+        }
+
+        const allUsersStats = db.prepare(`
+            SELECT
+                u.id,
+                COUNT(m.id) as games_played,
+                SUM(CASE
+                    WHEN (m.player1_id = u.id AND m.score1 > m.score2)
+                      OR (m.player2_id = u.id AND m.score2 > m.score1)
+                    THEN 1 ELSE 0
+                END) as games_won
+            FROM users u
+            LEFT JOIN match m ON m.player1_id = u.id OR m.player2_id = u.id
+            GROUP BY u.id
+            HAVING games_played > 0
+            ORDER BY
+                (CAST(games_won AS REAL) / games_played) DESC,
+                games_won DESC,
+                games_played DESC
+        `).all() as { id: string; games_played: number; games_won: number }[];
+
+        let global_rank = 0;
+        for (let i = 0; i < allUsersStats.length; i++) {
+            if (allUsersStats[i].id === user_id) {
+                global_rank = i + 1;
+                break;
+            }
+        }
+
+        const games_played = gamesPlayedResult.count;
+        const games_won = gamesWonResult.count;
+        const games_lost = games_played - games_won;
+        const win_rate = games_played > 0 ? Math.round((games_won / games_played) * 100) : 0;
+
+        return reply.status(200).send({
+            user_id,
+            games_played,
+            games_won,
+            games_lost,
+            win_rate,
+            global_rank: global_rank || null,
+            tournaments_won
+        });
+    } catch (error: any) {
+        console.error('[DATABASE] getUserStats error:', error);
+        return reply.status(500).send({ error: 'Failed to get user stats' });
+    }
+}
+
+export function getMatchHistory(req: FastifyRequest, reply: FastifyReply) {
+    try {
+        const { user_id, limit } = req.query as { user_id: string; limit?: string };
+
+        if (!user_id) {
+            return reply.status(400).send({ error: 'user_id is required' });
+        }
+
+        const maxResults = limit ? parseInt(limit, 10) : 20;
+
+        const matches = db.prepare(`
+            SELECT
+                m.id,
+                m.player1_id,
+                m.player2_id,
+                m.score1,
+                m.score2,
+                m.tournament_id,
+                m.match_type,
+                m.played_at,
+                u1.name as player1_name,
+                u2.name as player2_name
+            FROM match m
+            LEFT JOIN users u1 ON m.player1_id = u1.id
+            LEFT JOIN users u2 ON m.player2_id = u2.id
+            WHERE m.player1_id = ? OR m.player2_id = ?
+            ORDER BY m.id DESC
+            LIMIT ?
+        `).all(user_id, user_id, maxResults);
+
+        return reply.status(200).send(matches);
+    } catch (error: any) {
+        console.error('[DATABASE] getMatchHistory error:', error);
+        return reply.status(500).send({ error: 'Failed to get match history' });
+    }
+}
+
+/* TOURNAMENT METHODS */
 
 export interface TournamentRecord {
     id: string;
@@ -1025,14 +981,11 @@ export interface TournamentRecord {
     created_by: string | null;
     winner_id: string | null;
     winner_name: string | null;
-    data: string; // JSON stringified tournament object
+    data: string;
     created_at: string;
     finished_at: string | null;
 }
 
-/**
- * Save a tournament to the database
- */
 export function saveTournament(req: FastifyRequest, reply: FastifyReply) {
     try {
         const body = req.body as {
@@ -1073,9 +1026,6 @@ export function saveTournament(req: FastifyRequest, reply: FastifyReply) {
     }
 }
 
-/**
- * Get tournaments by status
- */
 export function getTournaments(req: FastifyRequest, reply: FastifyReply) {
     try {
         const query = req.query as { status?: string };
@@ -1100,9 +1050,6 @@ export function getTournaments(req: FastifyRequest, reply: FastifyReply) {
     }
 }
 
-/**
- * Get a specific tournament by ID
- */
 export function getTournamentById(req: FastifyRequest, reply: FastifyReply) {
     try {
         const params = req.params as { id: string };
@@ -1125,9 +1072,6 @@ export function getTournamentById(req: FastifyRequest, reply: FastifyReply) {
     }
 }
 
-/**
- * Delete a tournament
- */
 export function deleteTournament(req: FastifyRequest, reply: FastifyReply) {
     try {
         const params = req.params as { id: string };

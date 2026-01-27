@@ -1,15 +1,15 @@
-import fastify from 'fastify'
+/* DATABASE */
 
+import fastify from 'fastify'
 import { TypeBoxTypeProvider } from '@fastify/type-provider-typebox'
 import ajvFormats from 'ajv-formats'
-
-
 import { databaseRoutes } from './routes';
 import * as db from './database_methods';
 import swagger from '@fastify/swagger';
 import swaggerUI from '@fastify/swagger-ui'
-import  handleThisError  from './shared/utils/error'
+import handleThisError from './shared/utils/error'
 
+/* SERVER */
 
 const server = fastify({
   logger: false,
@@ -18,21 +18,25 @@ const server = fastify({
       removeAdditional: false,
       useDefaults: true,
       coerceTypes: true,
-      allErrors: true // Return ALL validation errors, not just first one
+      allErrors: true
     },
     plugins: [ajvFormats]
   }
 }).withTypeProvider<TypeBoxTypeProvider>()
 
+/* INIT */
+
 db.initializeDatabase();
 
-// Log incoming requests
+/* HOOKS */
+
 server.addHook('onRequest', async (request, reply) => {
   console.log(`[REQUEST] ${request.method} ${request.url}`);
 });
 
-
 server.setErrorHandler(handleThisError);
+
+/* SWAGGER */
 
 server.register(swagger, {
   exposeRoute: true,
@@ -45,7 +49,6 @@ server.register(swagger, {
   },
 });
 
-// Register Swagger UI
 await server.register(swaggerUI, {
   routePrefix: '/database/docs',
   uiConfig: {
@@ -55,8 +58,11 @@ await server.register(swaggerUI, {
   staticCSP: true
 });
 
+/* ROUTES */
+
 server.register(databaseRoutes);
 
+/* START */
 
 server.listen({ port: 3000, host: '0.0.0.0'}, (err, address) => {
   if (err) {

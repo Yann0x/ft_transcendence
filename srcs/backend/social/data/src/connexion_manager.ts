@@ -1,6 +1,10 @@
-import {UserPublic, SocialEvent}  from './shared/with_front/types'
+/* CONNEXION MANAGER */
+
+import { UserPublic, SocialEvent } from './shared/with_front/types'
 import { WebSocket } from '@fastify/websocket';
 import customFetch from './shared/utils/fetch';
+
+/* TYPES */
 
 interface ConnectedUser {
     user: UserPublic;
@@ -34,39 +38,50 @@ interface TournamentInvitation {
     expirationTimer?: NodeJS.Timeout;
 }
 
+/* MANAGER */
+
 export const connexionManager = {
     connected: new Map<UserPublic.id, ConnectedUser>(),
     invitations: new Map<string, GameInvitation>(),
     tournamentInvitations: new Map<string, TournamentInvitation>(),
 
-    addConnected(user: UserPublic, socket: WebSocket)
-    {
+    /* CONNEXIONS */
+
+    /* Ajoute un utilisateur connecté */
+    addConnected(user: UserPublic, socket: WebSocket) {
        console.log(`[SOCIAL] Add ${user.id} to connected users`)
        this.connected.set(user.id!, { user, socket })
     },
 
-    removeConnected(user_id: UserPublic.id)
-    {
+    /* Supprime un utilisateur connecté */
+    removeConnected(user_id: UserPublic.id) {
        console.log(`[SOCIAL] Delete ${user_id} of connected users`)
         this.connected.delete(user_id)
     },
 
-    getCount () {
+    /* Retourne le nombre d'utilisateurs connectés */
+    getCount() {
         return this.connected.size;
     },
 
+    /* Retourne les IDs de tous les utilisateurs connectés */
     getAllConnectedUserIds(): string[] {
         return Array.from(this.connected.keys());
     },
 
+    /* Retourne tous les utilisateurs connectés */
     getAllConnectedUsers(): UserPublic[] {
         return Array.from(this.connected.values()).map(c => c.user);
     },
 
+    /* Vérifie si un utilisateur est connecté */
     isUserConnected(user_id: UserPublic.id): boolean {
         return this.connected.has(user_id);
     },
 
+    /* MESSAGING */
+
+    /* Envoie un événement à un utilisateur */
     sendToUser(user_id: UserPublic.id, event: any) {
        console.log(`[SOCIAL] Send to ${user_id} : ${event}`)
         const connectedUser = this.connected.get(user_id);
@@ -74,16 +89,14 @@ export const connexionManager = {
             connectedUser.socket.send(JSON.stringify(event));
         }
     },
+
+    /* Envoie un événement à tous les utilisateurs connectés */
     async sendToAll(event: SocialEvent, subjectUserId?: string) {
         let excludeUserIds: string[] = [];
 
-        // If subjectUserId provided, fetch bidirectional blocking (symmetric)
         if (subjectUserId) {
             try {
-                // Get users blocked BY subject (subject blocked them)
                 const blockedBySubject = await customFetch(`http://user:3000/user/${subjectUserId}/blocked-users`, 'GET') as string[] || [];
-
-                // Get users who blocked subject (they blocked subject)
                 const allConnectedIds = this.getAllConnectedUserIds();
                 const whoBlockedSubject: string[] = [];
 
@@ -94,22 +107,18 @@ export const connexionManager = {
                             whoBlockedSubject.push(userId);
                         }
                     } catch (error) {
-                        // Skip this user if we can't fetch their blocked list
                     }
                 }
 
-                // Combine both lists for symmetric blocking
                 excludeUserIds = [...new Set([...blockedBySubject, ...whoBlockedSubject])];
                 console.log(`[CONNEXION_MANAGER] Symmetric blocking: excluding ${excludeUserIds.length} users for ${subjectUserId}`);
             } catch (error) {
                 console.error('[CONNEXION_MANAGER] Error fetching blocked users:', error);
-                // Fail open - continue without filtering
             }
         }
 
         console.log(`[SOCIAL] Send to all : ${event}`)
         this.connected.forEach((connectedUser, userId) => {
-            // Skip users in the blocked list (symmetric)
             if (excludeUserIds.includes(userId)) {
                 return;
             }
@@ -120,11 +129,14 @@ export const connexionManager = {
         })
     },
 
-    // Game invitation management methods
+    /* GAME INVITATIONS */
+
+    /* Récupère une invitation de jeu */
     getInvitation(invitationId: string): GameInvitation | undefined {
         return this.invitations.get(invitationId);
     },
 
+    /* Crée une invitation de jeu */
     createInvitation(invitationId: string, inviterId: string, invitedId: string,
                      channelId: string, messageId: number): GameInvitation {
         const invitation: GameInvitation = {
@@ -133,12 +145,11 @@ export const connexionManager = {
             invitedId,
             channelId,
             status: 'pending',
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000),
             createdAt: new Date(),
             messageId
         };
 
-        // Set auto-expiration timer
         const timer = setTimeout(async () => {
             await this.expireInvitation(invitationId);
         }, 5 * 60 * 1000);
@@ -149,6 +160,7 @@ export const connexionManager = {
         return invitation;
     },
 
+    /* Expire une invitation de jeu */
     async expireInvitation(invitationId: string): Promise<void> {
         const invitation = this.invitations.get(invitationId);
         if (!invitation || invitation.status !== 'pending') return;
@@ -159,7 +171,6 @@ export const connexionManager = {
             clearTimeout(invitation.expirationTimer);
         }
 
-        // Update database
         try {
             await customFetch('http://database:3000/database/game_invitation', 'PUT', {
                 id: invitationId,
@@ -175,6 +186,7 @@ export const connexionManager = {
         }
     },
 
+    /* Accepte une invitation de jeu */
     acceptInvitation(invitationId: string, gameRoomId: string): GameInvitation | null {
         const invitation = this.invitations.get(invitationId);
         if (!invitation) return null;
@@ -189,6 +201,7 @@ export const connexionManager = {
         return invitation;
     },
 
+    /* Refuse une invitation de jeu */
     declineInvitation(invitationId: string): GameInvitation | null {
         const invitation = this.invitations.get(invitationId);
         if (!invitation) return null;
@@ -202,6 +215,7 @@ export const connexionManager = {
         return invitation;
     },
 
+    /* Vérifie s'il existe une invitation active dans un canal */
     hasActiveInvitationInChannel(channelId: string): boolean {
         for (const invitation of this.invitations.values()) {
             if (invitation.channelId === channelId && invitation.status === 'pending') {
@@ -211,17 +225,20 @@ export const connexionManager = {
         return false;
     },
 
-    // Tournament invitation management methods
+    /* TOURNAMENT INVITATIONS */
+
+    /* Récupère une invitation de tournoi */
     getTournamentInvitation(invitationId: string): TournamentInvitation | undefined {
         return this.tournamentInvitations.get(invitationId);
     },
 
+    /* Crée une invitation de tournoi */
     createTournamentInvitation(
-        invitationId: string, 
-        inviterId: string, 
+        invitationId: string,
+        inviterId: string,
         invitedId: string,
-        tournamentId: string, 
-        channelId: string, 
+        tournamentId: string,
+        channelId: string,
         messageId: number,
         tournamentName?: string
     ): TournamentInvitation {
@@ -233,12 +250,11 @@ export const connexionManager = {
             invitedId,
             channelId,
             status: 'pending',
-            expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000),
             createdAt: new Date(),
             messageId
         };
 
-        // Set auto-expiration timer
         const timer = setTimeout(async () => {
             await this.expireTournamentInvitation(invitationId);
         }, 10 * 60 * 1000);
@@ -249,6 +265,7 @@ export const connexionManager = {
         return invitation;
     },
 
+    /* Expire une invitation de tournoi */
     async expireTournamentInvitation(invitationId: string): Promise<void> {
         const invitation = this.tournamentInvitations.get(invitationId);
         if (!invitation || invitation.status !== 'pending') return;
@@ -259,7 +276,6 @@ export const connexionManager = {
             clearTimeout(invitation.expirationTimer);
         }
 
-        // Update database message
         try {
             await customFetch('http://database:3000/database/message', 'PUT', {
                 id: invitation.messageId,
@@ -277,6 +293,7 @@ export const connexionManager = {
         }
     },
 
+    /* Met à jour le statut d'une invitation de tournoi */
     updateTournamentInvitationStatus(invitationId: string, status: 'accepted' | 'declined'): void {
         const invitation = this.tournamentInvitations.get(invitationId);
         if (!invitation) return;

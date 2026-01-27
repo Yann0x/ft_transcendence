@@ -1,11 +1,15 @@
+/* SOCIAL METHODS */
+
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { WebSocket } from '@fastify/websocket';
 import { SocialEvent, User } from './shared/with_front/types';
 import customFetch from './shared/utils/fetch';
-import {connexionManager} from './connexion_manager';
+import { connexionManager } from './connexion_manager';
 import * as commandHandlers from './command_handlers.js';
 
+/* WEBSOCKET */
 
+/* Gère la connexion WebSocket */
 export async function socialWss(socket: WebSocket, req: FastifyRequest) {
   if (!socket) return;
   const user = {
@@ -29,7 +33,7 @@ export async function socialWss(socket: WebSocket, req: FastifyRequest) {
   connexionManager.addConnected(user, socket)
 
   const alreadyConnectedUsers = connexionManager.getAllConnectedUsers();
-  
+
   if (alreadyConnectedUsers.length > 0) {
     console.log(`[SOCIAL] Sending ${alreadyConnectedUsers.length} already online users to ${user.id}`);
     const usersOnlineEvent: SocialEvent = {
@@ -49,14 +53,14 @@ export async function socialWss(socket: WebSocket, req: FastifyRequest) {
   setSocketListeners(user, socket);
 }
 
-function setSocketListeners(user: User, socket: WebSocket){
+/* Configure les listeners du socket */
+function setSocketListeners(user: User, socket: WebSocket) {
   socket.on('message', async (rawMessage: Buffer) => {
     try {
       const message = rawMessage.toString();
       const event = JSON.parse(message) as SocialEvent;
       console.log(`[SOCIAL] Received event from user ${user.id}:`, event.type);
 
-      // Route commands to appropriate handlers
       switch (event.type) {
         case 'add_friend':
           await commandHandlers.handleAddFriend(user, socket, event.data);
@@ -127,9 +131,11 @@ function setSocketListeners(user: User, socket: WebSocket){
     console.error('[SOCIAL] WebSocket error:', error);
     connexionManager.removeConnected(user.id);
   });
-  
 }
 
+/* NOTIFY HANDLERS */
+
+/* Notifie une mise à jour utilisateur */
 export async function notifyUserUpdate(request: FastifyRequest, reply: FastifyReply) {
   const { notifyUserIds, updatedUserId } = request.body as {
     notifyUserIds: string | string[];
@@ -140,14 +146,12 @@ export async function notifyUserUpdate(request: FastifyRequest, reply: FastifyRe
     return reply.status(400).send({ success: false, message: 'updatedUserId required' });
   }
 
-  // Convert single ID to array for uniform handling
   const userIdsArray = Array.isArray(notifyUserIds) ? notifyUserIds : [notifyUserIds];
 
   if (!userIdsArray || userIdsArray.length === 0) {
     return reply.status(400).send({ success: false, message: 'notifyUserIds required' });
   }
 
-  // Send user_update event to each user in the notify list
   userIdsArray.forEach(userId => {
     const event: SocialEvent = {
       type: 'user_update',
@@ -160,6 +164,7 @@ export async function notifyUserUpdate(request: FastifyRequest, reply: FastifyRe
   return reply.status(200).send({ success: true });
 }
 
+/* Notifie un nouveau message */
 export async function notifyMessageNew(request: FastifyRequest, reply: FastifyReply) {
   const { userIds, message } = request.body as {
     userIds: string[];
@@ -174,7 +179,6 @@ export async function notifyMessageNew(request: FastifyRequest, reply: FastifyRe
     return reply.status(400).send({ success: false, message: 'message required' });
   }
 
-  // Send message_new event to each user in the channel
   userIds.forEach(userId => {
     const event: SocialEvent = {
       type: 'message_new',
@@ -187,6 +191,7 @@ export async function notifyMessageNew(request: FastifyRequest, reply: FastifyRe
   return reply.status(200).send({ success: true });
 }
 
+/* Notifie une mise à jour de canal */
 export async function notifyChannelUpdate(request: FastifyRequest, reply: FastifyReply) {
   const { userIds, channel } = request.body as {
     userIds: string[];
@@ -203,7 +208,6 @@ export async function notifyChannelUpdate(request: FastifyRequest, reply: Fastif
 
   console.log(`[SOCIAL] Sending channel_update event to ${userIds.length} users for channel ${channel.id}`);
 
-  // Send channel_update event to each user in the channel
   userIds.forEach(userId => {
     const event: SocialEvent = {
       type: 'channel_update',
@@ -216,6 +220,7 @@ export async function notifyChannelUpdate(request: FastifyRequest, reply: Fastif
   return reply.status(200).send({ success: true });
 }
 
+/* Notifie un ajout d'ami */
 export async function notifyFriendAdd(request: FastifyRequest, reply: FastifyReply) {
   const { userIds, friend } = request.body as {
     userIds: string[];
@@ -244,6 +249,7 @@ export async function notifyFriendAdd(request: FastifyRequest, reply: FastifyRep
   return reply.status(200).send({ success: true });
 }
 
+/* Notifie une suppression d'ami */
 export async function notifyFriendRemove(request: FastifyRequest, reply: FastifyReply) {
   const { userIds, friendId } = request.body as {
     userIds: string[];
@@ -272,6 +278,7 @@ export async function notifyFriendRemove(request: FastifyRequest, reply: Fastify
   return reply.status(200).send({ success: true });
 }
 
+/* Notifie la fin d'une invitation de jeu */
 export async function notifyGameInvitationComplete(request: FastifyRequest, reply: FastifyReply) {
   const { invitationId, winnerId, loserId, score1, score2 } = request.body as {
     invitationId: string;
@@ -293,7 +300,6 @@ export async function notifyGameInvitationComplete(request: FastifyRequest, repl
       return reply.status(404).send({ success: false, message: 'Invitation not found' });
     }
 
-    // Get winner user info
     const winnerUsers = await customFetch('http://database:3000/database/user', 'GET', { id: winnerId }) as any[];
     const winnerUser = winnerUsers && winnerUsers.length > 0 ? winnerUsers[0] : null;
     const winnerName = winnerUser?.name || 'Player';
@@ -302,7 +308,6 @@ export async function notifyGameInvitationComplete(request: FastifyRequest, repl
     const loserUser = loserUsers && loserUsers.length > 0 ? loserUsers[0] : null;
     const loserName = loserUser?.name || 'Player';
 
-    // Update message to game_result type
     const resultMetadata = {
       invitationId,
       winnerId,
@@ -319,7 +324,6 @@ export async function notifyGameInvitationComplete(request: FastifyRequest, repl
       metadata: JSON.stringify(resultMetadata)
     });
 
-    // Broadcast result to channel members
     const channels = await customFetch('http://database:3000/database/channel', 'GET',
       { id: invitation.channelId }) as any;
     const channel = Array.isArray(channels) ? channels[0] : channels;
@@ -336,7 +340,6 @@ export async function notifyGameInvitationComplete(request: FastifyRequest, repl
       });
     }
 
-    // Clean up invitation from memory
     if (invitation.expirationTimer) {
       clearTimeout(invitation.expirationTimer);
     }
@@ -349,10 +352,7 @@ export async function notifyGameInvitationComplete(request: FastifyRequest, repl
   }
 }
 
-/**
- * Handle tournament update notifications from tournament service
- * Updates tournament invitation cards in chat with current tournament state
- */
+/* Notifie une mise à jour de tournoi */
 export async function notifyTournamentUpdate(req: FastifyRequest, reply: FastifyReply) {
   try {
     const { tournamentId, status, currentMatch, winner, players } = req.body as {
@@ -380,7 +380,6 @@ export async function notifyTournamentUpdate(req: FastifyRequest, reply: Fastify
 
     console.log(`[SOCIAL] Tournament update received: ${tournamentId}, status: ${status}`);
 
-    // Find all tournament invitations for this tournament
     const invitationsToUpdate: Array<{
       invitationId: string;
       invitedId: string;
@@ -408,27 +407,23 @@ export async function notifyTournamentUpdate(req: FastifyRequest, reply: Fastify
       return reply.status(200).send({ success: true, updated: 0 });
     }
 
-    // Update each invitation with tournament status
     for (const inv of invitationsToUpdate) {
-      // Find the player ID for the invited user
       const invitedPlayer = players.find(p => p.odUserId === inv.invitedId);
-      
-      // Check if it's the invited user's turn to play
+
       let matchReady = false;
       let matchId: string | undefined;
       let opponentName: string | undefined;
-      
+
       if (currentMatch && currentMatch.status === 'ready') {
         if (invitedPlayer && (currentMatch.player1Id === invitedPlayer.odId || currentMatch.player2Id === invitedPlayer.odId)) {
           matchReady = true;
           matchId = currentMatch.matchId;
-          opponentName = currentMatch.player1Id === invitedPlayer.odId 
-            ? currentMatch.player2Name 
+          opponentName = currentMatch.player1Id === invitedPlayer.odId
+            ? currentMatch.player2Name
             : currentMatch.player1Name;
         }
       }
 
-      // Build updated metadata
       const updatedMetadata = {
         invitationId: inv.invitationId,
         tournamentId,
@@ -446,7 +441,6 @@ export async function notifyTournamentUpdate(req: FastifyRequest, reply: Fastify
         createdAt: new Date().toISOString()
       };
 
-      // Update message in database if we have a message ID
       if (inv.messageId) {
         try {
           await customFetch('http://database:3000/database/message', 'PUT', {
@@ -458,7 +452,6 @@ export async function notifyTournamentUpdate(req: FastifyRequest, reply: Fastify
         }
       }
 
-      // Broadcast update to channel members
       try {
         const channel = await customFetch('http://database:3000/database/channel', 'GET',
           { id: inv.channelId }) as any;

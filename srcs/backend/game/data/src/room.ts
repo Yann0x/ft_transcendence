@@ -1,30 +1,34 @@
+/* ROOM */
+
 import type { WebSocket } from 'ws';
 import { createGameState, type GameState, type PlayerInput } from './state.js';
 import { physicsTick } from './physics.js';
 import { TICK_INTERVAL, WIN_SCORE, type AIDifficulty } from './config.js';
 import { createAIState, updateAI, getAIInput, type AIState } from './ai.js';
 
+/* TYPES */
+
 export interface Player {
   id: string;
   socket: WebSocket;
   side: 'left' | 'right';
-  tournamentPlayerId?: string; // Tournament player ID if in tournament mode
+  tournamentPlayerId?: string;
 }
 
 export interface TournamentInfo {
   tournamentId: string;
   matchId: string;
-  player1Id: string;  // Tournament player ID for left player
-  player2Id?: string; // Tournament player ID for right player (set when they join)
+  player1Id: string;
+  player2Id?: string;
   matchStarted: boolean;
   lastScore: { left: number; right: number };
 }
 
 export interface InvitationInfo {
   invitationId: string;
-  inviterId: string;    // User ID of inviter (left player)
-  invitedId: string;    // User ID of invited player (right player)
-  disconnectedPlayer?: string;  // Player ID who disconnected (for reconnection)
+  inviterId: string;
+  invitedId: string;
+  disconnectedPlayer?: string;
 }
 
 export interface Room {
@@ -36,8 +40,8 @@ export interface Room {
   isPvP: boolean;
   allowAI: boolean;
   aiDifficulty: AIDifficulty;
-  tournamentInfo?: TournamentInfo; // Set if this is a tournament match
-  invitationInfo?: InvitationInfo; // Set if this is an invitation match
+  tournamentInfo?: TournamentInfo;
+  invitationInfo?: InvitationInfo;
 }
 
 export interface TournamentCallbacks {
@@ -46,16 +50,31 @@ export interface TournamentCallbacks {
   onMatchEnd: (tournamentId: string, matchId: string, score1: number, score2: number) => Promise<void>;
 }
 
+export interface ActiveGameInfo {
+  roomId: string;
+  invitationId?: string;
+  opponentId?: string;
+  phase: string;
+  score: { left: number; right: number };
+  side: 'left' | 'right';
+}
+
+/* STATE */
+
 let tournamentCallbacks: TournamentCallbacks | null = null;
+
+const rooms = new Map<string, Room>();
+const tournamentRooms = new Map<string, Room>();
+const invitationRooms = new Map<string, Room>();
+let roomCounter = 0;
+
+/* CALLBACKS */
 
 export function setTournamentCallbacks(callbacks: TournamentCallbacks): void {
   tournamentCallbacks = callbacks;
 }
 
-const rooms = new Map<string, Room>();
-const tournamentRooms = new Map<string, Room>(); // matchId -> Room for tournament matches
-const invitationRooms = new Map<string, Room>(); // invitationId -> Room for invitation matches
-let roomCounter = 0;
+/* CREATE ROOM */
 
 export function createRoom(isPvP: boolean = false, allowAI: boolean = true, aiDifficulty: AIDifficulty = 'hard'): Room {
   const id = `room_${++roomCounter}`;
@@ -75,20 +94,17 @@ export function createRoom(isPvP: boolean = false, allowAI: boolean = true, aiDi
   return room;
 }
 
-/**
- * Create or find a room for a tournament match
- */
+/* TOURNAMENT ROOM */
+
 export function createTournamentRoom(
-  tournamentId: string, 
-  matchId: string, 
+  tournamentId: string,
+  matchId: string,
   tournamentPlayerId: string,
   isPlayer1: boolean
 ): Room {
-  // Check if room already exists for this match
   let room = tournamentRooms.get(matchId);
-  
+
   if (room) {
-    // Room exists, update the appropriate player ID
     if (room.tournamentInfo) {
       if (isPlayer1 && !room.tournamentInfo.player1Id) {
         room.tournamentInfo.player1Id = tournamentPlayerId;
@@ -99,8 +115,7 @@ export function createTournamentRoom(
     console.log(`[TOURNAMENT] Player ${tournamentPlayerId} (isPlayer1: ${isPlayer1}) joining existing room for match ${matchId}`);
     return room;
   }
-  
-  // Create new tournament room
+
   const id = `tournament_${matchId}`;
   room = {
     id,
@@ -120,16 +135,15 @@ export function createTournamentRoom(
       lastScore: { left: 0, right: 0 }
     }
   };
-  
+
   rooms.set(id, room);
   tournamentRooms.set(matchId, room);
   console.log(`[TOURNAMENT] Created room for match ${matchId}, ${isPlayer1 ? 'player1' : 'player2'}: ${tournamentPlayerId}`);
   return room;
 }
 
-/**
- * Create a room for a game invitation
- */
+/* INVITATION ROOM */
+
 export function createInvitationRoom(
   invitationId: string,
   inviterId: string,
@@ -158,27 +172,22 @@ export function createInvitationRoom(
   return room;
 }
 
-/**
- * Get invitation room by invitation ID
- */
 export function getInvitationRoom(invitationId: string): Room | undefined {
   return invitationRooms.get(invitationId);
 }
 
+/* ADD PLAYER */
+
 export function addPlayer(room: Room, socket: WebSocket, playerId: string, tournamentPlayerId?: string): Player | null {
-  // Check if this player is already in the room (prevent duplicate joins)
   if (room.tournamentInfo && tournamentPlayerId) {
     const existingPlayer = room.players.find(p => p.tournamentPlayerId === tournamentPlayerId);
     if (existingPlayer) {
       console.log(`[ROOM] Player ${tournamentPlayerId} already in room ${room.id}, updating socket`);
-      // Update socket for reconnection
       existingPlayer.socket = socket;
       return existingPlayer;
     }
   }
 
-
-  // Verify invitation player authorization
   if (room.invitationInfo) {
     const { inviterId, invitedId } = room.invitationInfo;
     console.log(`[ROOM] Invitation room check: playerId=${playerId}, inviterId=${inviterId}, invitedId=${invitedId}, currentPlayers=${room.players.length}`);
@@ -187,7 +196,6 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
       return null;
     }
 
-    // Prevent duplicate join - update socket for reconnection
     if (room.players.some(p => p.id === playerId)) {
       console.log(`[ROOM] Player ${playerId} already in room ${room.id}, updating socket`);
       room.players.find(p => p.id === playerId)!.socket = socket;
@@ -206,21 +214,18 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
     const player: Player = { id: playerId, socket, side };
     room.players.push(player);
     console.log(`[ROOM] ${playerId} joined ${room.id} as ${side}`);
-    
-    // Clear disconnected player flag if this player was disconnected
+
     if (room.invitationInfo?.disconnectedPlayer === playerId) {
       delete room.invitationInfo.disconnectedPlayer;
       console.log(`[ROOM] Player ${playerId} reconnected`);
     }
 
-    // Check if both players have joined - transition to ready or resume
     if (room.players.length === 2) {
       if (room.state.phase === 'waiting') {
         room.state.phase = 'ready';
         broadcastState(room);
         console.log(`[ROOM] ${room.id} ready - both players joined`);
       } else if (room.state.phase === 'paused') {
-        // Resume game after reconnection
         room.state.phase = 'playing';
         broadcastState(room);
         console.log(`[ROOM] ${room.id} resumed - player reconnected`);
@@ -232,14 +237,12 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
 
   if (room.players.length >= 2) return null;
 
-  // Verify tournament player authorization
   if (room.tournamentInfo) {
     if (!tournamentPlayerId) {
       console.log(`[ROOM] Rejected ${playerId} - tournament room requires tournamentPlayerId`);
       return null;
     }
     const { player1Id, player2Id } = room.tournamentInfo;
-    // Allow if this player ID matches either slot, or if the slot is empty (will be filled)
     const isPlayer1 = tournamentPlayerId === player1Id || (player1Id === '' && player2Id !== tournamentPlayerId);
     const isPlayer2 = tournamentPlayerId === player2Id || (player2Id === '' && player1Id !== tournamentPlayerId);
 
@@ -248,7 +251,6 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
       return null;
     }
 
-    // Fill in empty slot if needed
     if (isPlayer1 && player1Id === '') {
       room.tournamentInfo.player1Id = tournamentPlayerId;
       console.log(`[ROOM] Set player1Id to ${tournamentPlayerId}`);
@@ -283,6 +285,8 @@ export function addPlayer(room: Room, socket: WebSocket, playerId: string, tourn
   return player;
 }
 
+/* REMOVE PLAYER */
+
 export function removePlayer(room: Room, playerId: string): void {
   const idx = room.players.findIndex(p => p.id === playerId);
   if (idx !== -1) {
@@ -290,20 +294,17 @@ export function removePlayer(room: Room, playerId: string): void {
     console.log(`[ROOM] ${playerId} left ${room.id}`);
   }
 
-  // Handle according to mode and phase
   if (room.players.length === 0) {
-    // For invitation games, don't delete - allow reconnection
     if (room.invitationInfo && room.state.phase !== 'ended') {
       room.invitationInfo.disconnectedPlayer = playerId;
       console.log(`[ROOM] ${room.id} - all players disconnected, waiting for reconnection`);
-      
-      // Pause the game if playing
+
       if (room.state.phase === 'playing') {
         room.state.phase = 'paused';
       }
       return;
     }
-    
+
     stopGameLoop(room);
     rooms.delete(room.id);
     if (room.tournamentInfo) {
@@ -316,7 +317,6 @@ export function removePlayer(room: Room, playerId: string): void {
     return;
   }
 
-  // For invitation games with 1 player remaining, pause and wait for reconnection
   if (room.invitationInfo && room.players.length === 1) {
     if (room.state.phase === 'playing' || room.state.phase === 'paused') {
       room.invitationInfo.disconnectedPlayer = playerId;
@@ -332,26 +332,8 @@ export function removePlayer(room: Room, playerId: string): void {
     return;
   }
 
-  // For invitation games with 1 player remaining, pause and wait for reconnection
-  if (room.invitationInfo && room.players.length === 1) {
-    if (room.state.phase === 'playing' || room.state.phase === 'paused') {
-      room.invitationInfo.disconnectedPlayer = playerId;
-      room.state.phase = 'paused';
-      broadcastState(room);
-      console.log(`[ROOM] ${room.id} paused - waiting for ${playerId} to reconnect`);
-      return;
-    } else if (room.state.phase === 'ready') {
-      room.state.phase = 'waiting';
-      broadcastState(room);
-      console.log(`[ROOM] ${room.id} back to waiting - opponent left`);
-    }
-    return;
-  }
-
-  // If PvP or Tournament mode and only 1 player remains
   if ((room.isPvP || room.tournamentInfo) && room.players.length === 1) {
     if (room.state.phase === 'playing' || room.state.phase === 'paused') {
-      // Give victory to the remaining player
       const remainingPlayer = room.players[0];
       if (!remainingPlayer) return;
 
@@ -368,8 +350,7 @@ export function removePlayer(room: Room, playerId: string): void {
       room.state.endReason = 'forfeit';
       broadcastState(room);
       console.log(`[ROOM] ${room.id} ended - ${winningSide} wins by forfeit`);
-      
-      // Notify tournament service if this is a tournament match
+
       if (room.tournamentInfo && tournamentCallbacks) {
         tournamentCallbacks.onMatchEnd(
           room.tournamentInfo.tournamentId,
@@ -386,10 +367,11 @@ export function removePlayer(room: Room, playerId: string): void {
   }
 }
 
+/* GAME LOOP */
+
 export function startGameLoop(room: Room): void {
   if (room.intervalId) return;
 
-  // Enable AI if single player and solo mode
   if (room.players.length === 1 && room.allowAI) {
     room.ai = createAIState(room.aiDifficulty);
     console.log(`[ROOM] AI enabled for ${room.id} (${room.aiDifficulty})`);
@@ -399,8 +381,7 @@ export function startGameLoop(room: Room): void {
 
   room.state.phase = 'playing';
   let lastTick = Date.now();
-  
-  // Notify tournament service if this is a tournament match
+
   if (room.tournamentInfo && !room.tournamentInfo.matchStarted && tournamentCallbacks) {
     room.tournamentInfo.matchStarted = true;
     tournamentCallbacks.onMatchStart(
@@ -422,12 +403,11 @@ export function startGameLoop(room: Room): void {
 
     physicsTick(room.state, dt);
     broadcastState(room);
-    
-    // Send score updates to tournament service
+
     if (room.tournamentInfo && tournamentCallbacks) {
       const currentScore = room.state.score;
       const lastScore = room.tournamentInfo.lastScore;
-      
+
       if (currentScore.left !== lastScore.left || currentScore.right !== lastScore.right) {
         room.tournamentInfo.lastScore = { ...currentScore };
         tournamentCallbacks.onScoreUpdate(
@@ -442,10 +422,8 @@ export function startGameLoop(room: Room): void {
     if (room.state.phase === 'ended') {
       stopGameLoop(room);
 
-      // Debug: log room state for match saving
       console.log(`[ROOM] Match ended in ${room.id}: isPvP=${room.isPvP}, hasAI=${!!room.ai}, allowAI=${room.allowAI}, players=${room.players.length}, hasInvitation=${!!room.invitationInfo}, hasTournament=${!!room.tournamentInfo}`);
 
-      // Notify tournament service of match end
       if (room.tournamentInfo && tournamentCallbacks) {
         tournamentCallbacks.onMatchEnd(
           room.tournamentInfo.tournamentId,
@@ -455,138 +433,14 @@ export function startGameLoop(room: Room): void {
         );
       }
 
-      // Notify social service of invitation match end
       if (room.invitationInfo) {
-        const { invitationId, inviterId, invitedId } = room.invitationInfo;
-        const { score } = room.state;
-
-        const winnerId = score.left > score.right ? inviterId : invitedId;
-        const loserId = winnerId === inviterId ? invitedId : inviterId;
-
-        // Call social service to update the invitation
-        fetch('http://social:3000/social/game-invitation/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            invitationId,
-            winnerId,
-            loserId,
-            score1: score.left,
-            score2: score.right
-          })
-        }).catch(err => {
-          console.error('[ROOM] Failed to notify invitation completion:', err);
-        });
-
-        // Save duel match to database
-        fetch('http://database:3000/database/match', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            player1_id: inviterId,
-            player2_id: invitedId,
-            score1: score.left,
-            score2: score.right,
-            match_type: 'duel'
-          })
-        }).then(res => {
-          if (res.ok) {
-            console.log(`[ROOM] Duel match saved: ${inviterId} vs ${invitedId}`);
-          } else {
-            console.error('[ROOM] Failed to save duel match:', res.status);
-          }
-        }).catch(err => {
-          console.error('[ROOM] Failed to save duel match:', err);
-        });
-      }
-      // Save tournament matches to database
-      else if (room.tournamentInfo) {
-        const player1 = room.players.find(p => p.side === 'left');
-        const player2 = room.players.find(p => p.side === 'right');
-        
-        if (player1 && player2) {
-          const { score } = room.state;
-          fetch('http://database:3000/database/match', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              player1_id: player1.id,
-              player2_id: player2.id,
-              score1: score.left,
-              score2: score.right,
-              tournament_id: room.tournamentInfo.tournamentId,
-              match_type: 'tournament'
-            })
-          }).then(res => {
-            if (res.ok) {
-              console.log(`[ROOM] Tournament match saved: ${player1.id} vs ${player2.id}`);
-            } else {
-              console.error('[ROOM] Failed to save tournament match:', res.status);
-            }
-          }).catch(err => {
-            console.error('[ROOM] Failed to save tournament match:', err);
-          });
-        }
-      }
-      // Save PvP matches (matchmaking online) to database
-      else if (room.isPvP && room.players.length === 2) {
-        const player1 = room.players.find(p => p.side === 'left');
-        const player2 = room.players.find(p => p.side === 'right');
-        
-        if (player1 && player2) {
-          const { score } = room.state;
-          fetch('http://database:3000/database/match', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              player1_id: player1.id,
-              player2_id: player2.id,
-              score1: score.left,
-              score2: score.right,
-              match_type: 'pvp'
-            })
-          }).then(res => {
-            if (res.ok) {
-              console.log(`[ROOM] PvP match saved: ${player1.id} vs ${player2.id}`);
-            } else {
-              console.error('[ROOM] Failed to save PvP match:', res.status);
-            }
-          }).catch(err => {
-            console.error('[ROOM] Failed to save PvP match:', err);
-          });
-        }
-      }
-      // Save AI (solo) matches to database - check allowAI flag as room.ai may be cleared
-      else if (room.allowAI && room.players.length === 1) {
-        const player = room.players[0];
-        console.log(`[ROOM] AI match checking player: id=${player.id}, isAnonymous=${player.id.startsWith('player_')}`);
-        // Only save if player has a real user ID (not anonymous)
-        if (player.id && !player.id.startsWith('player_')) {
-          const { score } = room.state;
-          const aiPlayerId = `AI_${room.aiDifficulty}`;
-          
-          fetch('http://database:3000/database/match', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              player1_id: player.id,
-              player2_id: aiPlayerId,
-              score1: score.left,
-              score2: score.right,
-              match_type: 'ai'
-            })
-          }).then(res => {
-            if (res.ok) {
-              console.log(`[ROOM] AI match saved: ${player.id} vs ${aiPlayerId}`);
-            } else {
-              console.error('[ROOM] Failed to save AI match:', res.status);
-            }
-          }).catch(err => {
-            console.error('[ROOM] Failed to save AI match:', err);
-          });
-        } else {
-          console.log(`[ROOM] AI match not saved: player ${player.id} is anonymous (no account)`);
-        }
+        saveInvitationMatch(room);
+      } else if (room.tournamentInfo) {
+        saveTournamentMatch(room);
+      } else if (room.isPvP && room.players.length === 2) {
+        savePvPMatch(room);
+      } else if (room.allowAI && room.players.length === 1) {
+        saveAIMatch(room);
       }
     }
   }, TICK_INTERVAL);
@@ -600,6 +454,8 @@ export function stopGameLoop(room: Room): void {
     room.intervalId = null;
   }
 }
+
+/* GAME CONTROLS */
 
 export function pauseGame(room: Room): void {
   if (room.state.phase === 'playing') {
@@ -633,6 +489,8 @@ export function restartGame(room: Room): void {
   console.log(`[ROOM] Restarted ${room.id}`);
 }
 
+/* INPUT */
+
 export function applyInput(room: Room, playerId: string, input: PlayerInput): void {
   const player = room.players.find(p => p.id === playerId);
   if (!player) return;
@@ -646,6 +504,8 @@ export function applyInputBoth(room: Room, p1: PlayerInput, p2: PlayerInput): vo
   room.state.inputs[0] = p1;
   room.state.inputs[1] = p2;
 }
+
+/* BROADCAST */
 
 function broadcastState(room: Room): void {
   const message = JSON.stringify({
@@ -666,12 +526,147 @@ function broadcastState(room: Room): void {
   }
 }
 
-// PvP Matchmaking: join a waiting room or create a new one
+/* SAVE MATCH */
+
+function saveInvitationMatch(room: Room): void {
+  if (!room.invitationInfo) return;
+
+  const { invitationId, inviterId, invitedId } = room.invitationInfo;
+  const { score } = room.state;
+
+  const winnerId = score.left > score.right ? inviterId : invitedId;
+  const loserId = winnerId === inviterId ? invitedId : inviterId;
+
+  fetch('http://social:3000/social/game-invitation/complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      invitationId,
+      winnerId,
+      loserId,
+      score1: score.left,
+      score2: score.right
+    })
+  }).catch(err => {
+    console.error('[ROOM] Failed to notify invitation completion:', err);
+  });
+
+  fetch('http://database:3000/database/match', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      player1_id: inviterId,
+      player2_id: invitedId,
+      score1: score.left,
+      score2: score.right,
+      match_type: 'duel'
+    })
+  }).then(res => {
+    if (res.ok) {
+      console.log(`[ROOM] Duel match saved: ${inviterId} vs ${invitedId}`);
+    } else {
+      console.error('[ROOM] Failed to save duel match:', res.status);
+    }
+  }).catch(err => {
+    console.error('[ROOM] Failed to save duel match:', err);
+  });
+}
+
+function saveTournamentMatch(room: Room): void {
+  const player1 = room.players.find(p => p.side === 'left');
+  const player2 = room.players.find(p => p.side === 'right');
+
+  if (player1 && player2 && room.tournamentInfo) {
+    const { score } = room.state;
+    fetch('http://database:3000/database/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        player1_id: player1.id,
+        player2_id: player2.id,
+        score1: score.left,
+        score2: score.right,
+        tournament_id: room.tournamentInfo.tournamentId,
+        match_type: 'tournament'
+      })
+    }).then(res => {
+      if (res.ok) {
+        console.log(`[ROOM] Tournament match saved: ${player1.id} vs ${player2.id}`);
+      } else {
+        console.error('[ROOM] Failed to save tournament match:', res.status);
+      }
+    }).catch(err => {
+      console.error('[ROOM] Failed to save tournament match:', err);
+    });
+  }
+}
+
+function savePvPMatch(room: Room): void {
+  const player1 = room.players.find(p => p.side === 'left');
+  const player2 = room.players.find(p => p.side === 'right');
+
+  if (player1 && player2) {
+    const { score } = room.state;
+    fetch('http://database:3000/database/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        player1_id: player1.id,
+        player2_id: player2.id,
+        score1: score.left,
+        score2: score.right,
+        match_type: 'pvp'
+      })
+    }).then(res => {
+      if (res.ok) {
+        console.log(`[ROOM] PvP match saved: ${player1.id} vs ${player2.id}`);
+      } else {
+        console.error('[ROOM] Failed to save PvP match:', res.status);
+      }
+    }).catch(err => {
+      console.error('[ROOM] Failed to save PvP match:', err);
+    });
+  }
+}
+
+function saveAIMatch(room: Room): void {
+  const player = room.players[0];
+  console.log(`[ROOM] AI match checking player: id=${player.id}, isAnonymous=${player.id.startsWith('player_')}`);
+
+  if (player.id && !player.id.startsWith('player_')) {
+    const { score } = room.state;
+    const aiPlayerId = `AI_${room.aiDifficulty}`;
+
+    fetch('http://database:3000/database/match', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        player1_id: player.id,
+        player2_id: aiPlayerId,
+        score1: score.left,
+        score2: score.right,
+        match_type: 'ai'
+      })
+    }).then(res => {
+      if (res.ok) {
+        console.log(`[ROOM] AI match saved: ${player.id} vs ${aiPlayerId}`);
+      } else {
+        console.error('[ROOM] Failed to save AI match:', res.status);
+      }
+    }).catch(err => {
+      console.error('[ROOM] Failed to save AI match:', err);
+    });
+  } else {
+    console.log(`[ROOM] AI match not saved: player ${player.id} is anonymous (no account)`);
+  }
+}
+
+/* MATCHMAKING */
+
 export function findOrCreateRoom(): Room {
   for (const room of rooms.values()) {
-    // Skip tournament rooms - they should only be joined through tournament flow
     if (room.tournamentInfo) continue;
-    
+
     if (room.isPvP && room.players.length === 1 && room.state.phase === 'waiting') {
       console.log(`[ROOM] Found existing PvP room ${room.id}`);
       return room;
@@ -680,79 +675,70 @@ export function findOrCreateRoom(): Room {
   return createRoom(true, false);
 }
 
+/* FIND ROOM */
+
 export function findRoomByPlayer(playerId: string): Room | undefined {
-  // First check players array
   for (const room of rooms.values()) {
     if (room.players.some(p => p.id === playerId)) {
       return room;
     }
   }
-  
-  // For invitation games, also check invitationInfo (player may have disconnected but game still active)
+
   for (const room of rooms.values()) {
-    if (room.invitationInfo && 
+    if (room.invitationInfo &&
         (room.invitationInfo.inviterId === playerId || room.invitationInfo.invitedId === playerId) &&
         room.state.phase !== 'ended') {
       return room;
     }
   }
-  
+
   return undefined;
 }
 
-export interface ActiveGameInfo {
-  roomId: string;
-  invitationId?: string;
-  opponentId?: string;
-  phase: string;
-  score: { left: number; right: number };
-  side: 'left' | 'right';
-}
+/* ACTIVE GAME */
 
 export function getActiveGameForPlayer(playerId: string): ActiveGameInfo | null {
   const room = findRoomByPlayer(playerId);
   if (!room) return null;
-  
-  // Only return active games (not ended)
+
   if (room.state.phase === 'ended') return null;
-  
-  // Try to find player in the room, or determine side from invitationInfo
+
   let side: 'left' | 'right';
   const player = room.players.find(p => p.id === playerId);
-  
+
   if (player) {
     side = player.side;
   } else if (room.invitationInfo) {
-    // Player disconnected but we can determine their side from invitation info
     side = playerId === room.invitationInfo.inviterId ? 'left' : 'right';
   } else {
     return null;
   }
-  
-  // Get opponent ID
+
   let opponentId: string | undefined;
   if (room.invitationInfo) {
-    opponentId = playerId === room.invitationInfo.inviterId 
-      ? room.invitationInfo.invitedId 
+    opponentId = playerId === room.invitationInfo.inviterId
+      ? room.invitationInfo.invitedId
       : room.invitationInfo.inviterId;
   }
-  
+
   const result: ActiveGameInfo = {
     roomId: room.id,
     phase: room.state.phase,
     score: room.state.score,
     side
   };
-  
+
   if (room.invitationInfo?.invitationId) {
     result.invitationId = room.invitationInfo.invitationId;
   }
   if (opponentId) {
     result.opponentId = opponentId;
   }
-  
+
   return result;
 }
+
+/* STATS */
 
 export function getPvPStats(): { waitingPlayers: number; activeGames: number } {
   let waitingPlayers = 0;
