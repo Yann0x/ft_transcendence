@@ -253,7 +253,9 @@ const App = {
       // For returning users, we need to load friends and blocked users from API
       // since we don't have the full LoginResponse stored
       this.me = JSON.parse(currentUser);
-      Social.init();
+      
+      // Connect to social websocket and load channels for notifications
+      Social.connect();
     }
     else
     {
@@ -326,7 +328,7 @@ const App = {
     console.log(`Run script for ${page}`)
     switch (page) {
       case "social_hub":
-        Social.load()
+        Social.init()
         break
       case "home":
         PongGame.init().catch(e => console.error('[APP] PongGame init error:', e));
@@ -456,7 +458,9 @@ const App = {
     this.buildMapsFromLoginResponse(loginResponse);
 
     this.updateNavbar();
-    Social.init();
+    
+    // Connect to social websocket and load channels for notifications
+    Social.connect();
   },
 
   //

@@ -271,7 +271,27 @@ export const ProfileModal = {
         console.log('[PROFILE] User blocked successfully');
       }
 
-      await this.open(user.id);
+      // Update the block button text immediately
+      const blockBtn = document.getElementById('profile-block');
+      if (blockBtn) {
+        const nowBlocked = App.isUserBlocked(user.id);
+        blockBtn.textContent = nowBlocked ? 'Unblock' : 'Block';
+      }
+
+      // Also refresh friend buttons since blocking removes friend
+      const addFriendBtn = document.getElementById('profile-add-friend');
+      const removeFriendBtn = document.getElementById('profile-remove-friend');
+      const isFriend = user.id ? App.isFriend(user.id) : false;
+      
+      if (addFriendBtn && removeFriendBtn) {
+        if (isFriend) {
+          addFriendBtn.classList.add('hidden');
+          removeFriendBtn.classList.remove('hidden');
+        } else {
+          addFriendBtn.classList.remove('hidden');
+          removeFriendBtn.classList.add('hidden');
+        }
+      }
     } catch (error) {
       console.error('[PROFILE] Error blocking/unblocking user:', error);
       alert(`Failed to ${isBlocked ? 'unblock' : 'block'} user`);

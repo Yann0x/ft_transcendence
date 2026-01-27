@@ -50,6 +50,12 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'auth.signup_success': 'Compte créé avec succès !',
     'auth.signup_failed': "Échec de l'inscription : {message}",
     'auth.error_password_min_length': 'Le mot de passe doit contenir au moins {min} caractères',
+    'auth.2fa_title': 'Vérification en deux étapes',
+    'auth.2fa_description': 'Entrez le code à 6 chiffres de votre application d\'authentification',
+    'auth.2fa_code': 'Code de vérification',
+    'auth.2fa_submit': 'Vérifier',
+    'auth.2fa_back': 'Retour',
+    'auth.2fa_auto_submit': 'Le code sera validé automatiquement',
 
     // Home
     'home.game_title': 'Pong Arena',
@@ -130,6 +136,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'stats.error': 'Erreur lors du chargement des statistiques',
     'stats.result_win': 'Victoire',
     'stats.result_loss': 'Défaite',
+
+    // Social
+    'social.login_required_title': 'Connexion requise',
+    'social.login_required_desc': 'Connectez-vous pour accéder à vos conversations et discuter avec vos amis.',
     
     // Friends
     'friends.title': 'Mes Amis',
@@ -275,6 +285,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'settings.2fa_enter_code': 'Entrez le code de vérification',
     'settings.2fa_protected': 'Votre compte est protégé par l\'authentification à deux facteurs',
     'settings.2fa_disable_prompt': 'Entrez votre code 2FA pour désactiver',
+    'settings.2fa_auto_submit': 'Le code sera validé automatiquement',
     'settings.cancel': 'Annuler',
     'settings.enable': 'Activer',
 
@@ -363,6 +374,12 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'auth.signup_success': 'Account created successfully!',
     'auth.signup_failed': 'Signup failed: {message}',
     'auth.error_password_min_length': 'Password must be at least {min} characters',
+    'auth.2fa_title': 'Two-step verification',
+    'auth.2fa_description': 'Enter the 6-digit code from your authenticator app',
+    'auth.2fa_code': 'Verification code',
+    'auth.2fa_submit': 'Verify',
+    'auth.2fa_back': 'Back',
+    'auth.2fa_auto_submit': 'The code will be validated automatically',
 
     // Home
     'home.game_title': 'Pong Arena',
@@ -443,6 +460,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'stats.error': 'Error loading stats',
     'stats.result_win': 'Win',
     'stats.result_loss': 'Loss',
+
+    // Social
+    'social.login_required_title': 'Login required',
+    'social.login_required_desc': 'Log in to access your conversations and chat with friends.',
     
     // Friends
     'friends.title': 'My Friends',
@@ -588,6 +609,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'settings.2fa_enter_code': 'Enter verification code',
     'settings.2fa_protected': 'Your account is protected with two-factor authentication',
     'settings.2fa_disable_prompt': 'Enter your 2FA code to disable',
+    'settings.2fa_auto_submit': 'The code will be validated automatically',
     'settings.cancel': 'Cancel',
     'settings.enable': 'Enable',
 
@@ -676,6 +698,12 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'auth.signup_success': '¡Cuenta creada con éxito!',
     'auth.signup_failed': 'Error al registrarse: {message}',
     'auth.error_password_min_length': 'La contraseña debe tener al menos {min} caracteres',
+    'auth.2fa_title': 'Verificación en dos pasos',
+    'auth.2fa_description': 'Ingresa el código de 6 dígitos de tu aplicación de autenticación',
+    'auth.2fa_code': 'Código de verificación',
+    'auth.2fa_submit': 'Verificar',
+    'auth.2fa_back': 'Volver',
+    'auth.2fa_auto_submit': 'El código se validará automáticamente',
 
     // Home
     'home.game_title': 'Pong Arena',
@@ -756,6 +784,10 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'stats.error': 'Error al cargar las estadísticas',
     'stats.result_win': 'Victoria',
     'stats.result_loss': 'Derrota',
+
+    // Social
+    'social.login_required_title': 'Inicio de sesión requerido',
+    'social.login_required_desc': 'Inicia sesión para acceder a tus conversaciones y chatear con amigos.',
     
     // Friends
     'friends.title': 'Mis Amigos',
@@ -901,6 +933,7 @@ const translations: Record<SupportedLang, TranslationMap> = {
     'settings.2fa_enter_code': 'Ingresa el código de verificación',
     'settings.2fa_protected': 'Tu cuenta está protegida con autenticación de dos factores',
     'settings.2fa_disable_prompt': 'Ingresa tu código 2FA para desactivar',
+    'settings.2fa_auto_submit': 'El código se validará automáticamente',
     'settings.cancel': 'Cancelar',
     'settings.enable': 'Activar',
 
