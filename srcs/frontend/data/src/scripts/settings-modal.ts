@@ -459,7 +459,6 @@ export const SettingsModal = {
   setup2FA(): void {
     const enableBtn = document.getElementById('settings-2fa-enable-btn');
     const cancelBtn = document.getElementById('settings-2fa-cancel-btn');
-    const confirmBtn = document.getElementById('settings-2fa-confirm-btn');
     const disableBtn = document.getElementById('settings-2fa-disable-btn');
     const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
     const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
@@ -474,23 +473,24 @@ export const SettingsModal = {
       this.hide2FASetup();
     });
 
-    // Confirm button - verify and enable
-    confirmBtn?.addEventListener('click', async () => {
-      await this.confirm2FASetup();
-    });
-
     // Disable button
     disableBtn?.addEventListener('click', async () => {
       await this.disable2FA();
     });
 
-    // Auto-filter input to only digits
+    // Auto-filter input to only digits and auto-submit at 6 chars
     codeInput?.addEventListener('input', () => {
       codeInput.value = codeInput.value.replace(/\D/g, '');
+      if (codeInput.value.length === 6) {
+        this.confirm2FASetup();
+      }
     });
 
     disableCodeInput?.addEventListener('input', () => {
       disableCodeInput.value = disableCodeInput.value.replace(/\D/g, '');
+      if (disableCodeInput.value.length === 6) {
+        this.disable2FA();
+      }
     });
   },
 
@@ -740,7 +740,6 @@ export const SettingsModal = {
   setup2FA(): void {
     const enableBtn = document.getElementById('settings-2fa-enable-btn');
     const cancelBtn = document.getElementById('settings-2fa-cancel-btn');
-    const confirmBtn = document.getElementById('settings-2fa-confirm-btn');
     const disableBtn = document.getElementById('settings-2fa-disable-btn');
     const codeInput = document.getElementById('settings-2fa-code') as HTMLInputElement;
     const disableCodeInput = document.getElementById('settings-2fa-disable-code') as HTMLInputElement;
@@ -755,23 +754,24 @@ export const SettingsModal = {
       this.hide2FASetup();
     });
 
-    // Confirm button - verify and enable
-    confirmBtn?.addEventListener('click', async () => {
-      await this.confirm2FASetup();
-    });
-
     // Disable button
     disableBtn?.addEventListener('click', async () => {
       await this.disable2FA();
     });
 
-    // Auto-filter input to only digits
+    // Auto-filter input to only digits and auto-submit at 6 chars
     codeInput?.addEventListener('input', () => {
       codeInput.value = codeInput.value.replace(/\D/g, '');
+      if (codeInput.value.length === 6) {
+        this.confirm2FASetup();
+      }
     });
 
     disableCodeInput?.addEventListener('input', () => {
       disableCodeInput.value = disableCodeInput.value.replace(/\D/g, '');
+      if (disableCodeInput.value.length === 6) {
+        this.disable2FA();
+      }
     });
   },
 

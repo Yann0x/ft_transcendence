@@ -9,7 +9,13 @@ export function bindKeyboard(): void {
   unbindKeyboard();
 
   keydownHandler = (e: KeyboardEvent) => {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+    // Don't interfere with input fields
+    const activeEl = document.activeElement;
+    const isInputField = activeEl instanceof HTMLInputElement || 
+                         activeEl instanceof HTMLTextAreaElement ||
+                         activeEl?.getAttribute('contenteditable') === 'true';
+    
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key) && !isInputField) {
       e.preventDefault();
     }
     keysDown.add(e.key);
