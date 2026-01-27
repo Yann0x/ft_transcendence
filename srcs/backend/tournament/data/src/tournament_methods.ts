@@ -476,22 +476,72 @@ function broadcastTournamentUpdate(tournament: Tournament): void {
   if (!connections || connections.size === 0) {
     // Still broadcast to global list even if no specific subscriptions
     broadcastTournamentList()
-    return
+  } else {
+    const message = JSON.stringify({
+      type: 'tournament_update',
+      tournament,
+    })
+    
+    connections.forEach(socket => {
+      if (socket.readyState === 1) { // WebSocket.OPEN
+        socket.send(message)
+      }
+    })
+    
+    // Also broadcast to the global tournament list
+    broadcastTournamentList()
   }
   
-  const message = JSON.stringify({
-    type: 'tournament_update',
-    tournament,
-  })
-  
-  connections.forEach(socket => {
-    if (socket.readyState === 1) { // WebSocket.OPEN
-      socket.send(message)
+  // Notify social service for chat card updates
+  notifySocialService(tournament)
+}
+
+/**
+ * Notify social service about tournament updates for chat card updates
+ */
+async function notifySocialService(tournament: Tournament): Promise<void> {
+  try {
+    // Get current match info if any
+    let currentMatch: any = undefined
+    if (tournament.odCurrentMatch) {
+      const match = tournament.odMatches.find(m => m.odId === tournament.odCurrentMatch)
+      if (match && match.odStatus === 'ready') {
+        currentMatch = {
+          matchId: match.odId,
+          player1Id: match.odPlayer1?.odId,
+          player1Name: match.odPlayer1?.odAlias,
+          player2Id: match.odPlayer2?.odId,
+          player2Name: match.odPlayer2?.odAlias,
+          status: match.odStatus
+        }
+      }
     }
-  })
-  
-  // Also broadcast to the global tournament list
-  broadcastTournamentList()
+
+    const payload = {
+      tournamentId: tournament.odId,
+      status: tournament.odStatus,
+      currentMatch,
+      winner: tournament.odWinner ? {
+        odId: tournament.odWinner.odId,
+        odAlias: tournament.odWinner.odAlias,
+        odUserId: tournament.odWinner.odUserId
+      } : undefined,
+      players: tournament.odPlayers.map(p => ({
+        odId: p.odId,
+        odAlias: p.odAlias,
+        odUserId: p.odUserId
+      }))
+    }
+
+    await fetch('http://social:3000/social/tournament/update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+  } catch (error) {
+    // Don't fail tournament operations if social notification fails
+    console.error('[TOURNAMENT] Failed to notify social service:', error)
+  }
 }
 
 /**

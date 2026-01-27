@@ -150,6 +150,32 @@ export const Chat =
         }
     },
 
+    updateTournamentCardStatus(invitationId: string, updateData: any): void {
+        // Find and update the tournament invitation message with full tournament state
+        for (const channel of this.cachedChannelsMap.values()) {
+            for (const message of channel.messages) {
+                if (message.type === 'tournament_invitation' && message.metadata) {
+                    const metadata = typeof message.metadata === 'string' 
+                        ? JSON.parse(message.metadata) 
+                        : message.metadata;
+                    
+                    if (metadata.invitationId === invitationId) {
+                        // Update all the tournament-related fields
+                        metadata.tournamentStatus = updateData.tournamentStatus;
+                        metadata.matchReady = updateData.matchReady;
+                        metadata.matchId = updateData.matchId;
+                        metadata.opponentName = updateData.opponentName;
+                        metadata.winnerName = updateData.winnerName;
+                        metadata.winnerId = updateData.winnerId;
+                        message.metadata = metadata;
+                        console.log(`[CHAT] Updated tournament card ${invitationId}: status=${updateData.tournamentStatus}, matchReady=${updateData.matchReady}`);
+                        return;
+                    }
+                }
+            }
+        }
+    },
+
     getChannelLatestDate(channel: Channel): number {
         const lastMsg = channel.messages.at(-1);
         const lastMsgDate = lastMsg ? new Date(lastMsg.sent_at).getTime() : 0;
@@ -285,6 +311,21 @@ export const Chat =
             btn.addEventListener('click', async (e) => {
                 const invitationId = (e.target as HTMLElement).dataset.invitationId;
                 if (invitationId) await this.handleDeclineTournamentInvitation(invitationId);
+            });
+        });
+
+        // Attach tournament view/play buttons
+        document.querySelectorAll('.tournament-view-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tournamentId = (e.target as HTMLElement).dataset.tournamentId;
+                if (tournamentId) this.handleViewTournament(tournamentId);
+            });
+        });
+
+        document.querySelectorAll('.tournament-play-match-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tournamentId = (e.target as HTMLElement).dataset.tournamentId;
+                if (tournamentId) this.handlePlayTournamentMatch(tournamentId);
             });
         });
     },
@@ -728,17 +769,12 @@ export const Chat =
         }
 
         return `
-            <div class="invitation-card p-4 bg-neutral-800 rounded-lg border border-neutral-700"
+            <div class="invitation-card p-4 bg-neutral-800 rounded-lg"
                  data-message-id="${message.id}"
                  data-invitation-id="${invitationId}">
                 <div class="flex flex-col items-center text-center gap-2">
-                    <div class="w-12 h-12 bg-orange-600/20 rounded-full flex items-center justify-center">
-                        <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <p class="text-white font-medium">${inviterName} challenges you to a duel!</p>
+                    <p class="text-white font-medium text-lg">Duel Invitation</p>
+                    <p class="text-neutral-300">${inviterName} challenges you to a duel!</p>
                     ${statusDisplay}
                 </div>
                 ${actionsHtml}
@@ -795,17 +831,22 @@ export const Chat =
             minute: '2-digit'
         });
 
+        // Blue border/shadow for win, red for loss
+        let cardClasses: string;
+        if (isWinner) {
+            cardClasses = 'result-card p-4 bg-neutral-800 rounded-lg border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]';
+        } else if (isLoser) {
+            cardClasses = 'result-card p-4 bg-neutral-800 rounded-lg border border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.3)]';
+        } else {
+            cardClasses = 'result-card p-4 bg-neutral-800 rounded-lg border border-neutral-700';
+        }
+
         return `
-            <div class="result-card p-4 bg-neutral-800 rounded-lg border border-orange-500/30 shadow-[0_0_10px_rgba(249,115,22,0.3)]"
+            <div class="${cardClasses}"
                  data-message-id="${message.id}">
                 <div class="flex flex-col items-center text-center gap-2">
-                    <div class="w-12 h-12 bg-orange-600/20 rounded-full flex items-center justify-center">
-                        <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                    <p class="text-white font-medium">Match Complete!</p>
-                    <p class="text-neutral-300 text-sm">${resultText}</p>
+                    <p class="text-white font-medium text-lg">Match Complete</p>
+                    <p class="${isWinner ? 'text-blue-400' : isLoser ? 'text-red-400' : 'text-neutral-300'} text-sm">${resultText}</p>
                     <div class="flex items-center justify-center gap-6 mt-2">
                         <div class="text-center">
                             <p class="text-xl font-bold text-white">${score1}</p>
@@ -839,7 +880,10 @@ export const Chat =
             return '';
         }
 
-        const { invitationId, tournamentId, tournamentName, inviterId, inviterName, status } = metadata;
+        const { 
+            invitationId, tournamentId, tournamentName, inviterId, inviterName, status,
+            tournamentStatus, matchReady, matchId, opponentName, winnerName, winnerId
+        } = metadata;
         
         // Validate required fields
         if (!invitationId || !tournamentId || !inviterId) {
@@ -850,7 +894,8 @@ export const Chat =
         const displayInviterName = inviterName || App.cachedUsers.get(inviterId)?.name || 'Someone';
         const displayTournamentName = tournamentName || `Tournament #${tournamentId.slice(-6)}`;
 
-        const isInviter = inviterId === App.me.id;
+        const isInviter = inviterId === App.me?.id;
+        const isInvited = metadata.invitedId === App.me?.id;
         const canRespond = !isInviter && status === 'pending';
 
         const timestamp = new Date(message.sent_at).toLocaleTimeString('en-US', {
@@ -858,53 +903,149 @@ export const Chat =
             minute: '2-digit'
         });
 
+        let headerText = `${displayInviterName} invites you to join`;
         let statusDisplay = '';
         let actionsHtml = '';
+        let cardClasses = 'tournament-invitation-card p-4 bg-neutral-800 rounded-lg';
 
-        switch (status) {
-            case 'pending':
-                if (canRespond) {
-                    actionsHtml = `
-                        <div class="flex gap-2 mt-3">
-                            <button
-                                class="tournament-invitation-accept flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-green-600/20 text-green-400 border border-green-600/30 hover:border-green-500 rounded transition text-sm font-medium"
-                                data-invitation-id="${invitationId}"
-                                data-tournament-id="${tournamentId}">
-                                Join Tournament
-                            </button>
-                            <button
-                                class="tournament-invitation-decline flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-red-600/20 text-red-400 border border-red-600/30 hover:border-red-500 rounded transition text-sm font-medium"
-                                data-invitation-id="${invitationId}">
-                                Decline
-                            </button>
-                        </div>
-                    `;
-                    statusDisplay = '<p class="text-amber-500/80 text-xs mt-1">Waiting for your response...</p>';
-                } else {
-                    statusDisplay = '<p class="text-neutral-400 text-xs mt-1">Waiting for response...</p>';
-                }
-                break;
-            case 'accepted':
-                statusDisplay = '<p class="text-green-500/80 text-xs mt-1">Joined the tournament!</p>';
-                break;
-            case 'declined':
-                statusDisplay = '<p class="text-red-500/80 text-xs mt-1">Declined</p>';
-                break;
-            case 'expired':
-                statusDisplay = '<p class="text-neutral-500 text-xs mt-1">Expired</p>';
-                break;
+        // Handle tournament finished state
+        if (tournamentStatus === 'finished' && winnerName) {
+            const isWinner = winnerId === App.me?.id;
+            const isLoser = status === 'accepted' && !isWinner && isInvited;
+            headerText = 'Tournament Completed';
+            // Blue for win, red for loss
+            if (isWinner) {
+                cardClasses += ' border border-blue-500/30 shadow-[0_0_10px_rgba(59,130,246,0.3)]';
+            } else if (isLoser) {
+                cardClasses += ' border border-red-500/30 shadow-[0_0_10px_rgba(239,68,68,0.3)]';
+            }
+            statusDisplay = `
+                <div class="flex flex-col items-center gap-1">
+                    <p class="${isWinner ? 'text-blue-400' : isLoser ? 'text-red-400' : 'text-neutral-300'} font-bold text-lg">${isWinner ? 'You Won!' : `Winner: ${winnerName}`}</p>
+                    <p class="text-neutral-400 text-xs">${displayTournamentName}</p>
+                </div>
+            `;
+            actionsHtml = `
+                <button
+                    class="tournament-view-btn w-full mt-3 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white border border-neutral-600 rounded transition text-sm font-medium"
+                    data-tournament-id="${tournamentId}">
+                    View Results
+                </button>
+            `;
+        }
+        // Handle match ready state (time to play!)
+        else if (status === 'accepted' && matchReady && isInvited) {
+            headerText = 'Your Match is Ready';
+            statusDisplay = `
+                <div class="flex flex-col items-center gap-1">
+                    <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
+                    <p class="text-white">vs <span class="text-neutral-300 font-medium">${opponentName || 'Opponent'}</span></p>
+                </div>
+            `;
+            actionsHtml = `
+                <button
+                    class="tournament-play-match-btn w-full mt-3 px-3 py-2 bg-neutral-700 hover:bg-neutral-600 text-white border border-neutral-600 rounded transition text-sm font-bold"
+                    data-tournament-id="${tournamentId}"
+                    data-match-id="${matchId || ''}">
+                    Play Match Now
+                </button>
+            `;
+        }
+        // Handle in_progress state (tournament started but not your turn)
+        else if (status === 'accepted' && tournamentStatus === 'in_progress') {
+            headerText = 'Tournament In Progress';
+            statusDisplay = `
+                <div class="flex flex-col items-center gap-1">
+                    <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
+                    <p class="text-neutral-400 text-xs">Waiting for your next match...</p>
+                </div>
+            `;
+            actionsHtml = `
+                <button
+                    class="tournament-view-btn w-full mt-3 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white border border-neutral-600 rounded transition text-sm font-medium"
+                    data-tournament-id="${tournamentId}">
+                    View Tournament
+                </button>
+            `;
+        }
+        // Handle accepted state (joined, waiting to start)
+        else if (status === 'accepted') {
+            headerText = 'Joined Tournament';
+            statusDisplay = `
+                <div class="flex flex-col items-center gap-1">
+                    <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
+                    <p class="text-green-500/80 text-xs">Waiting for tournament to start...</p>
+                </div>
+            `;
+            actionsHtml = `
+                <button
+                    class="tournament-view-btn w-full mt-3 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white border border-neutral-600 rounded transition text-sm font-medium"
+                    data-tournament-id="${tournamentId}">
+                    View Tournament
+                </button>
+            `;
+        }
+        // Handle pending state
+        else if (status === 'pending') {
+            if (canRespond) {
+                actionsHtml = `
+                    <div class="flex gap-2 mt-3">
+                        <button
+                            class="tournament-invitation-accept flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-green-600/20 text-green-400 border border-green-600/30 hover:border-green-500 rounded transition text-sm font-medium"
+                            data-invitation-id="${invitationId}"
+                            data-tournament-id="${tournamentId}">
+                            Join Tournament
+                        </button>
+                        <button
+                            class="tournament-invitation-decline flex-1 px-3 py-1.5 bg-neutral-700 hover:bg-red-600/20 text-red-400 border border-red-600/30 hover:border-red-500 rounded transition text-sm font-medium"
+                            data-invitation-id="${invitationId}">
+                            Decline
+                        </button>
+                    </div>
+                `;
+                statusDisplay = `
+                    <div class="flex flex-col items-center gap-1">
+                        <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
+                        <p class="text-amber-500/80 text-xs">Waiting for your response...</p>
+                    </div>
+                `;
+            } else {
+                statusDisplay = `
+                    <div class="flex flex-col items-center gap-1">
+                        <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
+                        <p class="text-neutral-400 text-xs">Waiting for response...</p>
+                    </div>
+                `;
+            }
+        }
+        // Handle declined state
+        else if (status === 'declined') {
+            headerText = 'Tournament Invitation';
+            statusDisplay = `
+                <div class="flex flex-col items-center gap-1">
+                    <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
+                    <p class="text-red-500/80 text-xs">Declined</p>
+                </div>
+            `;
+        }
+        // Handle expired state
+        else if (status === 'expired') {
+            headerText = 'Tournament Invitation';
+            statusDisplay = `
+                <div class="flex flex-col items-center gap-1">
+                    <p class="text-neutral-300 font-semibold">${displayTournamentName}</p>
+                    <p class="text-neutral-500 text-xs">Expired</p>
+                </div>
+            `;
         }
 
         return `
-            <div class="tournament-invitation-card p-4 bg-neutral-800 rounded-lg border border-neutral-700"
+            <div class="${cardClasses}"
                  data-message-id="${message.id}"
-                 data-invitation-id="${invitationId}">
+                 data-invitation-id="${invitationId}"
+                 data-tournament-id="${tournamentId}">
                 <div class="flex flex-col items-center text-center gap-2">
-                    <div class="w-12 h-12 bg-amber-600/20 rounded-full flex items-center justify-center">
-                        <span class="text-2xl">🏆</span>
-                    </div>
-                    <p class="text-white font-medium">${displayInviterName} invites you to join</p>
-                    <p class="text-amber-400 font-semibold">"${displayTournamentName}"</p>
+                    <p class="text-white font-medium text-lg">${headerText}</p>
                     ${statusDisplay}
                 </div>
                 ${actionsHtml}
@@ -999,5 +1140,18 @@ export const Chat =
             console.error('[CHAT] Failed to decline tournament invitation:', error);
             alert('Failed to decline tournament invitation');
         }
+    },
+
+    handleViewTournament(tournamentId: string): void {
+        console.log('[CHAT] Viewing tournament:', tournamentId);
+        sessionStorage.setItem('selectedTournamentId', tournamentId);
+        Router.navigate('/tournaments');
+    },
+
+    handlePlayTournamentMatch(tournamentId: string): void {
+        console.log('[CHAT] Playing tournament match:', tournamentId);
+        sessionStorage.setItem('selectedTournamentId', tournamentId);
+        // The tournament page will handle starting the match
+        Router.navigate('/tournaments');
     },
 }

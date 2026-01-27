@@ -189,5 +189,29 @@ export const Social = {
                 console.log('[SOCIAL] Tournament invitation accepted, friend joined tournament:', tournamentId);
             }
         });
+
+        // Tournament card updates (match ready, tournament finished, etc.)
+        socialClient.on('tournament_card_update', (event: SocialEvent) => {
+            const { invitationId, tournamentStatus, matchReady, winnerName } = event.data;
+
+            // Update the tournament card in cached messages
+            Chat.updateTournamentCardStatus(invitationId, event.data);
+
+            // Re-render channel to update the card
+            if (Chat.currentChannel) {
+                Chat.displayChannel(Chat.currentChannel.id);
+            }
+
+            // If match is ready for us, show notification
+            if (matchReady && event.data.invitedId === App.me?.id) {
+                console.log('[SOCIAL] Your tournament match is ready!');
+                // Could show a browser notification here
+            }
+
+            // If tournament finished, log it
+            if (tournamentStatus === 'finished' && winnerName) {
+                console.log('[SOCIAL] Tournament finished! Winner:', winnerName);
+            }
+        });
     }
 };

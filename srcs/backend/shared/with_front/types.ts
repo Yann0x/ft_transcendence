@@ -121,6 +121,19 @@ export const TournamentInvitationDataSchema = Type.Object({
     Type.Literal('declined'),
     Type.Literal('expired')
   ]),
+  // Tournament live status (updated as tournament progresses)
+  tournamentStatus: Type.Optional(Type.Union([
+    Type.Literal('waiting'),
+    Type.Literal('in_progress'),
+    Type.Literal('finished')
+  ])),
+  // When it's the invited user's turn to play
+  matchReady: Type.Optional(Type.Boolean()),
+  matchId: Type.Optional(Type.String()),
+  opponentName: Type.Optional(Type.String()),
+  // When tournament is finished
+  winnerName: Type.Optional(Type.String()),
+  winnerId: Type.Optional(Type.String()),
   expiresAt: Type.String({ format: 'date-time' }),
   createdAt: Type.String({ format: 'date-time' })
 });
